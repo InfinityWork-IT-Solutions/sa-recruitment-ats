@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SA Recruitment ATS Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .wireframe-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .wireframe-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .wireframe-header h1 {
+            font-size: 18px;
+            color: #333;
+        }
+        .wireframe-header p {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .screen-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .screen {
+            flex: 1;
+            border: 2px solid #333;
+            padding: 0;
+            background: white;
+        }
+        .screen-header {
+            background: #e0e0e0;
+            padding: 15px;
+            border-bottom: 2px solid #333;
+            text-align: center;
+            font-weight: bold;
+        }
+        .screen-body {
+            padding: 30px;
+        }
+        .logo-area {
+            text-align: center;
+            padding: 40px 0 30px;
+        }
+        .logo-box {
+            width: 120px;
+            height: 120px;
+            background: #d0d0d0;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #666;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .form-input {
+            width: 100%;
+            height: 40px;
+            border: 2px solid #999;
+            background: white;
+            padding: 0 10px;
+        }
+        .form-input::before {
+            content: 'Text Input';
+            color: #999;
+            font-size: 12px;
+        }
+        .button {
+            width: 100%;
+            height: 45px;
+            background: #4a90e2;
+            border: 2px solid #333;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .button-secondary {
+            background: white;
+            color: #333;
+        }
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: #999;
+        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        .link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #4a90e2;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #999;
+            background: white;
+        }
+        .note {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="wireframe-container">
+        <div class="wireframe-header">
+            <h1>🎨 WIREFRAME: Login & Registration Pages</h1>
+            <p>SA Recruitment ATS - Authentication Screens</p>
+        </div>
+
+        <div class="screen-container">
+            <!-- Login Screen -->
+            <div class="screen">
+                <div class="screen-header">LOGIN PAGE</div>
+                <div class="screen-body">
+                    <div class="logo-area">
+                        <div class="logo-box">
+                            <span>LOGO</span>
+                        </div>
+                        <h2 style="margin-top: 15px; font-size: 24px;">RecruitPro SA</h2>
+                        <p style="color: #666; font-size: 14px;">Infinite Tech. Limitless Solutions.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="form-input"></div>
+                        <div class="note">e.g., <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="70021513020519041502301117151e13095e131f1d">[email&#160;protected]</a></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <div class="form-input"></div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <div class="checkbox"></div>
+                        <label style="font-size: 14px;">Remember me</label>
+                    </div>
+
+                    <button class="button">LOGIN</button>
+
+                    <div class="link">Forgot password?</div>
+
+                    <div class="divider">OR</div>
+
+                    <button class="button button-secondary">CREATE NEW ACCOUNT</button>
+
+                    <div style="margin-top: 30px; padding: 15px; background: #f0f0f0; border: 1px solid #ccc;">
+                        <p style="font-size: 12px; text-align: center;">
+                            <strong>Features:</strong><br>
+                            • JWT authentication<br>
+                            • Email verification required<br>
+                            • Failed login protection (5 attempts)<br>
+                            • Optional MFA support
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registration Screen -->
+            <div class="screen">
+                <div class="screen-header">REGISTRATION PAGE</div>
+                <div class="screen-body">
+                    <h2 style="margin-bottom: 20px; text-align: center;">Create Your Agency Account</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">Agency Name</label>
+                        <div class="form-input"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label class="form-label">First Name</label>
+                            <div class="form-input"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <div class="form-input"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="form-input"></div>
+                        <div class="note">This will be your login email</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <div class="form-input"></div>
+                        <div class="note">Min 8 characters, include uppercase, lowercase, number</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password</label>
+                        <div class="form-input"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Subscription Tier</label>
+                        <div style="border: 2px solid #999; padding: 10px; background: white;">
+                            <div style="margin-bottom: 8px;">○ Lite - R725/seat/month</div>
+                            <div style="margin-bottom: 8px;">● Standard - R925/seat/month</div>
+                            <div>○ Premium - R1,150/seat/month</div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <div class="checkbox"></div>
+                        <label style="font-size: 12px;">I agree to the Terms of Service and Privacy Policy (POPIA compliant)</label>
+                    </div>
+
+                    <button class="button">CREATE ACCOUNT</button>
+
+                    <div class="link">Already have an account? Login here</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd;">
+            <h3 style="margin-bottom: 10px;">Authentication Flow Notes:</h3>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li><strong>Login:</strong> Email/password → JWT token (1hr) + Refresh token (7 days)</li>
+                <li><strong>Registration:</strong> Create account → Email verification sent → Email verified → Onboarding wizard</li>
+                <li><strong>Security:</strong> Bcrypt password hashing (12 rounds), rate limiting (5 failed attempts per 15min)</li>
+                <li><strong>Session:</stron

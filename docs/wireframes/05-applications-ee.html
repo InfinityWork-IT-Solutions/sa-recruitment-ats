@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applications & EE Reports - SA Recruitment ATS Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .wireframe-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        .wireframe-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .screen-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .screen {
+            border: 3px solid #333;
+            background: white;
+        }
+        .screen-title {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .screen-content {
+            padding: 20px;
+        }
+        .pipeline-container {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        .pipeline-column {
+            flex: 0 0 250px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .pipeline-header {
+            padding: 12px;
+            background: #e9ecef;
+            border-bottom: 2px solid #ddd;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pipeline-count {
+            background: #4a90e2;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .pipeline-card {
+            background: white;
+            border: 2px solid #ddd;
+            margin: 10px;
+            padding: 12px;
+            cursor: move;
+            border-radius: 3px;
+        }
+        .pipeline-card:hover {
+            border-color: #4a90e2;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .candidate-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .job-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .match-score {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #27ae60;
+            color: white;
+            font-size: 11px;
+            border-radius: 3px;
+        }
+        .chart-container {
+            border: 2px solid #ddd;
+            padding: 20px;
+            background: #f9f9f9;
+            margin-bottom: 20px;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th {
+            background: #e9ecef;
+            padding: 12px;
+            text-align: left;
+            border: 2px solid #ddd;
+            font-size: 13px;
+        }
+        .table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-size: 13px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border: 1px solid #999;
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #27ae60;
+            text-align: center;
+            color: white;
+            font-size: 11px;
+            line-height: 20px;
+        }
+        .gap-indicator {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .target-met {
+            color: #27ae60;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="wireframe-container">
+        <div class="wireframe-header">
+            <h1>🎨 WIREFRAME: Applications Pipeline & EE Reports</h1>
+            <p>SA Recruitment ATS - Pipeline Management & Employment Equity Reporting</p>
+        </div>
+
+        <div class="screen-grid">
+            <!-- Applications Pipeline Screen -->
+            <div class="screen">
+                <div class="screen-title">APPLICATIONS PIPELINE (KANBAN VIEW)</div>
+                <div class="screen-content">
+                    <!-- Job Selector -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f0f0f0; border: 2px solid #999;">
+                        <label style="font-weight: bold; margin-right: 10px;">Viewing:</label>
+                        <select style="padding: 8px; border: 2px solid #999; background: white; min-width: 300px;">
+                            <option>Senior DevOps Engineer @ TechCorp</option>
+                            <option>Full Stack Developer @ StartupHub</option>
+                            <option>Python Developer @ DataFlow</option>
+                        </select>
+                    </div>
+
+                    <!-- Pipeline Columns -->
+                    <div class="pipeline-container">
+                        <!-- New -->
+                        <div class="pipeline-column">
+                            <div class="pipeline-header">
+                                <span>New</span>
+                                <span class="pipeline-count">8</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Sarah Johnson</div>
+                                <div class="job-title">Applied: 2 hours ago</div>
+                                <span class="match-score">94%</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Michael Brown</div>
+                                <div class="job-title">Applied: 5 hours ago</div>
+                                <span class="match-score">89%</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Emma Wilson</div>
+                                <div class="job-title">Applied: 1 day ago</div>
+                                <span class="match-score">87%</span>
+                            </div>
+                        </div>
+
+                        <!-- Screening -->
+                        <div class="pipeline-column">
+                            <div class="pipeline-header">
+                                <span>Screening</span>
+                                <span class="pipeline-count">5</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">John Smith</div>
+                                <div class="job-title">In screening: 2 days</div>
+                                <span class="match-score">92%</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Lisa Anderson</div>
+                                <div class="job-title">In screening: 3 days</div>
+                                <span class="match-score">85%</span>
+                            </div>
+                        </div>
+
+                        <!-- Shortlisted -->
+                        <div class="pipeline-column">
+                            <div class="pipeline-header">
+                                <span>Shortlisted</span>
+                                <span class="pipeline-count" style="background: #f39c12;">12</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Thabo Mthembu</div>
+                                <div class="job-title">Shortlisted: 1 week</div>
+                                <span class="match-score">96%</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Naledi Khumalo</div>
+                                <div class="job-title">Shortlisted: 1 week</div>
+                                <span class="match-score">91%</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">David Lee</div>
+                                <div class="job-title">Shortlisted: 4 days</div>
+                                <span class="match-score">88%</span>
+                            </div>
+                        </div>
+
+                        <!-- Interview -->
+                        <div class="pipeline-column">
+                            <div class="pipeline-header">
+                                <span>Interview</span>
+                                <span class="pipeline-count" style="background: #9b59b6;">3</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">James Taylor</div>
+                                <div class="job-title">Interview: Tomorrow 10AM</div>
+                                <span class="match-score">90%</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Rachel Green</div>
+                                <div class="job-title">Interviewed: 2 days ago</div>
+                                <span class="match-score">93%</span>
+                            </div>
+                        </div>
+
+                        <!-- Offered -->
+                        <div class="pipeline-column">
+                            <div class="pipeline-header">
+                                <span>Offered</span>
+                                <span class="pipeline-count" style="background: #27ae60;">1</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Emma Davis</div>
+                                <div class="job-title">Offer sent: 3 days ago</div>
+                                <div style="margin-top: 8px; font-size: 12px;">
+                                    <strong>R75,000/month</strong><br>
+                                    Expires: 25 Jan 2026
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rejected -->
+                        <div class="pipeline-column">
+                            <div class="pipeline-header">
+                                <span>Rejected</span>
+                                <span class="pipeline-count" style="background: #e74c3c;">4</span>
+                            </div>
+                            <div class="pipeline-card">
+                                <div class="candidate-name">Tom Harris</div>
+                                <div class="job-title">Rejected: Not enough exp</div>
+                                <span style="font-size: 11px; color: #999;">5 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Features -->
+                    <div style="margin-top: 30px; padding: 15px; background: #e8f5e9; border: 2px solid #27ae60;">
+                        <strong>Pipeline Features:</strong>
+                        <ul style="margin-left: 20px; margin-top: 8px; font-size: 13px; line-height: 1.6;">
+                            <li>Drag & drop cards between columns to update status</li>
+                            <li>Click card to view candidate details</li>
+                            <li>Auto-save when cards moved</li>
+                            <li>Status history tracked in database</li>
+                            <li>Email notifications on status changes</li>
+                            <li>Color-coded by urgency and match score</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Equity Dashboard -->
+            <div class="screen">
+                <div class="screen-title">EMPLOYMENT EQUITY DASHBOARD</div>
+                <div class="screen-content">
+                    <!-- Report Selector -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f0f0f0; border: 2px solid #999;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px;">Report Type</label>
+                                <select style="width: 100%; padding: 6px; border: 2px solid #999;">
+                                    <option>Placements</option>
+                                    <option>Shortlist</option>
+                                    <option>Pipeline</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px;">Sector</label>
+                                <select style="width: 100%; padding: 6px; border: 2px solid #999;">
+                                    <option>IT & Technology</option>
+                                    <option>Finance</option>
+                                    <option>Healthcare</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px;">Period</label>
+                                <select style="width: 100%; padding: 6px; border: 2px solid #999;">
+                                    <option>Last 3 Months</option>
+                                    <option>Last 6 Months</option>
+                                    <option>Last Year</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">42</div>
+                            <div class="stat-label">Total Placements</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">68%</div>
+                            <div class="stat-label">EE Compliance</div>
+                            <div style="font-size: 11px; color: #f39c12; margin-top: 5px;">⚠ Improvement needed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">13</div>
+                            <div class="stat-label">Gap to Target</div>
+                            <div style="font-size: 11px; color: #e74c3c; margin-top: 5px;">More diverse candidates needed</div>
+                        </div>
+                    </div>
+
+                    <!-- Race Distribution Chart -->
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 10px; font-size: 16px;">Race Distribution vs Target</h3>
+                        <div class="chart-container">
+                            <div style="width: 100%;">
+                                <div style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+                                        <span><strong>African</strong></span>
+                                        <span>52% (Target: 60%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 86.7%; background: #e74c3c;">52% / 60%</div>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+                                        <span><strong>Coloured</strong></span>
+                                        <span>24% (Target: 20%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 100%; background: #27ae60;">24% / 20% ✓</div>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+                                        <span><strong>Indian</strong></span>
+                                        <span>14% (Target: 10%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 100%; background: #27ae60;">14% / 10% ✓</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+                                        <span><strong>White</strong></span>
+                                        <span>10% (Target: 10%)</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 100%; background: #27ae60;">10% / 10% ✓</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gender & Disability -->
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 10px; font-size: 16px;">Gender & Disability</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Current</th>
+                                    <th>Target</th>
+                                    <th>Gap</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Female</td>
+                                    <td>45%</td>
+                                    <td>50%</td>
+                                    <td class="gap-indicator">-5%</td>
+                                    <td>⚠ Need 2 more</td>
+                                </tr>
+                                <tr>
+                                    <td>Male</td>
+                                    <td>55%</td>
+                                    <td>50%</td>
+                                    <td class="target-met">+5%</td>
+                                    <td>✓ Target met</td>
+                                </tr>
+                                <tr>
+                                    <td>Disability</td>
+                                    <td>2%</td>
+                                    <td>5%</td>
+                                    <td class="gap-indicator">-3%</td>
+                                    <td>⚠ Need 1-2 more</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px;">
+                        <h3 style="margin-bottom: 10px; font-size: 16px;">🎯 Recommendations</h3>
+                        <ol style="margin-left: 20px; font-size: 13px; line-height: 1.8;">
+                            <li>Prioritize African candidates for next 3 placements to reach 60% target</li>
+                            <li>Focus on female candidates (need 2 more to reach 50% target)</li>
+                            <li>Actively source candidates with disabilities (current: 2%, target: 5%)</li>
+                            <li>Current Coloured, Indian, and White representation meets or exceeds targets</li>
+                        </ol>
+                    </div>
+
+                    <!-- Export Button -->
+                    <div style="margin-top: 20px;">
+                        <button style="width: 100%; padding: 15px; background: #27ae60; color: white; border: 2px solid #333; font-weight: bold; font-size: 14px; cursor: pointer;">
+                            📊 EXPORT TO DPSA EEA FORMAT (Excel)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 2px solid #ddd;">
+            <h3 style="margin-bottom: 10px;">EE Reporting Features:</h3>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li><strong>18 Sector-Specific Targets:</strong> Pre-configured targets for all SA EE Act sectors (IT: 60% African, 50% Female, 5% Disability by 2030)</li>
+                <li><strong>Placement Tracking:</strong> Real-time calculation of race/gender/disability breakdown on actual hires</li>
+                <li><strong>Gap Analysis:</strong> Automatic calculation of how many candidates needed to meet targets</li>
+                <li><strong>Diverse Shortlist Generation:</strong> AI suggests candidates to help meet EE targets (+5% match score boost)</li>
+                <li><strong>DPSA Export:</strong> One-click export to Department of Public Service & Administration EEA format</li>
+                <li><strong>Consent-Based:</strong> EE data only collected with explicit candidate consent (POPIA compliant)</li>
+                <li><strong>Report Types:</strong> Placements (actual hires), Shortlist (candidates considered), Pipeline (all applicants)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

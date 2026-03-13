@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidates - SA Recruitment ATS Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .wireframe-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        .wireframe-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .screen-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .screen {
+            border: 3px solid #333;
+            background: white;
+        }
+        .screen-title {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .screen-content {
+            padding: 20px;
+        }
+        .profile-header {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .avatar {
+            width: 120px;
+            height: 120px;
+            background: #d0d0d0;
+            border: 2px solid #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+        .profile-info {
+            flex: 1;
+        }
+        .profile-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .profile-title {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .contact-info {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btn {
+            padding: 8px 15px;
+            border: 2px solid #333;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .action-btn-primary {
+            background: #4a90e2;
+            color: white;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 20px;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tab.active {
+            background: white;
+            border-top-color: #4a90e2;
+            border-top-width: 3px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .info-item {
+            font-size: 13px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        .experience-item {
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .tag {
+            padding: 5px 12px;
+            background: #e0e0e0;
+            border: 1px solid #999;
+            font-size: 12px;
+        }
+        .upload-zone {
+            border: 3px dashed #999;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .upload-zone:hover {
+            border-color: #4a90e2;
+            background: #f0f8ff;
+        }
+        .parsing-status {
+            padding: 20px;
+            border: 2px solid #4a90e2;
+            background: #f0f8ff;
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border: 2px solid #999;
+            margin: 15px 0;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #4a90e2;
+            width: 75%;
+        }
+        .parsed-data {
+            background: #f9f9f9;
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wireframe-container">
+        <div class="wireframe-header">
+            <h1>🎨 WIREFRAME: Candidate Profile & Resume Upload</h1>
+            <p>SA Recruitment ATS - Candidate Management</p>
+        </div>
+
+        <div class="screen-grid">
+            <!-- Candidate Profile Screen -->
+            <div class="screen">
+                <div class="screen-title">CANDIDATE PROFILE PAGE</div>
+                <div class="screen-content">
+                    <!-- Profile Header -->
+                    <div class="profile-header">
+                        <div class="avatar">TM</div>
+                        <div class="profile-info">
+                            <div class="profile-name">Thabo Mthembu</div>
+                            <div class="profile-title">Senior DevOps Engineer</div>
+                            <div class="contact-info">
+                                <span>📧 <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4c38242d2e2362210c29212d2520622f2321">[email&#160;protected]</a></span>
+                                <span>📱 +27 82 456 7890</span>
+                                <span>📍 Cape Town, Western Cape</span>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <span style="padding: 3px 10px; background: #27ae60; color: white; font-size: 11px; border-radius: 3px;">ACTIVE</span>
+                                <span style="padding: 3px 10px; background: #3498db; color: white; font-size: 11px; border-radius: 3px; margin-left: 5px;">AVAILABLE</span>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="action-btn action-btn-primary">📝 APPLY TO JOB</button>
+                            <button class="action-btn">💾 DOWNLOAD CV</button>
+                            <button class="action-btn">✉️ EMAIL</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <div class="tab active">Overview</div>
+                        <div class="tab">Experience</div>
+                        <div class="tab">Education</div>
+                        <div class="tab">Applications</div>
+                        <div class="tab">Matches</div>
+                    </div>
+
+                    <!-- Overview Tab Content -->
+                    <div class="section">
+                        <div class="section-title">Personal Information</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Years of Experience</div>
+                                <div>7 years</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Highest Qualification</div>
+                                <div>BSc Computer Science</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Current Company</div>
+                                <div>TechCorp South Africa</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Notice Period</div>
+                                <div>30 days</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Expected Salary</div>
+                                <div>R70,000 - R85,000 per month</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Availability Date</div>
+                                <div>01 March 2026</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Skills</div>
+                        <div class="tag-list">
+                            <span class="tag">AWS</span>
+                            <span class="tag">Terraform</span>
+                            <span class="tag">Docker</span>
+                            <span class="tag">Kubernetes</span>
+                            <span class="tag">Python</span>
+                            <span class="tag">CI/CD</span>
+                            <span class="tag">Ansible</span>
+                            <span class="tag">Jenkins</span>
+                            <span class="tag">Prometheus</span>
+                            <span class="tag">Grafana</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Current Experience</div>
+                        <div class="experience-item">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 15px;">Senior DevOps Engineer</div>
+                                    <div style="color: #666; font-size: 13px;">TechCorp South Africa</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 13px;">Jan 2022 - Present</div>
+                                    <div style="font-size: 12px; color: #666;">Cape Town</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; line-height: 1.6; color: #555;">
+                                • Led infrastructure migration to AWS, reducing costs by 40%<br>
+                                • Implemented CI/CD pipelines using GitHub Actions and Jenkins<br>
+                                • Managed Kubernetes clusters serving 2M+ daily active users
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section" style="border: none;">
+                        <div class="section-title">Links</div>
+                        <div style="font-size: 13px;">
+                            <div style="margin-bottom: 5px;">🔗 LinkedIn: linkedin.com/in/thabo-mthembu</div>
+                            <div>💼 Portfolio: thabo-devops.com</div>
+                        </div>
+                    </div>
+
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin-top: 20px;">
+                        <strong>Recruiter Notes:</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">
+                            Excellent candidate for senior DevOps roles. Strong AWS experience and proven track record. Available for interview next week.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Upload Screen -->
+            <div class="screen">
+                <div class="screen-title">RESUME UPLOAD & PARSING</div>
+                <div class="screen-content">
+                    <!-- Step 1: Upload -->
+                    <div style="margin-bottom: 40px;">
+                        <h3 style="margin-bottom: 15px;">Step 1: Upload Resume</h3>
+                        <div class="upload-zone">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                            <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+                                Drag & Drop Resume Here
+                            </div>
+                            <div style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                                or click to browse
+                            </div>
+                            <div style="font-size: 12px; color: #999;">
+                                Supported: PDF, DOC, DOCX (Max 10MB)
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button style="flex: 1; padding: 12px; background: white; border: 2px solid #999;">CANCEL</button>
+                            <button style="flex: 1; padding: 12px; background: #4a90e2; color: white; border: 2px solid #333; font-weight: bold;">UPLOAD & PARSE</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Parsing -->
+                    <div style="margin-bottom: 40px;">
+                        <h3 style="margin-bottom: 15px;">Step 2: AI Parsing (30 seconds)</h3>
+                        <div class="parsing-status">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="font-weight: bold;">Parsing Resume...</span>
+                                <span>75%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <div style="font-size: 12px; color: #666;">
+                                ✓ Resume uploaded to S3<br>
+                                ✓ Text extracted<br>
+                                ⏳ OpenAI parsing (recognizing SA qualifications)<br>
+                                ⏳ Matching algorithm running...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Review -->
+                    <div>
+                        <h3 style="margin-bottom: 15px;">Step 3: Review Parsed Data</h3>
+                        
+                        <div class="parsed-data">
+                            <div style="font-weight: bold; margin-bottom: 10px; color: #27ae60;">✓ Parsing Complete!</div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-weight: bold; margin-bottom: 5px;">Personal Info:</div>
+                                <div style="font-size: 13px; line-height: 1.6;">
+                                    Name: Thabo Mthembu<br>
+                                    Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ea9e828b8885c487aa8f878b8386c4898587">[email&#160;protected]</a><br>
+                                    Phone: +27 82 456 7890<br>
+                                    Location: Cape Town, Western Cape
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-weight: bold; margin-bottom: 5px;">Experience:</div>
+                                <div style="font-size: 13px;">
+                                    7 years total experience<br>
+                                    2 positions extracted
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-weight: bold; margin-bottom: 5px;">Education:</div>
+                                <div style="font-size: 13px;">
+                                    BSc Computer Science - University of Cape Town (2014-2017)
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <div style="font-weight: bold; margin-bottom: 5px;">Skills Extracted:</div>
+                                <div class="tag-list">
+                                    <span class="tag">AWS</span>
+                                    <span class="tag">Terraform</span>
+                                    <span class="tag">Docker</span>
+                                    <span class="tag">Kubernetes</span>
+                                    <span class="tag">Python</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: #d4edda; border: 2px solid #28a745; padding: 15px; margin-bottom: 15px;">
+                            <div style="font-weight: bold; margin-bottom: 10px;">Top Job Matches Found:</div>
+                            <div style="font-size: 13px;">
+                                1. Senior DevOps Engineer @ TechCorp (94% match)<br>
+                                2. Cloud Infrastructure Lead @ StartupHub (89% match)<br>
+                                3. DevOps Consultant @ ConsultCo (85% match)
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button style="flex: 1; padding: 12px; background: white; border: 2px solid #999;">EDIT DATA</button>
+                            <button style="flex: 1; padding: 12px; background: #27ae60; color: white; border: 2px solid #333; font-weight: bold;">SAVE CANDIDATE</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 2px solid #ddd;">
+            <h3 style="margin-bottom: 10px;">Candidate Management Features:</h3>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li><strong>Resume Upload:</strong> Drag & drop or browse. Files stored in S3 with virus scanning</li>
+                <li><strong>AI Parsing (30s SLA):</strong> OpenAI API extracts name, contact, experience, education, skills</li>
+                <li><strong>SA Localization:</strong> Recognizes BCom, CA(SA), Matric, N6 diploma, University of Cape Town, etc.</li>
+                <li><strong>Auto-matching:</strong> After parsing, matching algorithm runs against all active jobs</li>
+                <li><strong>Full-text Search:</strong> PostgreSQL GIN index on resume_parsed_text for fast searching</li>
+                <li><strong>WebSocket Notifications:</strong> Real-time parsing completion notification to user</li>
+                <li><strong>Profile Tabs:</strong> Overview, Experience (timeline), Education, Ap

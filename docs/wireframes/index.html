@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SA Recruitment ATS - Wireframes Index</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        .tagline {
+            font-size: 14px;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        .wireframe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .wireframe-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        .wireframe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        .wireframe-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            font-size: 64px;
+        }
+        .wireframe-content {
+            padding: 25px;
+        }
+        .wireframe-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .wireframe-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .wireframe-features {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .wireframe-features li {
+            margin-bottom: 5px;
+        }
+        .view-button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        .view-button:hover {
+            background: #5568d3;
+        }
+        .project-info {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .project-info h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .project-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+        }
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .tech-badge {
+            background: #667eea;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 SA Recruitment ATS</h1>
+            <p>Complete UI/UX Wireframe Documentation</p>
+            <p class="tagline">InfinityWork IT Solutions (Pty) Ltd</p>
+        </div>
+
+        <div class="project-info">
+            <h2>📊 Project Overview</h2>
+            <p style="color: #666; line-height: 1.8; margin-bottom: 20px;">
+                A specialized South African recruitment ATS (Applicant Tracking System) built for recruitment agencies targeting the Cape Town market. 
+                Features include AI-powered resume parsing with SA localization, job-candidate matching, POPIA compliance, and Employment Equity reporting 
+                against 18 sector-specific targets mandated by the SA EE Act.
+            </p>
+
+            <div class="project-stats">
+                <div class="stat-box">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Months to Launch</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">53</div>
+                    <div class="stat-label">Project Tasks</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">20+</div>
+                    <div class="stat-label">Database Tables</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Core Screens</div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #333;">Tech Stack</h3>
+            <div class="tech-stack">
+                <span class="tech-badge">FastAPI</span>
+                <span class="tech-badge">React 18</span>
+                <span class="tech-badge">PostgreSQL 15</span>
+                <span class="tech-badge">Redis</span>
+                <span class="tech-badge">Celery</span>
+                <span class="tech-badge">AWS</span>
+                <span class="tech-badge">Docker</span>
+                <span class="tech-badge">Terraform</span>
+                <span class="tech-badge">OpenAI API</span>
+                <span class="tech-badge">SendGrid</span>
+                <span class="tech-badge">Tailwind CSS</span>
+            </div>
+        </div>
+
+        <div class="wireframe-grid">
+            <!-- Wireframe 1: Login & Registration -->
+            <div class="wireframe-card" onclick="window.open('01-login-registration.html', '_blank')">
+                <div class="wireframe-icon">🔐</div>
+                <div class="wireframe-content">
+                    <div class="wireframe-title">Login & Registration</div>
+                    <div class="wireframe-description">
+                        Authentication screens with JWT token-based login, email verification, and agency registration with subscription tier selection.
+                    </div>
+                    <ul class="wireframe-features">
+                        <li>✓ JWT authentication (1hr access + 7d refresh)</li>
+                        <li>✓ Email verification flow</li>
+                        <li>✓ Failed login protection (5 attempts)</li>
+                        <li>✓ MFA support (TOTP)</li>
+                        <li>✓ Subscription tier selection</li>
+                    </ul>
+                    <a href="01-login-registration.html" class="view-button" onclick="event.stopPropagation()">VIEW WIREFRAME →</a>
+                </div>
+            </div>
+
+            <!-- Wireframe 2: Dashboard -->
+            <div class="wireframe-card" onclick="window.open('02-dashboard.html', '_blank')">
+                <div class="wireframe-icon">📊</div>
+                <div class="wireframe-content">
+                    <div class="wireframe-title">Dashboard</div>
+                    <div class="wireframe-description">
+                        Main landing page with KPI cards, recent activity feed, top candidate matches, and quick action buttons.
+                    </div>
+                    <ul class="wireframe-features">
+                        <li>✓ Real-time KPIs (jobs, candidates, placements, time-to-hire)</li>
+                        <li>✓ Activity feed with 50 recent events</li>
+                        <li>✓ Top 5 candidate matches (refreshed hourly)</li>
+                        <li>✓ Quick actions for common tasks</li>
+                        <li>✓ WebSocket real-time updates</li>
+                    </ul>
+                    <a href="02-dashboard.html" class="view-button" onclick="event.stopPropagation()">VIEW WIREFRAME →</a>
+                </div>
+            </div>
+
+            <!-- Wireframe 3: Jobs -->
+            <div class="wireframe-card" onclick="window.open('03-jobs.html', '_blank')">
+                <div class="wireframe-icon">💼</div>
+                <div class="wireframe-content">
+                    <div class="wireframe-title">Job Listing & Creation</div>
+                    <div class="wireframe-description">
+                        Job management with search/filter, sortable listing, and comprehensive job creation form with multi-board posting support.
+                    </div>
+                    <ul class="wireframe-features">
+                        <li>✓ Search by title, client, reference number</li>
+                        <li>✓ Filter by status, client, date, location</li>
+                        <li>✓ Multi-board posting (PNet, CareerJunction)</li>
+                        <li>✓ Auto-matching on job post</li>
+                        <li>✓ Skills array with GIN indexing</li>
+                    </ul>
+                    <a href="03-jobs.html" class="view-button" onclick="event.stopPropagation()">VIEW WIREFRAME →</a>
+                </div>
+            </div>
+
+            <!-- Wireframe 4: Candidates -->
+            <div class="wireframe-card" onclick="window.open('04-candidates.html', '_blank')">
+                <div class="wireframe-icon">👥</div>
+                <div class="wireframe-content">
+                    <div class="wireframe-title">Candidate Profile & Resume Upload</div>
+                    <div class="wireframe-description">
+                        Comprehensive candidate profiles with tabbed navigation and AI-powered resume parsing with 30-second SLA.
+                    </div>
+                    <ul class="wireframe-features">
+                        <li>✓ AI resume parsing (<30s SLA)</li>
+                        <li>✓ SA localization (BCom, CA(SA), Matric, UCT)</li>
+                        <li>✓ Auto-matching against active jobs</li>
+                        <li>✓ Full-text search with GIN indexes</li>
+                        <li>✓ WebSocket parsing notifications</li>
+                    </ul>
+                    <a href="04-candidates.html" class="view-button" onclick="event.stopPropagation()">VIEW WIREFRAME →</a>
+                </div>
+            </div>
+
+            <!-- Wireframe 5: Applications & EE -->
+            <div class="wireframe-card" onclick="window.open('05-applications-ee.html', '_blank')">
+                <div class="wireframe-icon">📋</div>
+                <div class="wireframe-content">
+                    <div class="wireframe-title">Applications Pipeline & EE Reports</div>
+                    <div class="wireframe-description">
+                        Kanban-style application pipeline with drag & drop, plus Employment Equity dashboard with sector-specific targets.
+                    </div>
+                    <ul class="wireframe-features">
+                        <li>✓ Drag & drop status updates</li>
+                        <li>✓ Status history tracking</li>
+                        <li>✓ 18 sector-specific EE targets</li>
+                        <li>✓ Gap analysis & recommendations</li>
+                        <li>✓ DPSA EEA format export</li>
+                    </ul>
+                    <a href="05-applications-ee.html" class="view-button" onclick="event.stopPropagation()">VIEW WIREFRAME →</a>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 50px; color: white;">
+            <h3 style="margin-bottom: 15px;">📦 Complete Project Package</h3>
+            <p style="opacity: 0.9; margin-bottom: 20px;">
+                These wireframes are part of a comprehensive project documentation including:<br>
+                System Requirements, Database Schema, Docker Compose, Developer Quickstart, and Project Plan
+            </p>
+            <p style="font-size: 14px; opacity: 0.8;">
+                Created for InfinityWork IT Solutions (Pty) Ltd<br>
+                Cape Town, South Africa | 2026
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+        });
+
+        // Add smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

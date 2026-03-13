@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs - SA Recruitment ATS Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .wireframe-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        .wireframe-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .screen-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .screen {
+            border: 3px solid #333;
+            background: white;
+        }
+        .screen-title {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .screen-content {
+            padding: 20px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border: 2px solid #999;
+        }
+        .search-box {
+            flex: 1;
+            height: 40px;
+            border: 2px solid #999;
+            background: white;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            color: #999;
+        }
+        .filters {
+            display: flex;
+            gap: 10px;
+        }
+        .filter-button {
+            padding: 8px 15px;
+            border: 2px solid #999;
+            background: white;
+            font-size: 12px;
+        }
+        .button-primary {
+            background: #4a90e2;
+            color: white;
+            padding: 10px 20px;
+            border: 2px solid #333;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .job-card {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        .job-card:hover {
+            border-color: #4a90e2;
+            background: #f8f9fa;
+        }
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 11px;
+            border: 1px solid #333;
+            margin-right: 5px;
+        }
+        .badge-active { background: #27ae60; color: white; }
+        .badge-urgent { background: #e74c3c; color: white; }
+        .badge-remote { background: #3498db; color: white; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        .form-input {
+            width: 100%;
+            height: 35px;
+            border: 2px solid #999;
+            background: white;
+            padding: 0 10px;
+        }
+        .form-textarea {
+            width: 100%;
+            height: 80px;
+            border: 2px solid #999;
+            background: white;
+            padding: 10px;
+        }
+        .form-select {
+            width: 100%;
+            height: 35px;
+            border: 2px solid #999;
+            background: white;
+            padding: 0 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        .stat-box {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            padding: 5px 12px;
+            background: #e0e0e0;
+            border: 1px solid #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wireframe-container">
+        <div class="wireframe-header">
+            <h1>🎨 WIREFRAME: Job Listing & Job Detail</h1>
+            <p>SA Recruitment ATS - Jobs Management</p>
+        </div>
+
+        <div class="screen-grid">
+            <!-- Job Listing Screen -->
+            <div class="screen">
+                <div class="screen-title">JOB LISTING PAGE</div>
+                <div class="screen-content">
+                    <!-- Toolbar -->
+                    <div class="toolbar">
+                        <div class="search-box">🔍 Search jobs by title, client, or reference...</div>
+                        <button class="button-primary">+ POST NEW JOB</button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filters" style="margin-bottom: 20px;">
+                        <div class="filter-button">Status: All ▼</div>
+                        <div class="filter-button">Client: All ▼</div>
+                        <div class="filter-button">Date: Last 30 days ▼</div>
+                        <div class="filter-button">Location: All ▼</div>
+                    </div>
+
+                    <!-- Job Cards -->
+                    <div class="job-card">
+                        <div class="job-header">
+                            <div>
+                                <div style="font-size: 16px; font-weight: bold;">Senior DevOps Engineer</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 3px;">
+                                    TechCorp SA | Cape Town | Ref: JOB-2024-0245
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge badge-active">ACTIVE</span>
+                                <span class="badge badge-urgent">URGENT</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                            Posted: 15 Jan 2026 | Closing: 15 Feb 2026
+                        </div>
+                        <div style="display: flex; gap: 20px; font-size: 13px; margin-bottom: 10px;">
+                            <span>📊 24 Applications</span>
+                            <span>⭐ 8 Shortlisted</span>
+                            <span>💰 R65k - R85k</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <div class="tag-list">
+                                <span class="tag">AWS</span>
+                                <span class="tag">Terraform</span>
+                                <span class="tag">Docker</span>
+                            </div>
+                            <button style="padding: 8px 15px; background: #4a90e2; color: white; border: 2px solid #333;">VIEW</button>
+                        </div>
+                    </div>
+
+                    <div class="job-card">
+                        <div class="job-header">
+                            <div>
+                                <div style="font-size: 16px; font-weight: bold;">Full Stack Developer</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 3px;">
+                                    StartupHub | Stellenbosch | Ref: JOB-2024-0238
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge badge-active">ACTIVE</span>
+                                <span class="badge badge-remote">REMOTE</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                            Posted: 10 Jan 2026 | Closing: 28 Jan 2026
+                        </div>
+                        <div style="display: flex; gap: 20px; font-size: 13px; margin-bottom: 10px;">
+                            <span>📊 18 Applications</span>
+                            <span>⭐ 5 Shortlisted</span>
+                            <span>💰 R45k - R60k</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <div class="tag-list">
+                                <span class="tag">React</span>
+                                <span class="tag">Node.js</span>
+                                <span class="tag">TypeScript</span>
+                            </div>
+                            <button style="padding: 8px 15px; background: #4a90e2; color: white; border: 2px solid #333;">VIEW</button>
+                        </div>
+                    </div>
+
+                    <div class="job-card">
+                        <div class="job-header">
+                            <div>
+                                <div style="font-size: 16px; font-weight: bold;">Python Developer</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 3px;">
+                                    DataFlow Analytics | Cape Town | Ref: JOB-2024-0229
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge badge-active">ACTIVE</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                            Posted: 08 Jan 2026 | Closing: 22 Jan 2026
+                        </div>
+                        <div style="display: flex; gap: 20px; font-size: 13px; margin-bottom: 10px;">
+                            <span>📊 31 Applications</span>
+                            <span>⭐ 12 Shortlisted</span>
+                            <span>💰 R40k - R55k</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <div class="tag-list">
+                                <span class="tag">Python</span>
+                                <span class="tag">FastAPI</span>
+                                <span class="tag">PostgreSQL</span>
+                            </div>
+                            <button style="padding: 8px 15px; background: #4a90e2; color: white; border: 2px solid #333;">VIEW</button>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 2px solid #ddd;">
+                        <button style="padding: 8px 15px; border: 2px solid #999; background: white;">← Previous</button>
+                        <button style="padding: 8px 15px; border: 2px solid #333; background: #4a90e2; color: white;">1</button>
+                        <button style="padding: 8px 15px; border: 2px solid #999; background: white;">2</button>
+                        <button style="padding: 8px 15px; border: 2px solid #999; background: white;">3</button>
+                        <button style="padding: 8px 15px; border: 2px solid #999; background: white;">Next →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create/Edit Job Screen -->
+            <div class="screen">
+                <div class="screen-title">CREATE/EDIT JOB FORM</div>
+                <div class="screen-content">
+                    <div class="section">
+                        <div class="section-title">Job Details</div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Job Title *</label>
+                            <div class="form-input"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Client Company *</label>
+                                <div class="form-select">Select client ▼</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Reference Number</label>
+                                <div class="form-input"></div>
+                                <div style="font-size: 11px; color: #666;">Auto-generated if empty</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Job Description *</label>
+                            <div class="form-textarea"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Requirements</label>
+                            <div class="form-textarea"></div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Location & Salary</div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Location</label>
+                                <div class="form-input"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Employment Type</label>
+                                <div class="form-select">Permanent ▼</div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Min Salary (ZAR)</label>
+                                <div class="form-input"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Salary (ZAR)</label>
+                                <div class="form-input"></div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 15px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" style="width: 18px; height: 18px;">
+                                <span style="font-size: 13px;">Remote Work</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" style="width: 18px; height: 18px;">
+                                <span style="font-size: 13px;">Urgent Hiring</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Requirements</div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Required Skills (comma-separated)</label>
+                            <div class="form-input"></div>
+                            <div style="font-size: 11px; color: #666;">e.g., Python, AWS, Docker, Kubernetes</div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Years of Experience</label>
+                                <div class="form-input"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Education Level</label>
+                                <div class="form-select">Bachelor's Degree ▼</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section" style="border: none;">
+                        <div class="section-title">Dates</div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Posting Date</label>
+                                <div class="form-input">📅 DD/MM/YYYY</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Closing Date</label>
+                                <div class="form-input">📅 DD/MM/YYYY</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 2px solid #ddd;">
+                        <button style="flex: 1; padding: 12px; background: white; border: 2px solid #999;">SAVE AS DRAFT</button>
+                        <button style="flex: 1; padding: 12px; background: #4a90e2; color: white; border: 2px solid #333; font-weight: bold;">POST JOB</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 2px solid #ddd;">
+            <h3 style="margin-bottom: 10px;">Job Management Features:</h3>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li><strong>Listing:</strong> Search/filter by status, client, date, location. Sortable table view</li>
+                <li><strong>Multi-board Posting:</strong> After creating job, option to post to PNet, CareerJunction, LinkedIn</li>
+                <li><strong>Auto-matching:</strong> When job is posted, matching algorithm runs to find top 20 candidates</li>
+                <li><strong>Reference Numbers:</strong> Auto-generated format: JOB-YYYY-#### (e.g., JOB-2026-0001)</li>
+                <li><strong>Validation:</strong> Required fields marked with *, salary min < max validation</li>
+                <li><strong>Skills Array:</strong> Stored as PostgreSQL array for efficient GIN indexing and matching</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
