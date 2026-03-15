@@ -1,0 +1,119 @@
+{
+    "common": {
+        "welcome": "Welkom",
+        "login": "Teken In",
+        "logout": "Teken Uit",
+        "register": "Registreer",
+        "submit": "Dien In",
+        "cancel": "Kanselleer",
+        "save": "Stoor",
+        "delete": "Verwyder",
+        "edit": "Wysig",
+        "search": "Soek",
+        "filter": "Filter",
+        "yes": "Ja",
+        "no": "Nee",
+        "loading": "Laai...",
+        "error": "Fout",
+        "success": "Sukses"
+    },
+    "auth": {
+        "login_title": "Teken in by RecruitPro SA",
+        "email_label": "E-posadres",
+        "password_label": "Wagwoord",
+        "login_button": "Teken In",
+        "logout_success": "Suksesvol uitgeteken",
+        "invalid_credentials": "Ongeldige e-pos of wagwoord",
+        "account_locked": "Rekening gesluit. Probeer asseblief later weer."
+    },
+    "job": {
+        "title": "Werk",
+        "jobs": "Werke",
+        "create_job": "Skep Werk",
+        "job_details": "Werk Besonderhede",
+        "status": {
+            "draft": "Konsep",
+            "active": "Aktief",
+            "paused": "Gepouseer",
+            "closed": "Gesluit",
+            "filled": "Gevul",
+            "expired": "Verval"
+        },
+        "employment_type": {
+            "full_time": "Voltyd",
+            "part_time": "Deeltyd",
+            "contract": "Kontrak",
+            "temporary": "Tydelik",
+            "internship": "Internskap",
+            "freelance": "Vryskut"
+        }
+    },
+    "candidate": {
+        "title": "Kandidaat",
+        "candidates": "Kandidate",
+        "add_candidate": "Voeg Kandidaat By",
+        "candidate_profile": "Kandidaat Profiel",
+        "status": {
+            "active": "Aktief",
+            "passive": "Passief",
+            "placed": "Geplaas",
+            "not_interested": "Nie Belangstel",
+            "blacklisted": "Swartgelys"
+        }
+    },
+    "application": {
+        "title": "Aansoek",
+        "applications": "Aansoeke",
+        "status": {
+            "applied": "Aansoek Gedoen",
+            "screening": "Sifting",
+            "shortlisted": "Kortgelys",
+            "interview_scheduled": "Onderhoud Geskeduleer",
+            "interviewed": "Onderhoud Voltooi",
+            "offer_pending": "Aanbod Hangend",
+            "offer_made": "Aanbod Gemaak",
+            "offer_accepted": "Aanbod Aanvaar",
+            "hired": "Aangestel",
+            "rejected": "Verwerp",
+            "withdrawn": "Teruggetrek"
+        }
+    },
+    "email": {
+        "application_confirmation": {
+            "subject": "Aansoek Ontvang - {job_title}",
+            "greeting": "Geagte {candidate_name}",
+            "body": "Dankie vir jou aansoek vir die pos van {job_title}.",
+            "next_steps": "Wat gebeur volgende?",
+            "closing": "Beste groete"
+        },
+        "interview_invitation": {
+            "subject": "Onderhoud Uitnodiging - {job_title}",
+            "congratulations": "Baie geluk!",
+            "body": "Ons is bly om jou uit te nooi vir 'n onderhoud.",
+            "details": "Onderhoud Besonderhede",
+            "confirm": "Bevestig asseblief jou bywoning."
+        },
+        "offer_letter": {
+            "subject": "Werk Aanbod - {job_title}",
+            "congratulations": "Baie geluk!",
+            "body": "Ons is bly om jou die pos van {job_title} aan te bied.",
+            "respond_by": "Reageer asseblief binne 5 werksdae"
+        }
+    },
+    "dashboard": {
+        "overview": "Dashboard Oorsig",
+        "total_jobs": "Totale Werke",
+        "active_jobs": "Aktiewe Werke",
+        "total_candidates": "Totale Kandidate",
+        "applications": "Aansoeke",
+        "placements": "Plasing",
+        "success_rate": "Sukseskoers",
+        "time_to_hire": "Gemiddelde Tyd tot Aanstelling"
+    },
+    "validation": {
+        "required": "Hierdie veld is verpligtend",
+        "invalid_email": "Ongeldige e-posadres",
+        "password_too_short": "Wagwoord moet ten minste 8 karakters wees",
+        "password_requirements": "Wagwoord moet hoofletters, kleinletters, en nommers bevat"
+    }
+}

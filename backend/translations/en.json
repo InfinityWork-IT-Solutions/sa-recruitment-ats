@@ -1,0 +1,119 @@
+{
+    "common": {
+        "welcome": "Welcome",
+        "login": "Login",
+        "logout": "Logout",
+        "register": "Register",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "delete": "Delete",
+        "edit": "Edit",
+        "search": "Search",
+        "filter": "Filter",
+        "yes": "Yes",
+        "no": "No",
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success"
+    },
+    "auth": {
+        "login_title": "Login to RecruitPro SA",
+        "email_label": "Email Address",
+        "password_label": "Password",
+        "login_button": "Sign In",
+        "logout_success": "Logged out successfully",
+        "invalid_credentials": "Invalid email or password",
+        "account_locked": "Account locked. Please try again later."
+    },
+    "job": {
+        "title": "Job",
+        "jobs": "Jobs",
+        "create_job": "Create Job",
+        "job_details": "Job Details",
+        "status": {
+            "draft": "Draft",
+            "active": "Active",
+            "paused": "Paused",
+            "closed": "Closed",
+            "filled": "Filled",
+            "expired": "Expired"
+        },
+        "employment_type": {
+            "full_time": "Full Time",
+            "part_time": "Part Time",
+            "contract": "Contract",
+            "temporary": "Temporary",
+            "internship": "Internship",
+            "freelance": "Freelance"
+        }
+    },
+    "candidate": {
+        "title": "Candidate",
+        "candidates": "Candidates",
+        "add_candidate": "Add Candidate",
+        "candidate_profile": "Candidate Profile",
+        "status": {
+            "active": "Active",
+            "passive": "Passive",
+            "placed": "Placed",
+            "not_interested": "Not Interested",
+            "blacklisted": "Blacklisted"
+        }
+    },
+    "application": {
+        "title": "Application",
+        "applications": "Applications",
+        "status": {
+            "applied": "Applied",
+            "screening": "Screening",
+            "shortlisted": "Shortlisted",
+            "interview_scheduled": "Interview Scheduled",
+            "interviewed": "Interviewed",
+            "offer_pending": "Offer Pending",
+            "offer_made": "Offer Made",
+            "offer_accepted": "Offer Accepted",
+            "hired": "Hired",
+            "rejected": "Rejected",
+            "withdrawn": "Withdrawn"
+        }
+    },
+    "email": {
+        "application_confirmation": {
+            "subject": "Application Received - {job_title}",
+            "greeting": "Dear {candidate_name}",
+            "body": "Thank you for applying for the position of {job_title}.",
+            "next_steps": "What happens next?",
+            "closing": "Best regards"
+        },
+        "interview_invitation": {
+            "subject": "Interview Invitation - {job_title}",
+            "congratulations": "Congratulations!",
+            "body": "We are pleased to invite you for an interview.",
+            "details": "Interview Details",
+            "confirm": "Please confirm your attendance."
+        },
+        "offer_letter": {
+            "subject": "Job Offer - {job_title}",
+            "congratulations": "Congratulations!",
+            "body": "We are delighted to offer you the position of {job_title}.",
+            "respond_by": "Please respond within 5 business days"
+        }
+    },
+    "dashboard": {
+        "overview": "Dashboard Overview",
+        "total_jobs": "Total Jobs",
+        "active_jobs": "Active Jobs",
+        "total_candidates": "Total Candidates",
+        "applications": "Applications",
+        "placements": "Placements",
+        "success_rate": "Success Rate",
+        "time_to_hire": "Average Time to Hire"
+    },
+    "validation": {
+        "required": "This field is required",
+        "invalid_email": "Invalid email address",
+        "password_too_short": "Password must be at least 8 characters",
+        "password_requirements": "Password must contain uppercase, lowercase, and number"
+    }
+}

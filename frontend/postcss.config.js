@@ -1,6 +1,6 @@
-export default {
+pip install alembicexport default {
   plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
+    tailwindcss: { },
+    autoprefixer: { },
   },
 }

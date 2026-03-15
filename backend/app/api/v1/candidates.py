@@ -232,22 +232,28 @@ async def delete_candidate(
 
 
 @router.post("/{candidate_id}/resume", response_model=ResumeUploadResponse)
-async def upload_resume(
+async def upload_resume_with_ai_parsing(
     candidate_id: UUID,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Upload resume for candidate
+    Upload resume for candidate with AI parsing
     
     **Required permissions**: agency_admin, recruiter
     
     **Supported formats**: PDF, DOC, DOCX
     **Max size**: 5MB
     
-    **TODO**: Integrate with S3 and AI resume parsing
+    **Features**:
+    - Automatic text extraction
+    - AI-powered data parsing (OpenAI GPT-4)
+    - Auto-populate candidate fields
+    - Match score calculation
     """
+    from app.services.ai_resume_parser import ai_resume_parser
+    
     check_candidate_permissions(current_user, "update")
     
     candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
@@ -279,7 +285,7 @@ async def upload_resume(
             detail="File size exceeds 5MB limit"
         )
     
-    # Create resumes directory if it doesn't exist
+    # Create resumes directory
     resumes_dir = Path("/tmp/resumes")  # TODO: Use S3 in production
     resumes_dir.mkdir(parents=True, exist_ok=True)
     
@@ -290,7 +296,7 @@ async def upload_resume(
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    # Update candidate
+    # Update candidate with file info
     candidate = await candidate_service.upload_resume(
         db,
         candidate,
@@ -299,16 +305,99 @@ async def upload_resume(
         file_size
     )
     
-    # TODO: Trigger AI resume parsing here
-    # parsed_data = await parse_resume_with_ai(file_path)
-    # await candidate_service.update_resume_parsed_data(db, candidate, parsed_data)
+    # ============= AI RESUME PARSING =============
+    try:
+        # Extract text from file
+        resume_text = await ai_resume_parser.extract_text_from_file(str(file_path))
+        
+        # Parse with AI
+        parsed_data = await ai_resume_parser.parse_resume_with_ai(resume_text)
+        
+        # Update candidate with parsed data
+        if not parsed_data.get('error'):
+            candidate = await candidate_service.update_resume_parsed_data(
+                db,
+                candidate,
+                parsed_data,
+                resume_text
+            )
+        
+        return ResumeUploadResponse(
+            filename=file.filename,
+            url=str(file_path),
+            size=file_size,
+            parsed_data=parsed_data
+        )
+        
+    except Exception as e:
+        # If AI parsing fails, still return success for upload
+        return ResumeUploadResponse(
+            filename=file.filename,
+            url=str(file_path),
+            size=file_size,
+            parsed_data={"error": f"AI parsing failed: {str(e)}"}
+        )
+
+
+# ============= NEW ENDPOINT: Calculate Job Match =============
+
+@router.post("/{candidate_id}/calculate-match/{job_id}")
+async def calculate_job_match(
+    candidate_id: UUID,
+    job_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Calculate how well a candidate matches a job using AI
     
-    return ResumeUploadResponse(
-        filename=file.filename,
-        url=str(file_path),
-        size=file_size,
-        parsed_data=None  # TODO: Return parsed data
+    **Required permissions**: agency_admin, recruiter
+    
+    **Returns**: Match score (0-100) with explanation
+    """
+    from app.services.ai_resume_parser import ai_resume_parser
+    from app.services.job_service import job_service
+    
+    # Get candidate
+    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+    
+    # Get job
+    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+    
+    # Prepare candidate data
+    candidate_data = {
+        'skills': candidate.skills or [],
+        'years_of_experience': candidate.years_of_experience,
+        'education_level': candidate.education_level,
+        'current_job_title': candidate.current_job_title
+    }
+    
+    # Prepare job data
+    job_data = {
+        'skills': job.skills or [],
+        'years_of_experience_min': job.years_of_experience_min,
+        'years_of_experience_max': job.years_of_experience_max,
+        'education_level': job.education_level,
+        'title': job.title
+    }
+    
+    # Calculate match
+    match_result = await ai_resume_parser.calculate_job_match(
+        candidate_data,
+        job_data
     )
+    
+    return match_result
 
 
 @router.post("/{candidate_id}/contact", response_model=MessageResponse)

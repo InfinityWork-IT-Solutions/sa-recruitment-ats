@@ -1,10 +1,15 @@
 from logging.config import fileConfig
 import os
+import sys
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 
-# Import your models here
+# Add backend directory to sys.path so app can be imported
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.getcwd())
+
+# Import models here
 from app.core.database import Base
 from app.core.config import settings
 
@@ -18,7 +23,7 @@ if config.config_file_name is not None:
 # Set sqlalchemy.url from environment
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
-# add your model's MetaData object here for 'autogenerate' support
+# add the model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:

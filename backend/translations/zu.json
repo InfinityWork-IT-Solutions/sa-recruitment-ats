@@ -1,0 +1,119 @@
+{
+    "common": {
+        "welcome": "Siyakwamukela",
+        "login": "Ngena Ngemvume",
+        "logout": "Phuma",
+        "register": "Bhalisa",
+        "submit": "Thumela",
+        "cancel": "Khansela",
+        "save": "Gcina",
+        "delete": "Susa",
+        "edit": "Hlela",
+        "search": "Sesha",
+        "filter": "Hlunga",
+        "yes": "Yebo",
+        "no": "Cha",
+        "loading": "Iyalayisha...",
+        "error": "Iphutha",
+        "success": "Impumelelo"
+    },
+    "auth": {
+        "login_title": "Ngena ku-RecruitPro SA",
+        "email_label": "Ikheli Le-imeyili",
+        "password_label": "Iphasiwedi",
+        "login_button": "Ngena",
+        "logout_success": "Uphumile ngempumelelo",
+        "invalid_credentials": "I-imeyili noma iphasiwedi engalungile",
+        "account_locked": "I-akhawunti ivaliwe. Sicela uzame kamuva."
+    },
+    "job": {
+        "title": "Umsebenzi",
+        "jobs": "Imisebenzi",
+        "create_job": "Dala Umsebenzi",
+        "job_details": "Imininingwane Yomsebenzi",
+        "status": {
+            "draft": "Isidwebo",
+            "active": "Iyasebenza",
+            "paused": "Imisiwe",
+            "closed": "Ivaliwe",
+            "filled": "Igcwalisile",
+            "expired": "Iphelelwe Yisikhathi"
+        },
+        "employment_type": {
+            "full_time": "Isikhathi Esigcwele",
+            "part_time": "Isikhathi Esiyingxenye",
+            "contract": "Inkontileka",
+            "temporary": "Okwesikhashana",
+            "internship": "Ukuqeqeshwa",
+            "freelance": "Umsebenzi Okhululekile"
+        }
+    },
+    "candidate": {
+        "title": "Umfaki-sicelo",
+        "candidates": "Abafaki-zicelo",
+        "add_candidate": "Engeza Umfaki-sicelo",
+        "candidate_profile": "Iphrofayela Yomfaki-sicelo",
+        "status": {
+            "active": "Uyasebenza",
+            "passive": "Akasebenzi Kakhulu",
+            "placed": "Ubekiwe",
+            "not_interested": "Akanandaba",
+            "blacklisted": "Kuhlelweni Olumnyama"
+        }
+    },
+    "application": {
+        "title": "Isicelo",
+        "applications": "Izicelo",
+        "status": {
+            "applied": "Ufake Isicelo",
+            "screening": "Ukuhlolwa",
+            "shortlisted": "Uhlelweni Olufushane",
+            "interview_scheduled": "Inhlolokhono Ihleliwe",
+            "interviewed": "Inhlolokhono Iqediwe",
+            "offer_pending": "Isipho Silindile",
+            "offer_made": "Kunikezwe Isipho",
+            "offer_accepted": "Isipho Samukelwe",
+            "hired": "Uqashiwe",
+            "rejected": "Wenqatshelwe",
+            "withdrawn": "Uhoxisiwe"
+        }
+    },
+    "email": {
+        "application_confirmation": {
+            "subject": "Isicelo Sitholiwe - {job_title}",
+            "greeting": "Sawubona {candidate_name}",
+            "body": "Siyabonga ngokufaka isicelo sesikhundla se-{job_title}.",
+            "next_steps": "Yini eyenzekayo elandelayo?",
+            "closing": "Okuhle"
+        },
+        "interview_invitation": {
+            "subject": "Isimemo Senhlolokhono - {job_title}",
+            "congratulations": "Siyakuhalalisela!",
+            "body": "Siyajabula ukukumema enhlolokhonweni.",
+            "details": "Imininingwane Yenhlolokhono",
+            "confirm": "Sicela uqinisekise ukuba khona kwakho."
+        },
+        "offer_letter": {
+            "subject": "Isipho Somsebenzi - {job_title}",
+            "congratulations": "Siyakuhalalisela!",
+            "body": "Siyajabula ukukunikeza isikhundla se-{job_title}.",
+            "respond_by": "Sicela uphendule ezinsukuni zomsebenzi ezi-5"
+        }
+    },
+    "dashboard": {
+        "overview": "Ukubuka Idashbhodi",
+        "total_jobs": "Imisebenzi Yonke",
+        "active_jobs": "Imisebenzi Esebenzayo",
+        "total_candidates": "Abafaki-zicelo Bonke",
+        "applications": "Izicelo",
+        "placements": "Ukubekwa",
+        "success_rate": "Isilinganiso Sempumelelo",
+        "time_to_hire": "Isikhathi Esimaphakathi Sokuqasha"
+    },
+    "validation": {
+        "required": "Leli nsimu liyadingeka",
+        "invalid_email": "Ikheli le-imeyili elingavumelekile",
+        "password_too_short": "Iphasiwedi kufanele ibe osonhlamvini okungenani abayi-8",
+        "password_requirements": "Iphasiwedi kufanele ibe nezinhlamvu ezinkulu, ezincane, nezinombolo"
+    }
+}
