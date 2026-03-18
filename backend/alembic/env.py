@@ -8,6 +8,10 @@ from alembic import context
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -38,6 +42,9 @@ target_metadata = Base.metadata
 # Override sqlalchemy.url with environment variable if present
 database_url = os.getenv("DATABASE_URL")
 if database_url:
+    # Alembic needs a sync driver, but the app uses an async one
+    if "+asyncpg" in database_url:
+        database_url = database_url.replace("+asyncpg", "+psycopg2")
     config.set_main_option("sqlalchemy.url", database_url)
 
 

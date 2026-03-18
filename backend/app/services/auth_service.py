@@ -235,4 +235,6 @@ class AuthService:
 
 
 # Create service instance
+print("INITIALIZING AUTH_SERVICE OBJECT")
 auth_service = AuthService()
+print("AUTH_SERVICE.PY FINISHED")

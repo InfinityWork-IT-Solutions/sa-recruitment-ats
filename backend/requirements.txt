@@ -8,7 +8,7 @@ python-multipart==0.0.6
 # Database
 sqlalchemy==2.0.25
 alembic==1.13.1
-psycopg2-binary==2.9.9
+# psycopg2-binary==2.9.9 (Removed to prevent pip hang)
 asyncpg==0.29.0
 
 # Authentication & Security
@@ -20,3 +20,4 @@ pydantic[email]==2.5.3
 # Utilities
 python-dateutil==2.8.2
 pytz==2023.3
+openpyxl==3.1.5

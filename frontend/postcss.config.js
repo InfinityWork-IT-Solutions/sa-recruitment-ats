@@ -1,4 +1,4 @@
-pip install alembicexport default {
+export default {
   plugins: {
     tailwindcss: { },
     autoprefixer: { },

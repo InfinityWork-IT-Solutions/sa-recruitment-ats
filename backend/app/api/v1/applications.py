@@ -28,7 +28,7 @@ from app.schemas import (
     ApplicationStatistics,
     MessageResponse,
 )
-from app.services.application_service import application_service
+from app.services.applications_service import application_service
 
 router = APIRouter()
 

@@ -2,7 +2,7 @@
 Candidate model for job applicants
 """
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, String, Integer, Text, ForeignKey, Enum, ARRAY, Index
+from sqlalchemy import Boolean, Column, DateTime, String, Integer, Text, ForeignKey, Enum, ARRAY, Index, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import uuid
