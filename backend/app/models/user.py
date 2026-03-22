@@ -58,6 +58,7 @@ class User(Base):
     
     # Relationships
     agency = relationship("Agency", back_populates="users")
+    activities = relationship("Activity", back_populates="user")
     
     def __repr__(self):
         return f"<User {self.email}>"

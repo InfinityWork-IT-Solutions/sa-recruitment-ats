@@ -22,7 +22,7 @@ import CreateJobPage from './pages/jobs/CreateJobPage';
 // Candidates
 import CandidatesPage from './pages/candidates/CandidatesPage';
 import CandidateDetailPage from './pages/candidates/CandidateDetailPage';
-import CreateCandidatePage from './pages/candidates/CreateCandidatePage';
+import CreateCandidatePage from './pages/candidates/CreateCandidatesPage';
 
 // Applications
 import ApplicationsPage from './pages/applications/ApplicationsPage';

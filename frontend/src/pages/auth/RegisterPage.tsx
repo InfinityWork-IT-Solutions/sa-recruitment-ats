@@ -32,7 +32,20 @@ export default function RegisterPage() {
     const onSubmit = async (data: RegisterForm) => {
         setIsLoading(true);
         try {
-            await register(data);
+            // Restructure data to match backend RegisterRequest
+            const registerData = {
+                agency: {
+                    name: data.agency_name,
+                    email: data.email, // Using user email as agency email for now
+                },
+                user: {
+                    email: data.email,
+                    password: data.password,
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                },
+            };
+            await register(registerData as any);
             navigate('/');
         } catch (error) {
             // Error handled by interceptor

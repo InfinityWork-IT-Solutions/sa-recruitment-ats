@@ -58,7 +58,7 @@ class ClientCompany(Base):
     # Relationships
     agency = relationship("Agency", back_populates="client_companies")
     jobs = relationship("Job", back_populates="client_company")
-    # applications = relationship("Application", back_populates="client_company")
+    applications = relationship("Application", back_populates="client_company", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ClientCompany {self.name}>"

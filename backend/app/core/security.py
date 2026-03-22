@@ -7,11 +7,9 @@ from fastapi.security import OAuth2PasswordBearer
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
+import bcrypt
 
 from app.core.database import get_db
-# Use string import for User to avoid potential circularity during init
-# from app.models.user import User
 
 load_dotenv()
 
@@ -20,16 +18,22 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
-print("INITIALIZING CRYPT CONTEXT")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-print("SECURITY.PY FINISHED")
+print("INITIALIZING SECURITY MODULE")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(
+        plain_password.encode('utf-8'), 
+        hashed_password.encode('utf-8')
+    )
 
-def hash_password(password):
-    return pwd_context.hash(password)
+def hash_password(password: str) -> str:
+    # bcrypt limits password to 72 bytes
+    pwd_bytes = password.encode('utf-8')
+    if len(pwd_bytes) > 72:
+        pwd_bytes = pwd_bytes[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()

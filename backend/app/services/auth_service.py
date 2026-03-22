@@ -60,7 +60,7 @@ class AuthService:
         await db.flush()  # Get agency.id
         
         # Create first user (must be agency admin)
-        user_data = registration.user.model_dump(exclude={'password'})
+        user_data = registration.user.model_dump(exclude={'password', 'role'})
         user = User(
             **user_data,
             agency_id=agency.id,

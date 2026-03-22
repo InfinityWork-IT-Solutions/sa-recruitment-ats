@@ -126,7 +126,7 @@ class Job(Base):
     agency = relationship("Agency", back_populates="jobs")
     client_company = relationship("ClientCompany", back_populates="jobs")
     creator = relationship("User", foreign_keys=[created_by])
-    # applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
+    applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
     
     # Indexes for performance
     __table_args__ = (

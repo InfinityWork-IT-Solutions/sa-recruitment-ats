@@ -66,8 +66,9 @@ class Agency(Base):
     users = relationship("User", back_populates="agency", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="agency", cascade="all, delete-orphan")
     client_companies = relationship("ClientCompany", back_populates="agency", cascade="all, delete-orphan")
-    # candidates = relationship("Candidate", back_populates="agency")  # Future
-    # applications = relationship("Application", back_populates="agency")  # Future
+    activities = relationship("Activity", back_populates="agency", cascade="all, delete-orphan")
+    candidates = relationship("Candidate", back_populates="agency", cascade="all, delete-orphan")
+    applications = relationship("Application", back_populates="agency", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Agency {self.name}>"

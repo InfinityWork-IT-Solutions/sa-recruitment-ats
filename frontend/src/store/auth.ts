@@ -20,12 +20,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     login: async (credentials: LoginRequest) => {
         set({ isLoading: true });
         try {
+            // Force Vite rebuild: using standard JSON format for FastAPI LoginRequest schema
             const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
-            const { access_token, refresh_token, user } = response.data;
+            const { tokens, user } = response.data;
 
             // Store tokens
-            localStorage.setItem('access_token', access_token);
-            localStorage.setItem('refresh_token', refresh_token);
+            localStorage.setItem('access_token', tokens.access_token);
+            localStorage.setItem('refresh_token', tokens.refresh_token);
 
             set({
                 user,
@@ -41,12 +42,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     register: async (data: RegisterRequest) => {
         set({ isLoading: true });
         try {
-            const response = await apiClient.post<LoginResponse>('/auth/register', data);
-            const { access_token, refresh_token, user } = response.data;
+            await apiClient.post('/auth/register', data);
+            
+            // Registration doesn't return tokens, so we automatically log in
+            const credentials: LoginRequest = {
+                email: data.user.email,
+                password: data.user.password,
+            };
+            
+            // Making JSON login request
+            const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+            const { tokens, user } = response.data;
 
             // Store tokens
-            localStorage.setItem('access_token', access_token);
-            localStorage.setItem('refresh_token', refresh_token);
+            localStorage.setItem('access_token', tokens.access_token);
+            localStorage.setItem('refresh_token', tokens.refresh_token);
 
             set({
                 user,

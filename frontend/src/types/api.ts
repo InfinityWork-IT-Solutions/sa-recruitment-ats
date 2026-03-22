@@ -179,11 +179,16 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-    email: string;
-    password: string;
-    first_name: string;
-    last_name: string;
-    agency_name: string;
+    agency: {
+        name: string;
+        email: string;
+    };
+    user: {
+        email: string;
+        password: string;
+        first_name: string;
+        last_name: string;
+    };
 }
 
 // Pagination
