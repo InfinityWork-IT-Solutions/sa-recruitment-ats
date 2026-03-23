@@ -8,7 +8,7 @@ import {
     useUpdateClientCompany,
     useDeleteClientCompany,
 } from '@/hooks/use-client-companies';
-import { Plus, Search, Building2, Edit, Trash2, X, Save, Mail, Phone, Globe } from 'lucide-react';
+import { Plus, Search, Building2, Edit, Trash2, X, Save, Mail, Phone, Globe, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ClientCompany } from '@/types/api';
 
@@ -19,6 +19,10 @@ const clientCompanySchema = z.object({
     contact_person: z.string().optional(),
     contact_email: z.string().email('Invalid email').optional().or(z.literal('')),
     contact_phone: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    province: z.string().optional(),
+    country: z.string().optional(),
 });
 
 type ClientCompanyFormData = z.infer<typeof clientCompanySchema>;
@@ -41,11 +45,14 @@ export default function ClientCompaniesPage() {
         formState: { errors },
     } = useForm<ClientCompanyFormData>({
         resolver: zodResolver(clientCompanySchema),
+        defaultValues: {
+            country: 'South Africa',
+        },
     });
 
     const openCreateModal = () => {
         setEditingCompany(null);
-        reset({});
+        reset({ country: 'South Africa' });
         setShowModal(true);
     };
 
@@ -58,6 +65,10 @@ export default function ClientCompaniesPage() {
             contact_person: company.contact_person || '',
             contact_email: company.contact_email || '',
             contact_phone: company.contact_phone || '',
+            address: company.address || '',
+            city: company.city || '',
+            province: company.province || '',
+            country: company.country || 'South Africa',
         });
         setShowModal(true);
     };
@@ -65,78 +76,90 @@ export default function ClientCompaniesPage() {
     const closeModal = () => {
         setShowModal(false);
         setEditingCompany(null);
-        reset({});
+        reset();
     };
 
     const onSubmit = async (data: ClientCompanyFormData) => {
         try {
             if (editingCompany) {
-                await updateCompany.mutateAsync({ id: editingCompany.id, data });
+                await updateCompany.mutateAsync({
+                    id: editingCompany.id,
+                    data,
+                });
             } else {
                 await createCompany.mutateAsync(data);
             }
             closeModal();
         } catch (error) {
-            // Error handled by mutation
+            console.error('Failed to save company:', error);
         }
     };
 
     const handleDelete = async (id: string) => {
-        await deleteCompany.mutateAsync(id);
-        setDeleteConfirm(null);
+        try {
+            await deleteCompany.mutateAsync(id);
+            setDeleteConfirm(null);
+        } catch (error) {
+            console.error('Failed to delete company:', error);
+        }
     };
 
+    const companies = data?.items || [];
+
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Client Companies</h1>
-                    <p className="text-gray-600 mt-1">Manage your client companies and contacts</p>
-                </div>
-                <button onClick={openCreateModal} className="btn-primary flex items-center space-x-2">
-                    <Plus className="w-5 h-5" />
-                    <span>Add Client</span>
-                </button>
+        <div className="p-6">
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Client Companies</h1>
+                <p className="text-gray-600">Manage your client companies and contacts</p>
             </div>
 
-            {/* Search */}
-            <div className="card">
-                <div className="relative">
+            <div className="flex items-center justify-between mb-6">
+                <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                         type="text"
                         placeholder="Search companies..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="input pl-10"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
+                <button
+                    onClick={openCreateModal}
+                    className="btn-primary flex items-center space-x-2"
+                >
+                    <Plus className="w-5 h-5" />
+                    <span>Add Client</span>
+                </button>
             </div>
 
-            {/* Companies List */}
             {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+                <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-            ) : !data?.companies || data.companies.length === 0 ? (
-                <div className="card text-center py-12">
+            ) : companies.length === 0 ? (
+                <div className="text-center py-12">
                     <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No client companies found</h3>
-                    <p className="text-gray-600 mb-6">Get started by adding your first client company.</p>
-                    <button onClick={openCreateModal} className="btn-primary inline-flex items-center space-x-2">
+                    <p className="text-gray-600">No client companies found</p>
+                    <button
+                        onClick={openCreateModal}
+                        className="mt-4 btn-primary inline-flex items-center space-x-2"
+                    >
                         <Plus className="w-5 h-5" />
-                        <span>Add Client</span>
+                        <span>Add Your First Client</span>
                     </button>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {data.companies.map((company) => (
-                        <div key={company.id} className="card hover:shadow-md transition-shadow">
+                    {companies.map((company) => (
+                        <div
+                            key={company.id}
+                            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                        >
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <Building2 className="w-6 h-6 text-blue-600" />
+                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <Building2 className="w-5 h-5 text-blue-600" />
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-900">{company.name}</h3>
@@ -197,6 +220,14 @@ export default function ClientCompaniesPage() {
                                         </a>
                                     </div>
                                 )}
+                                {(company.city || company.province) && (
+                                    <div className="flex items-center space-x-2 text-gray-600">
+                                        <MapPin className="w-4 h-4" />
+                                        <span>
+                                            {[company.city, company.province].filter(Boolean).join(', ')}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-sm">
@@ -226,51 +257,59 @@ export default function ClientCompaniesPage() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                            {/* Company Information */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Company Name <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    {...register('name')}
-                                    type="text"
-                                    className="input"
-                                    placeholder="Acme Corporation"
-                                />
-                                {errors.name && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-                                )}
+                                <h4 className="text-sm font-medium text-gray-900 mb-4">Company Information</h4>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Company Name <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            {...register('name')}
+                                            type="text"
+                                            className="input"
+                                            placeholder="ABC Tech Solutions"
+                                        />
+                                        {errors.name && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Industry
+                                        </label>
+                                        <input
+                                            {...register('industry')}
+                                            type="text"
+                                            className="input"
+                                            placeholder="Technology"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Website
+                                        </label>
+                                        <input
+                                            {...register('website')}
+                                            type="url"
+                                            className="input"
+                                            placeholder="https://example.com"
+                                        />
+                                        {errors.website && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.website.message}</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Industry
-                                </label>
-                                <input
-                                    {...register('industry')}
-                                    type="text"
-                                    className="input"
-                                    placeholder="Technology, Finance, Healthcare..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Website
-                                </label>
-                                <input
-                                    {...register('website')}
-                                    type="url"
-                                    className="input"
-                                    placeholder="https://example.com"
-                                />
-                                {errors.website && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.website.message}</p>
-                                )}
-                            </div>
-
-                            <div className="border-t border-gray-200 pt-4">
-                                <h4 className="text-sm font-medium text-gray-900 mb-3">Contact Information</h4>
+                            {/* Contact Information */}
+                            <div className="border-t border-gray-200 pt-6">
+                                <h4 className="text-sm font-medium text-gray-900 mb-4">Contact Information</h4>
 
                                 <div className="space-y-4">
                                     <div>
@@ -281,7 +320,7 @@ export default function ClientCompaniesPage() {
                                             {...register('contact_person')}
                                             type="text"
                                             className="input"
-                                            placeholder="John Doe"
+                                            placeholder="John Smith"
                                         />
                                     </div>
 
@@ -293,7 +332,7 @@ export default function ClientCompaniesPage() {
                                             {...register('contact_email')}
                                             type="email"
                                             className="input"
-                                            placeholder="john@example.com"
+                                            placeholder="john@abctech.com"
                                         />
                                         {errors.contact_email && (
                                             <p className="mt-1 text-sm text-red-600">{errors.contact_email.message}</p>
@@ -308,8 +347,74 @@ export default function ClientCompaniesPage() {
                                             {...register('contact_phone')}
                                             type="tel"
                                             className="input"
-                                            placeholder="+27 21 555 1234"
+                                            placeholder="+27 21 123 4567"
                                         />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Location Information */}
+                            <div className="border-t border-gray-200 pt-6">
+                                <h4 className="text-sm font-medium text-gray-900 mb-4">Location</h4>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Address
+                                        </label>
+                                        <input
+                                            {...register('address')}
+                                            type="text"
+                                            className="input"
+                                            placeholder="123 Main Street, Building A"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                City
+                                            </label>
+                                            <input
+                                                {...register('city')}
+                                                type="text"
+                                                className="input"
+                                                placeholder="Cape Town"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Province
+                                            </label>
+                                            <select
+                                                {...register('province')}
+                                                className="input"
+                                            >
+                                                <option value="">Select Province</option>
+                                                <option value="Eastern Cape">Eastern Cape</option>
+                                                <option value="Free State">Free State</option>
+                                                <option value="Gauteng">Gauteng</option>
+                                                <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                                <option value="Limpopo">Limpopo</option>
+                                                <option value="Mpumalanga">Mpumalanga</option>
+                                                <option value="Northern Cape">Northern Cape</option>
+                                                <option value="North West">North West</option>
+                                                <option value="Western Cape">Western Cape</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Country
+                                            </label>
+                                            <input
+                                                {...register('country')}
+                                                type="text"
+                                                className="input"
+                                                placeholder="South Africa"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -347,11 +452,11 @@ export default function ClientCompaniesPage() {
 
             {/* Delete Confirmation Modal */}
             {deleteConfirm && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Client Company?</h3>
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Company?</h3>
                         <p className="text-gray-600 mb-6">
-                            Are you sure you want to delete this client company? This action cannot be undone.
+                            Are you sure you want to delete this company? This action cannot be undone.
                         </p>
                         <div className="flex items-center justify-end space-x-3">
                             <button
@@ -363,7 +468,7 @@ export default function ClientCompaniesPage() {
                             <button
                                 onClick={() => handleDelete(deleteConfirm)}
                                 disabled={deleteCompany.isPending}
-                                className="btn-danger"
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {deleteCompany.isPending ? 'Deleting...' : 'Delete'}
                             </button>

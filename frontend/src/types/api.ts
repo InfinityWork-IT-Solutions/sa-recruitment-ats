@@ -5,14 +5,15 @@ export interface User {
     first_name: string;
     last_name: string;
     role: UserRole;
-    agency_id: string;
+    agency_id: string | null;
+    company_id?: string | null;
     is_active: boolean;
     is_verified: boolean;
     created_at: string;
     updated_at: string;
 }
 
-export type UserRole = 'super_admin' | 'agency_admin' | 'recruiter' | 'hiring_manager';
+export type UserRole = 'super_admin' | 'agency_admin' | 'recruiter' | 'candidate' | 'client' | 'viewer';
 
 export interface Agency {
     id: string;
@@ -121,7 +122,9 @@ export type ApplicationSource = 'direct_apply' | 'recruiter_added' | 'referral' 
 export interface ClientCompany {
     id: string;
     agency_id: string;
+    user_id?: string | null;
     name: string;
+    logo_url?: string | null;
     industry: string | null;
     website: string | null;
     contact_person: string | null;
@@ -172,9 +175,12 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
+    tokens: {
+        access_token: string;
+        refresh_token: string;
+        token_type: string;
+        expires_in: number;
+    };
     user: User;
 }
 
@@ -189,6 +195,28 @@ export interface RegisterRequest {
         first_name: string;
         last_name: string;
     };
+}
+
+export interface RegisterResponse {
+    message: string;
+    agency_id?: string;
+    user_id: string;
+    tokens: {
+        access_token: string;
+        refresh_token: string;
+        token_type: string;
+        expires_in: number;
+    };
+}
+
+export interface CandidateRegisterRequest {
+    user: any; // UserCreate
+    candidate: any; // CandidateCreate
+}
+
+export interface CompanyRegisterRequest {
+    user: any; // UserCreate
+    company: any; // ClientCompanyCreate
 }
 
 // Pagination

@@ -16,6 +16,8 @@ class UserRole(str, enum.Enum):
     SUPER_ADMIN = "super_admin"      # Full system access
     AGENCY_ADMIN = "agency_admin"    # Agency-level admin
     RECRUITER = "recruiter"          # Can manage jobs, candidates, applications
+    CANDIDATE = "candidate"          # Job applicant
+    CLIENT = "client"                # Hiring company representative
     VIEWER = "viewer"                # Read-only access
 
 
@@ -59,6 +61,8 @@ class User(Base):
     # Relationships
     agency = relationship("Agency", back_populates="users")
     activities = relationship("Activity", back_populates="user")
+    candidate = relationship("Candidate", back_populates="user", uselist=False)
+    client_company = relationship("ClientCompany", back_populates="user", uselist=False)
     
     def __repr__(self):
         return f"<User {self.email}>"

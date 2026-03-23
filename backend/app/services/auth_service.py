@@ -14,7 +14,11 @@ from app.schemas import (
     LoginRequest,
     UserCreate,
     AgencyCreate,
+    CandidateCreate,
+    ClientCompanyCreate,
 )
+from app.models.candidate import Candidate
+from app.models.client_company import ClientCompany
 
 
 class AuthService:
@@ -76,6 +80,86 @@ class AuthService:
         await db.refresh(user)
         
         return agency, user
+
+    @staticmethod
+    async def register_candidate(
+        db: AsyncSession,
+        registration: CandidateCreate,
+        user_data: UserCreate
+    ) -> Tuple[Candidate, User]:
+        """Register a new candidate user"""
+        # Check if email exists
+        existing_user = await db.execute(select(User).where(User.email == user_data.email))
+        if existing_user.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Create user
+        user = User(
+            email=user_data.email,
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            phone=user_data.phone,
+            role=UserRole.CANDIDATE,
+            hashed_password=hash_password(user_data.password),
+            is_active=True,
+            agency_id=user_data.agency_id # Optional: link to a default agency if provided
+        )
+        db.add(user)
+        await db.flush()
+
+        # Create candidate profile
+        candidate = Candidate(
+            user_id=user.id,
+            agency_id=user.agency_id or None, # Link if agency exists
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            phone=user.phone,
+            **registration.model_dump(exclude={'first_name', 'last_name', 'email', 'phone'})
+        )
+        db.add(candidate)
+        await db.commit()
+        await db.refresh(user)
+        await db.refresh(candidate)
+        return candidate, user
+
+    @staticmethod
+    async def register_company(
+        db: AsyncSession,
+        registration: ClientCompanyCreate,
+        user_data: UserCreate
+    ) -> Tuple[ClientCompany, User]:
+        """Register a new company and its primary admin user"""
+        # Check if email exists
+        existing_user = await db.execute(select(User).where(User.email == user_data.email))
+        if existing_user.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Create user
+        user = User(
+            email=user_data.email,
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            phone=user_data.phone,
+            role=UserRole.CLIENT,
+            hashed_password=hash_password(user_data.password),
+            is_active=True,
+            agency_id=user_data.agency_id # Must be linked to an agency in multi-tenant setup
+        )
+        db.add(user)
+        await db.flush()
+
+        # Create company
+        company = ClientCompany(
+            user_id=user.id,
+            agency_id=user.agency_id,
+            **registration.model_dump()
+        )
+        db.add(company)
+        await db.commit()
+        await db.refresh(user)
+        await db.refresh(company)
+        return company, user
     
     @staticmethod
     async def authenticate_user(
@@ -163,7 +247,7 @@ class AuthService:
             "sub": str(user.id),
             "email": user.email,
             "role": user.role.value,
-            "agency_id": str(user.agency_id),
+            "agency_id": str(user.agency_id) if user.agency_id else None,
         }
         
         access_token = create_access_token(token_data)

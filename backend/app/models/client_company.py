@@ -20,8 +20,12 @@ class ClientCompany(Base):
     # Agency relationship (multi-tenancy)
     agency_id = Column(UUID(as_uuid=True), ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
     
+    # User relationship (Primary contact/admin)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), unique=True)
+    
     # Company Information
     name = Column(String(255), nullable=False, index=True)
+    logo_url = Column(String(500))
     industry = Column(String(100))
     company_size = Column(String(50))  # "1-10", "11-50", "51-200", "201-500", "500+"
     website = Column(String(255))
@@ -57,6 +61,7 @@ class ClientCompany(Base):
     
     # Relationships
     agency = relationship("Agency", back_populates="client_companies")
+    user = relationship("User", back_populates="client_company")
     jobs = relationship("Job", back_populates="client_company")
     applications = relationship("Application", back_populates="client_company", cascade="all, delete-orphan")
     

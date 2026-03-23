@@ -1,11 +1,14 @@
 """
 Authentication Pydantic schemas
 """
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from uuid import UUID
 
 from app.schemas.agency import AgencyCreate
 from app.schemas.user import UserCreate, UserResponse
+from app.schemas.candidate import CandidateCreate
+from app.schemas.client_company import ClientCompanyCreate
 
 
 # Login schemas
@@ -68,8 +71,6 @@ class LoginResponse(BaseModel):
 class RegisterRequest(BaseModel):
     """Registration request with agency and user"""
     agency: AgencyCreate = Field(..., description="Agency details")
-    user: UserCreate = Field(..., description="First user (agency admin)")
-    
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "agency": {
@@ -92,10 +93,22 @@ class RegisterRequest(BaseModel):
     })
 
 
+class CandidateRegisterRequest(BaseModel):
+    """Candidate registration request"""
+    user: UserCreate
+    candidate: CandidateCreate
+
+
+class CompanyRegisterRequest(BaseModel):
+    """Company registration request"""
+    user: UserCreate
+    company: ClientCompanyCreate
+
+
 class RegisterResponse(BaseModel):
     """Registration response"""
     message: str = Field(..., description="Success message")
-    agency_id: UUID = Field(..., description="Created agency ID")
+    agency_id: Optional[UUID] = Field(None, description="Created agency ID")
     user_id: UUID = Field(..., description="Created user ID")
     tokens: TokenResponse = Field(..., description="Authentication tokens")
 

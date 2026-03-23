@@ -11,6 +11,7 @@ from uuid import UUID
 class ClientCompanyBase(BaseModel):
     """Base client company schema"""
     name: str = Field(..., min_length=2, max_length=255, description="Company name")
+    logo_url: Optional[str] = Field(None, max_length=500, description="Company logo URL")
     industry: Optional[str] = Field(None, max_length=100, description="Industry")
     company_size: Optional[str] = Field(None, description="Company size")
     website: Optional[str] = Field(None, max_length=255, description="Company website")
@@ -65,6 +66,7 @@ class ClientCompanyResponse(ClientCompanyBase):
     """Schema for client company in responses"""
     id: UUID
     agency_id: UUID
+    user_id: Optional[UUID] = None
     
     registration_number: Optional[str] = None
     vat_number: Optional[str] = None

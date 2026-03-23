@@ -1,13 +1,15 @@
 import { create } from 'zustand';
-import { User, LoginRequest, LoginResponse, RegisterRequest } from '@/types/api';
+import { User, LoginResponse } from '../types/api';
 import apiClient from '@/lib/api-client';
 
 interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (credentials: LoginRequest) => Promise<void>;
-    register: (data: RegisterRequest) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
+    register: (data: any) => Promise<void>;
+    registerCandidate: (data: any) => Promise<void>;
+    registerCompany: (data: any) => Promise<void>;
     logout: () => void;
     refreshUser: () => Promise<void>;
 }
@@ -17,52 +19,124 @@ export const useAuthStore = create<AuthState>((set) => ({
     isAuthenticated: !!localStorage.getItem('access_token'),
     isLoading: false,
 
-    login: async (credentials: LoginRequest) => {
+    login: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
-            // Force Vite rebuild: using standard JSON format for FastAPI LoginRequest schema
-            const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+            const response = await apiClient.post<LoginResponse>('/auth/login', { email, password });
             const { tokens, user } = response.data;
-
-            // Store tokens
             localStorage.setItem('access_token', tokens.access_token);
             localStorage.setItem('refresh_token', tokens.refresh_token);
+            set({ user, isAuthenticated: true, isLoading: false });
 
-            set({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-            });
+            // Role-based redirection
+            if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
+            else if (user.role === 'client') window.location.href = '/client-dashboard';
+            else window.location.href = '/dashboard';
         } catch (error) {
             set({ isLoading: false });
             throw error;
         }
     },
 
-    register: async (data: RegisterRequest) => {
+    register: async (data: any) => {
+        const { role, ...rest } = data;
+        if (role === 'candidate') {
+            await useAuthStore.getState().registerCandidate(rest);
+        } else if (role === 'company') {
+            await useAuthStore.getState().registerCompany(rest);
+        } else {
+            // Default registration (e.g. recruiter/agency)
+            set({ isLoading: true });
+            try {
+                // ... implementation for agency/recruiter if needed
+                // For now, let's assume it uses the general /auth/register
+                const registerData = {
+                    agency: {
+                        name: data.agency_name || data.company_name,
+                        email: data.email,
+                        city: data.city,
+                        province: data.province,
+                    },
+                    user: {
+                        email: data.email,
+                        password: data.password,
+                        first_name: data.first_name,
+                        last_name: data.last_name,
+                        phone: data.phone,
+                        role: 'agency_admin'
+                    }
+                };
+                await apiClient.post('/auth/register', registerData);
+                await useAuthStore.getState().login(data.email, data.password);
+            } catch (error) {
+                set({ isLoading: false });
+                throw error;
+            }
+        }
+    },
+
+    registerCandidate: async (data: any) => {
         set({ isLoading: true });
         try {
-            await apiClient.post('/auth/register', data);
-            
-            // Registration doesn't return tokens, so we automatically log in
-            const credentials: LoginRequest = {
-                email: data.user.email,
-                password: data.user.password,
+            const payload = {
+                user: {
+                    email: data.email,
+                    password: data.password,
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    phone: data.phone,
+                    role: 'candidate'
+                },
+                candidate: {
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    email: data.email,
+                    phone: data.phone,
+                    city: data.city,
+                    province: data.province,
+                    current_job_title: data.current_job_title,
+                    years_of_experience: data.years_of_experience
+                }
             };
-            
-            // Making JSON login request
-            const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+            const response = await apiClient.post<LoginResponse>('/auth/register/candidate', payload);
             const { tokens, user } = response.data;
-
-            // Store tokens
             localStorage.setItem('access_token', tokens.access_token);
             localStorage.setItem('refresh_token', tokens.refresh_token);
+            set({ user, isAuthenticated: true, isLoading: false });
+            window.location.href = '/candidate-dashboard';
+        } catch (error) {
+            set({ isLoading: false });
+            throw error;
+        }
+    },
 
-            set({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-            });
+    registerCompany: async (data: any) => {
+        set({ isLoading: true });
+        try {
+            const payload = {
+                user: {
+                    email: data.email,
+                    password: data.password,
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    phone: data.phone,
+                    role: 'client'
+                },
+                company: {
+                    name: data.company_name,
+                    industry: data.company_industry,
+                    website: data.company_website,
+                    city: data.city,
+                    province: data.province,
+                    subscription_plan: data.subscription_plan
+                }
+            };
+            const response = await apiClient.post<LoginResponse>('/auth/register/company', payload);
+            const { tokens, user } = response.data;
+            localStorage.setItem('access_token', tokens.access_token);
+            localStorage.setItem('refresh_token', tokens.refresh_token);
+            set({ user, isAuthenticated: true, isLoading: false });
+            window.location.href = '/client-dashboard';
         } catch (error) {
             set({ isLoading: false });
             throw error;
@@ -70,28 +144,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     logout: () => {
-        // Clear tokens
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-
-        set({
-            user: null,
-            isAuthenticated: false,
-        });
+        set({ user: null, isAuthenticated: false });
+        window.location.href = '/';
     },
 
     refreshUser: async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            set({ isLoading: false });
+            return;
+        }
+        
+        set({ isLoading: true });
         try {
             const response = await apiClient.get<User>('/auth/me');
-            set({ user: response.data });
+            set({ user: response.data, isAuthenticated: true, isLoading: false });
         } catch (error) {
-            // If getting user fails, logout
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
-            set({
-                user: null,
-                isAuthenticated: false,
-            });
+            set({ user: null, isAuthenticated: false, isLoading: false });
         }
     },
 }));

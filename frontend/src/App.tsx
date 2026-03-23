@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -11,11 +12,13 @@ import DashboardLayout from './layouts/DashboardLayout';
 import LandingPage from './pages/LandingPage';
 
 // Auth Pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+import UnifiedLoginPage from './pages/auth/UnifiedLoginPage';
+import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
 
 // Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
+import CandidateDashboard from './pages/dashboard/CandidateDashboard';
+import CompanyDashboard from './pages/dashboard/CompanyDashboard';
 
 // Jobs
 import JobsPage from './pages/jobs/JobsPage';
@@ -53,17 +56,41 @@ const queryClient = new QueryClient({
 });
 
 // Protected Route Component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
+  const { isAuthenticated, user, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium tracking-widest uppercase text-xs">Synchronizing Portal...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    // Redirect to their default dashboard if they hit the wrong portal
+    if (user.role === 'candidate') return <Navigate to="/candidate/dashboard" replace />;
+    if (user.role === 'client') return <Navigate to="/company/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
 }
 
 function App() {
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -73,47 +100,61 @@ function App() {
 
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login" element={<UnifiedLoginPage />} />
+            <Route path="/register" element={<UnifiedRegisterPage />} />
           </Route>
 
-          {/* Protected Dashboard Routes */}
+          {/* Recruiter Dashboard (Existing) */}
           <Route
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
-
-            {/* Jobs */}
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/jobs/create" element={<CreateJobPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
-
-            {/* Candidates */}
             <Route path="/candidates" element={<CandidatesPage />} />
             <Route path="/candidates/create" element={<CreateCandidatePage />} />
             <Route path="/candidates/:id" element={<CandidateDetailPage />} />
-
-            {/* Applications */}
             <Route path="/applications" element={<ApplicationsPage />} />
             <Route path="/applications/:id" element={<ApplicationDetailPage />} />
             <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
-
-            {/* Clients */}
             <Route path="/clients" element={<ClientCompaniesPage />} />
-
-            {/* Analytics */}
             <Route path="/analytics" element={<AnalyticsPage />} />
-
-            {/* Settings */}
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
-          {/* Catch all - redirect to dashboard */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Candidate Portal */}
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['candidate']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
+            <Route path="/candidate/jobs" element={<JobsPage />} />
+            <Route path="/candidate/applications" element={<ApplicationsPage />} />
+          </Route>
+
+          {/* Company Portal */}
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['client']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/client-dashboard" element={<CompanyDashboard />} />
+            <Route path="/company/jobs" element={<JobsPage />} />
+            <Route path="/company/candidates" element={<div>AI Matched Candidates (Coming Soon)</div>} />
+          </Route>
+
+          {/* Catch all - dynamic redirect based on role */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
 

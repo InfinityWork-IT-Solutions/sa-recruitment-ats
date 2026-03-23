@@ -42,6 +42,9 @@ class Candidate(Base):
     # Agency relationship (multi-tenancy)
     agency_id = Column(UUID(as_uuid=True), ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
     
+    # User relationship
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    
     # Added by
     added_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     
@@ -121,6 +124,7 @@ class Candidate(Base):
     
     # Relationships
     agency = relationship("Agency", back_populates="candidates")
+    user = relationship("User", back_populates="candidate")
     recruiter = relationship("User", foreign_keys=[added_by])
     applications = relationship("Application", back_populates="candidate", cascade="all, delete-orphan")
     

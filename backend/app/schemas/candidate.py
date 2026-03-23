@@ -144,6 +144,7 @@ class CandidateResponse(CandidateBase):
     """Schema for candidate in responses"""
     id: UUID
     agency_id: UUID
+    user_id: Optional[UUID] = None
     added_by: Optional[UUID] = None
     
     country: str

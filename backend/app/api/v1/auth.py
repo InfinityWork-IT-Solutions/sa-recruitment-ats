@@ -17,6 +17,8 @@ from app.schemas import (
     UserResponse,
     MessageResponse,
     PasswordChange,
+    CandidateRegisterRequest,
+    CompanyRegisterRequest,
 )
 from app.services.auth_service import auth_service
 
@@ -48,6 +50,38 @@ async def register(
         message="Registration successful! Please verify your email.",
         agency_id=agency.id,
         user_id=user.id,
+        tokens=TokenResponse(**tokens)
+    )
+
+
+@router.post("/register/candidate", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register_candidate(
+    registration: CandidateRegisterRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Register a new candidate"""
+    candidate, user = await auth_service.register_candidate(db, registration.candidate, registration.user)
+    tokens = auth_service.create_tokens(user)
+    return RegisterResponse(
+        message="Candidate registration successful!",
+        user_id=user.id,
+        agency_id=user.agency_id,
+        tokens=TokenResponse(**tokens)
+    )
+
+
+@router.post("/register/company", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register_company(
+    registration: CompanyRegisterRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Register a new company and admin user"""
+    company, user = await auth_service.register_company(db, registration.company, registration.user)
+    tokens = auth_service.create_tokens(user)
+    return RegisterResponse(
+        message="Company registration successful!",
+        user_id=user.id,
+        agency_id=user.agency_id,
         tokens=TokenResponse(**tokens)
     )
 

@@ -2,12 +2,11 @@ import { useState } from 'react';
 import {
     Users, Briefcase, TrendingUp, Shield, Zap, Globe,
     Check, ArrowRight, Menu, X, BarChart3, FileText,
-    Clock, Target, Star, Award, ChevronDown
+    Clock, Target, Star
 } from 'lucide-react';
 
 export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
 
     return (
         <div className="min-h-screen bg-white">
@@ -175,7 +174,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
                             <a
-                                href="/register?type=recruiter"
+                                href="/register"
                                 className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
                             >
                                 Get Started as Recruiter
@@ -206,7 +205,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
                             <a
-                                href="/register?type=client"
+                                href="/register"
                                 className="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
                             >
                                 Register Your Company
@@ -237,7 +236,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
                             <a
-                                href="/apply"
+                                href="/register"
                                 className="block w-full bg-green-600 hover:bg-green-700 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
                             >
                                 Find Jobs & Apply
