@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -18,6 +18,10 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const userType = searchParams.get('type');
+
     const register = useAuthStore((state) => state.register);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -46,7 +50,7 @@ export default function RegisterPage() {
                 },
             };
             await register(registerData as any);
-            navigate('/');
+            navigate('/dashboard');
         } catch (error) {
             // Error handled by interceptor
         } finally {
@@ -57,6 +61,14 @@ export default function RegisterPage() {
     return (
         <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your account</h2>
+
+            {userType && (
+                <div className="mb-4 text-center">
+                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                        Registering as {userType === 'recruiter' ? 'Recruiter' : 'Company'}
+                    </span>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {/* Name fields */}

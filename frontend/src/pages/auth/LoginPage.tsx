@@ -30,7 +30,7 @@ export default function LoginPage() {
         setIsLoading(true);
         try {
             await login(data);
-            navigate('/');
+            navigate('/dashboard');
         } catch (error) {
             // Error handling done in axios interceptor
         } finally {
@@ -107,6 +107,13 @@ export default function LoginPage() {
                     )}
                 </button>
             </form>
+
+            {/* Back to Home link */}
+            <div className="text-center mt-4">
+                <Link to="/" className="text-sm text-gray-600 hover:text-blue-600">
+                    &larr; Back to Home
+                </Link>
+            </div>
 
             {/* Register link */}
             <p className="mt-6 text-center text-sm text-gray-600">
