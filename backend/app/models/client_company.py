@@ -63,7 +63,10 @@ class ClientCompany(Base):
     agency = relationship("Agency", back_populates="client_companies")
     user = relationship("User", back_populates="client_company")
     jobs = relationship("Job", back_populates="client_company")
-    applications = relationship("Application", back_populates="client_company", cascade="all, delete-orphan")
+    applications = relationship("Application", 
+                                back_populates="client_company", 
+                                cascade="all, delete-orphan",
+                                primaryjoin="ClientCompany.id == Application.client_company_id")
     
     def __repr__(self):
         return f"<ClientCompany {self.name}>"
@@ -79,4 +82,4 @@ class ClientCompany(Base):
         if not self.jobs:
             return 0
         from app.models.job import JobStatus
-        return len([j for j in self.jobs if j.status == JobStatus.ACTIVE])
+        return len([j for j in self.jobs if j.status == JobStatus.active])

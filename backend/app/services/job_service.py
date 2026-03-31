@@ -45,7 +45,7 @@ class JobService:
             agency_id=agency_id,
             created_by=user.id,
             reference=reference,
-            status=JobStatus.DRAFT,
+            status=JobStatus.draft,
         )
         
         db.add(job)
@@ -212,7 +212,7 @@ class JobService:
         job: Job
     ) -> Job:
         """Publish job (change status to active)"""
-        if job.status == JobStatus.ACTIVE:
+        if job.status == JobStatus.active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Job is already published"
@@ -232,7 +232,7 @@ class JobService:
         reason: Optional[str] = None
     ) -> Job:
         """Close job"""
-        if job.status in [JobStatus.CLOSED, JobStatus.FILLED]:
+        if job.status in [JobStatus.closed, JobStatus.filled]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Job is already closed"
@@ -268,10 +268,10 @@ class JobService:
         """Update job status"""
         job.status = new_status
         
-        if new_status == JobStatus.ACTIVE and not job.published_at:
+        if new_status == JobStatus.active and not job.published_at:
             job.published_at = datetime.utcnow()
         
-        if new_status in [JobStatus.CLOSED, JobStatus.FILLED] and not job.closed_at:
+        if new_status in [JobStatus.closed, JobStatus.filled] and not job.closed_at:
             job.closed_at = datetime.utcnow()
         
         await db.commit()
@@ -295,7 +295,7 @@ class JobService:
         active_result = await db.execute(
             select(func.count(Job.id)).where(
                 Job.agency_id == agency_id,
-                Job.status == JobStatus.ACTIVE
+                Job.status == JobStatus.active
             )
         )
         active_jobs = active_result.scalar()
@@ -304,7 +304,7 @@ class JobService:
         draft_result = await db.execute(
             select(func.count(Job.id)).where(
                 Job.agency_id == agency_id,
-                Job.status == JobStatus.DRAFT
+                Job.status == JobStatus.draft
             )
         )
         draft_jobs = draft_result.scalar()
@@ -313,7 +313,7 @@ class JobService:
         closed_result = await db.execute(
             select(func.count(Job.id)).where(
                 Job.agency_id == agency_id,
-                Job.status == JobStatus.CLOSED
+                Job.status == JobStatus.closed
             )
         )
         closed_jobs = closed_result.scalar()
@@ -322,7 +322,7 @@ class JobService:
         filled_result = await db.execute(
             select(func.count(Job.id)).where(
                 Job.agency_id == agency_id,
-                Job.status == JobStatus.FILLED
+                Job.status == JobStatus.filled
             )
         )
         filled_jobs = filled_result.scalar()

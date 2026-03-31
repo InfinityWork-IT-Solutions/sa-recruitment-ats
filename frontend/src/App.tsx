@@ -18,6 +18,7 @@ import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
 // Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CandidateDashboard from './pages/dashboard/CandidateDashboard';
+import CandidateProfilePage from './pages/dashboard/CandidateProfilePage';
 import CompanyDashboard from './pages/dashboard/CompanyDashboard';
 
 // Jobs
@@ -76,8 +77,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     // Redirect to their default dashboard if they hit the wrong portal
-    if (user.role === 'candidate') return <Navigate to="/candidate/dashboard" replace />;
-    if (user.role === 'client') return <Navigate to="/company/dashboard" replace />;
+    if (user.role === 'candidate') return <Navigate to="/candidate-dashboard" replace />;
+    if (user.role === 'client') return <Navigate to="/client-dashboard" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -124,7 +125,6 @@ function App() {
             <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
             <Route path="/clients" element={<ClientCompaniesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
           {/* Candidate Portal */}
@@ -136,6 +136,7 @@ function App() {
             }
           >
             <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
+            <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/jobs" element={<JobsPage />} />
             <Route path="/candidate/applications" element={<ApplicationsPage />} />
           </Route>
@@ -151,6 +152,18 @@ function App() {
             <Route path="/client-dashboard" element={<CompanyDashboard />} />
             <Route path="/company/jobs" element={<JobsPage />} />
             <Route path="/company/candidates" element={<div>AI Matched Candidates (Coming Soon)</div>} />
+          </Route>
+
+          {/* Shared Routes (Accessible by all roles) */}
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin', 'candidate', 'client']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/jobs/:id" element={<JobDetailPage />} />
           </Route>
 
           {/* Catch all - dynamic redirect based on role */}

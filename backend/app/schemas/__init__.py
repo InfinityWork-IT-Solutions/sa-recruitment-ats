@@ -27,6 +27,8 @@ from app.schemas.auth import (
     PasswordResetConfirm,
     EmailVerifyRequest,
     MessageResponse,
+    CandidateRegisterRequest,
+    CompanyRegisterRequest,
 )
 from app.schemas.job import (
     JobBase,
@@ -100,6 +102,8 @@ __all__ = [
     "PasswordResetConfirm",
     "EmailVerifyRequest",
     "MessageResponse",
+    "CandidateRegisterRequest",
+    "CompanyRegisterRequest",
     # Job
     "JobBase",
     "JobCreate",

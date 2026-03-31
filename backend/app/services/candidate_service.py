@@ -46,9 +46,9 @@ class CandidateService:
         
         candidate = Candidate(
             **candidate_dict,
+            status=CandidateStatus.active,
             agency_id=agency_id,
-            added_by=user.id,
-            status=CandidateStatus.ACTIVE
+            added_by=user.id
         )
         
         db.add(candidate)
@@ -301,7 +301,7 @@ class CandidateService:
         active_result = await db.execute(
             select(func.count(Candidate.id)).where(
                 Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.ACTIVE
+                Candidate.status == CandidateStatus.active
             )
         )
         active_candidates = active_result.scalar()
@@ -310,7 +310,7 @@ class CandidateService:
         passive_result = await db.execute(
             select(func.count(Candidate.id)).where(
                 Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.PASSIVE
+                Candidate.status == CandidateStatus.passive
             )
         )
         passive_candidates = passive_result.scalar()
@@ -319,7 +319,7 @@ class CandidateService:
         placed_result = await db.execute(
             select(func.count(Candidate.id)).where(
                 Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.PLACED
+                Candidate.status == CandidateStatus.placed
             )
         )
         placed_candidates = placed_result.scalar()

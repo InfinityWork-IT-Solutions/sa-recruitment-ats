@@ -13,12 +13,12 @@ from app.core.database import Base
 
 class UserRole(str, enum.Enum):
     """User roles for RBAC"""
-    SUPER_ADMIN = "super_admin"      # Full system access
-    AGENCY_ADMIN = "agency_admin"    # Agency-level admin
-    RECRUITER = "recruiter"          # Can manage jobs, candidates, applications
-    CANDIDATE = "candidate"          # Job applicant
-    CLIENT = "client"                # Hiring company representative
-    VIEWER = "viewer"                # Read-only access
+    super_admin = "super_admin"      # Full system access
+    agency_admin = "agency_admin"    # Agency-level admin
+    recruiter = "recruiter"          # Can manage jobs, candidates, applications
+    candidate = "candidate"          # Job applicant
+    client = "client"                # Hiring company representative
+    viewer = "viewer"                # Read-only access
 
 
 class User(Base):
@@ -41,7 +41,7 @@ class User(Base):
     phone = Column(String(50))
     
     # Authorization
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.RECRUITER)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.recruiter)
     
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
@@ -61,7 +61,7 @@ class User(Base):
     # Relationships
     agency = relationship("Agency", back_populates="users")
     activities = relationship("Activity", back_populates="user")
-    candidate = relationship("Candidate", back_populates="user", uselist=False)
+    candidate = relationship("Candidate", foreign_keys="Candidate.user_id", back_populates="user", uselist=False)
     client_company = relationship("ClientCompany", back_populates="user", uselist=False)
     
     def __repr__(self):
@@ -74,16 +74,16 @@ class User(Base):
     
     def is_super_admin(self) -> bool:
         """Check if user is super admin"""
-        return self.role == UserRole.SUPER_ADMIN
+        return self.role == UserRole.super_admin
     
     def is_agency_admin(self) -> bool:
         """Check if user is agency admin"""
-        return self.role == UserRole.AGENCY_ADMIN
+        return self.role == UserRole.agency_admin
     
     def can_manage_users(self) -> bool:
         """Check if user can manage other users"""
-        return self.role in [UserRole.SUPER_ADMIN, UserRole.AGENCY_ADMIN]
+        return self.role in [UserRole.super_admin, UserRole.agency_admin]
     
     def can_manage_jobs(self) -> bool:
         """Check if user can manage jobs"""
-        return self.role in [UserRole.SUPER_ADMIN, UserRole.AGENCY_ADMIN, UserRole.RECRUITER]
+        return self.role in [UserRole.super_admin, UserRole.agency_admin, UserRole.recruiter]

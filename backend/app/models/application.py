@@ -12,39 +12,41 @@ from app.core.database import Base
 
 
 class ApplicationStatus(str, enum.Enum):
-    """Application status - Kanban pipeline"""
-    APPLIED = "applied"                  # Initial application
-    SCREENING = "screening"              # Under review
-    SHORTLISTED = "shortlisted"          # Passed screening
-    INTERVIEW_SCHEDULED = "interview_scheduled"  # Interview booked
-    INTERVIEWED = "interviewed"          # Interview completed
-    OFFER_PENDING = "offer_pending"      # Offer being prepared
-    OFFER_MADE = "offer_made"            # Offer sent to candidate
-    OFFER_ACCEPTED = "offer_accepted"    # Candidate accepted
-    HIRED = "hired"                      # Successfully hired
-    REJECTED = "rejected"                # Rejected at any stage
-    WITHDRAWN = "withdrawn"              # Candidate withdrew
+    """Application status"""
+    applied = "applied"              # Initial state
+    screening = "screening"          # Initial screening
+    shortlisted = "shortlisted"      # Passed screening
+    interview_scheduled = "interview_scheduled"
+    interviewed = "interviewed"
+    offer_pending = "offer_pending"
+    offer_made = "offer_made"
+    offer_accepted = "offer_accepted"
+    hired = "hired"                  # Successfully placed
+    rejected = "rejected"            # Rejected at any stage
+    withdrawn = "withdrawn"          # Candidate withdrew
 
 
 class ApplicationSource(str, enum.Enum):
     """How application was received"""
-    DIRECT_APPLY = "direct_apply"        # Applied directly
-    RECRUITER_ADDED = "recruiter_added"  # Added by recruiter
-    REFERRAL = "referral"                # Referred by someone
-    HEADHUNTED = "headhunted"            # Proactively sourced
-    IMPORTED = "imported"                # Imported from job board
+    direct = "direct"
+    referral = "referral"
+    linkedin = "linkedin"
+    pnet = "pnet"
+    career_junction = "career_junction"
+    other = "other"
+    direct_apply = "direct_apply"
 
 
 class RejectionReason(str, enum.Enum):
     """Reason for rejection"""
-    QUALIFICATIONS = "qualifications"    # Doesn't meet requirements
-    EXPERIENCE = "experience"            # Not enough experience
-    SALARY = "salary"                    # Salary mismatch
-    LOCATION = "location"                # Location constraints
-    CULTURE_FIT = "culture_fit"          # Not a culture fit
-    BETTER_CANDIDATE = "better_candidate"  # Another candidate selected
-    POSITION_FILLED = "position_filled"  # Position already filled
-    OTHER = "other"
+    skills_mismatch = "skills_mismatch"
+    experience_gap = "experience_gap"
+    salary_expectation = "salary_expectation"
+    location_mismatch = "location_mismatch"
+    overqualified = "overqualified"
+    culture_fit = "culture_fit"
+    position_closed = "position_closed"
+    other = "other"
 
 
 class Application(Base):
@@ -68,8 +70,8 @@ class Application(Base):
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     
     # Application Details
-    status = Column(Enum(ApplicationStatus), nullable=False, default=ApplicationStatus.APPLIED, index=True)
-    source = Column(Enum(ApplicationSource), default=ApplicationSource.DIRECT_APPLY)
+    status = Column(Enum(ApplicationStatus), nullable=False, default=ApplicationStatus.applied, index=True)
+    source = Column(Enum(ApplicationSource), default=ApplicationSource.direct_apply)
     
     # Cover Letter & Resume
     cover_letter = Column(Text)
@@ -125,10 +127,12 @@ class Application(Base):
     agency = relationship("Agency", back_populates="applications")
     job = relationship("Job", back_populates="applications")
     candidate = relationship("Candidate", back_populates="applications")
-    client_company = relationship("ClientCompany", back_populates="applications")
-    recruiter = relationship("User", foreign_keys=[assigned_to])
-    screener = relationship("User", foreign_keys=[screened_by])
-    rejecter = relationship("User", foreign_keys=[rejected_by])
+    client_company = relationship("ClientCompany", 
+                                  back_populates="applications",
+                                  primaryjoin="Application.client_company_id == ClientCompany.id")
+    recruiter = relationship("User", foreign_keys="Application.assigned_to")
+    screener = relationship("User", foreign_keys="Application.screened_by")
+    rejecter = relationship("User", foreign_keys="Application.rejected_by")
     
     # Indexes
     __table_args__ = (
@@ -156,12 +160,12 @@ class Application(Base):
     
     def move_to_screening(self):
         """Move application to screening"""
-        self.status = ApplicationStatus.SCREENING
+        self.status = ApplicationStatus.screening
         self.updated_at = datetime.utcnow()
     
     def shortlist(self, score: int, notes: str, screener_id: UUID):
         """Shortlist candidate"""
-        self.status = ApplicationStatus.SHORTLISTED
+        self.status = ApplicationStatus.shortlisted
         self.screening_score = score
         self.screening_notes = notes
         self.screening_passed = True
@@ -170,35 +174,35 @@ class Application(Base):
     
     def schedule_interview(self, interview_time: datetime):
         """Schedule interview"""
-        self.status = ApplicationStatus.INTERVIEW_SCHEDULED
+        self.status = ApplicationStatus.interview_scheduled
         self.interview_scheduled_at = interview_time
     
     def complete_interview(self, rating: int, feedback: str):
         """Mark interview as completed"""
-        self.status = ApplicationStatus.INTERVIEWED
+        self.status = ApplicationStatus.interviewed
         self.interview_completed_at = datetime.utcnow()
         self.interview_rating = rating
         self.interview_feedback = feedback
     
     def make_offer(self, amount: int):
         """Make job offer"""
-        self.status = ApplicationStatus.OFFER_MADE
+        self.status = ApplicationStatus.offer_made
         self.offer_amount = amount
         self.offer_sent_at = datetime.utcnow()
     
     def accept_offer(self, start_date: datetime):
         """Accept offer"""
-        self.status = ApplicationStatus.OFFER_ACCEPTED
+        self.status = ApplicationStatus.offer_accepted
         self.offer_accepted_at = datetime.utcnow()
         self.start_date = start_date
     
     def hire(self):
         """Mark as hired"""
-        self.status = ApplicationStatus.HIRED
+        self.status = ApplicationStatus.hired
     
     def reject(self, reason: RejectionReason, notes: str, rejected_by_id: UUID):
         """Reject application"""
-        self.status = ApplicationStatus.REJECTED
+        self.status = ApplicationStatus.rejected
         self.rejection_reason = reason
         self.rejection_notes = notes
         self.rejected_at = datetime.utcnow()
@@ -206,6 +210,6 @@ class Application(Base):
     
     def withdraw(self, reason: str):
         """Candidate withdraws"""
-        self.status = ApplicationStatus.WITHDRAWN
+        self.status = ApplicationStatus.withdrawn
         self.withdrawal_reason = reason
         self.withdrawn_at = datetime.utcnow()

@@ -13,9 +13,9 @@ from app.core.database import Base
 
 class SubscriptionTier(str, enum.Enum):
     """Subscription tiers"""
-    LITE = "lite"              # R725/seat/month - Basic features
-    STANDARD = "standard"      # R925/seat/month - Standard features
-    PREMIUM = "premium"        # R1,150/seat/month - All features
+    lite = "lite"              # R725/seat/month - Basic features
+    standard = "standard"      # R925/seat/month - Standard features
+    premium = "premium"        # R1,150/seat/month - All features
 
 
 class Agency(Base):
@@ -44,7 +44,7 @@ class Agency(Base):
     country = Column(String(100), default="South Africa")
     
     # Subscription
-    subscription_tier = Column(Enum(SubscriptionTier), nullable=False, default=SubscriptionTier.STANDARD)
+    subscription_tier = Column(Enum(SubscriptionTier), nullable=False, default=SubscriptionTier.standard)
     max_users = Column(Integer, default=5, nullable=False)  # Seat limit
     
     # Status
@@ -87,8 +87,8 @@ class Agency(Base):
     def get_seat_price(self) -> int:
         """Get price per seat in ZAR cents"""
         prices = {
-            SubscriptionTier.LITE: 72500,      # R725.00
-            SubscriptionTier.STANDARD: 92500,  # R925.00
-            SubscriptionTier.PREMIUM: 115000,  # R1,150.00
+            SubscriptionTier.lite: 72500,      # R725.00
+            SubscriptionTier.standard: 92500,  # R925.00
+            SubscriptionTier.premium: 115000,  # R1,150.00
         }
         return prices.get(self.subscription_tier, 92500)

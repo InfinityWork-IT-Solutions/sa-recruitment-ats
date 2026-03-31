@@ -48,7 +48,7 @@ class CandidateBase(BaseModel):
     github_url: Optional[str] = Field(None, max_length=255)
     
     # Status
-    source: CandidateSource = Field(CandidateSource.DIRECT_APPLICATION)
+    source: CandidateSource = Field(CandidateSource.direct_application)
     source_details: Optional[str] = Field(None, max_length=255)
     
     # Availability

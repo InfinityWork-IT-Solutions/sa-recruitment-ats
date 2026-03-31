@@ -13,23 +13,23 @@ from app.core.database import Base
 
 class CandidateStatus(str, enum.Enum):
     """Candidate status"""
-    ACTIVE = "active"                # Actively looking
-    PASSIVE = "passive"              # Open to opportunities
-    PLACED = "placed"                # Successfully placed
-    NOT_INTERESTED = "not_interested"  # No longer interested
-    BLACKLISTED = "blacklisted"      # Do not contact
+    active = "active"                # Actively looking
+    passive = "passive"              # Open to opportunities
+    placed = "placed"                # Successfully placed
+    not_interested = "not_interested"  # No longer interested
+    blacklisted = "blacklisted"      # Do not contact
 
 
 class CandidateSource(str, enum.Enum):
     """How candidate was sourced"""
-    DIRECT_APPLICATION = "direct_application"
-    REFERRAL = "referral"
-    LINKEDIN = "linkedin"
-    PNET = "pnet"
-    CAREER_JUNCTION = "career_junction"
-    HEADHUNTED = "headhunted"
-    WALK_IN = "walk_in"
-    OTHER = "other"
+    direct_application = "direct_application"
+    referral = "referral"
+    linkedin = "linkedin"
+    pnet = "pnet"
+    career_junction = "career_junction"
+    headhunted = "headhunted"
+    walk_in = "walk_in"
+    other = "other"
 
 
 class Candidate(Base):
@@ -94,8 +94,8 @@ class Candidate(Base):
     github_url = Column(String(255))
     
     # Status & Source
-    status = Column(Enum(CandidateStatus), nullable=False, default=CandidateStatus.ACTIVE, index=True)
-    source = Column(Enum(CandidateSource), default=CandidateSource.DIRECT_APPLICATION)
+    status = Column(Enum(CandidateStatus), nullable=False, default=CandidateStatus.active, index=True)
+    source = Column(Enum(CandidateSource), default=CandidateSource.direct_application)
     source_details = Column(String(255))  # E.g., "Referred by John Doe"
     
     # Availability
@@ -124,7 +124,7 @@ class Candidate(Base):
     
     # Relationships
     agency = relationship("Agency", back_populates="candidates")
-    user = relationship("User", back_populates="candidate")
+    user = relationship("User", foreign_keys="Candidate.user_id", back_populates="candidate")
     recruiter = relationship("User", foreign_keys=[added_by])
     applications = relationship("Application", back_populates="candidate", cascade="all, delete-orphan")
     
@@ -163,7 +163,7 @@ class Candidate(Base):
     @property
     def is_available(self) -> bool:
         """Check if candidate is available"""
-        if self.status not in [CandidateStatus.ACTIVE, CandidateStatus.PASSIVE]:
+        if self.status not in [CandidateStatus.active, CandidateStatus.passive]:
             return False
         
         if self.is_immediately_available:

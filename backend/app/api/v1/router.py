@@ -3,20 +3,15 @@ API v1 Router - Updated with Sprint 4 endpoints
 """
 from fastapi import APIRouter
 
-print("IMPORTING AUTH")
-from app.api.v1 import auth
-print("IMPORTING JOBS")
-from app.api.v1 import jobs
-print("IMPORTING CLIENT COMPANIES")
-from app.api.v1 import client_companies
-print("IMPORTING CANDIDATES")
-from app.api.v1 import candidates
-print("IMPORTING APPLICATIONS")
-from app.api.v1 import applications
-print("IMPORTING ANALYTICS")
-from app.api.v1 import analytics
-print("IMPORTING I18N")
-from app.api.v1 import i18n
+from app.api.v1 import (
+    auth,
+    jobs,
+    client_companies,
+    candidates,
+    applications,
+    analytics,
+    i18n
+)
 
 # Create main API router
 api_router = APIRouter()

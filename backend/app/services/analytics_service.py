@@ -48,7 +48,7 @@ class AnalyticsService:
         active_jobs_result = await db.execute(
             select(func.count(Job.id)).where(
                 Job.agency_id == agency_id,
-                Job.status == JobStatus.ACTIVE
+                Job.status == JobStatus.active
             )
         )
         active_jobs = active_jobs_result.scalar()
@@ -63,7 +63,7 @@ class AnalyticsService:
         active_candidates_result = await db.execute(
             select(func.count(Candidate.id)).where(
                 Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.ACTIVE
+                Candidate.status == CandidateStatus.active
             )
         )
         active_candidates = active_candidates_result.scalar()
@@ -81,10 +81,10 @@ class AnalyticsService:
         placements_result = await db.execute(
             select(func.count(Application.id)).where(
                 Application.agency_id == agency_id,
-                Application.status == ApplicationStatus.HIRED,
+                Application.status == ApplicationStatus.hired,
                 Application.created_at >= period_start
             )
-        )
+)
         placements = placements_result.scalar()
         
         # Average time to hire (days)
@@ -95,7 +95,7 @@ class AnalyticsService:
                 )
             ).where(
                 Application.agency_id == agency_id,
-                Application.status == ApplicationStatus.HIRED,
+                Application.status == ApplicationStatus.hired,
                 Application.created_at >= period_start
             )
         )
@@ -190,7 +190,7 @@ class AnalyticsService:
                 Job.reference,
                 func.count(Application.id).label('applications_count'),
                 func.count(
-                    func.nullif(Application.status == ApplicationStatus.HIRED, False)
+                    func.nullif(Application.status == ApplicationStatus.hired, False)
                 ).label('hires_count')
             ).join(
                 Application, Application.job_id == Job.id
@@ -230,7 +230,7 @@ class AnalyticsService:
                 User.last_name,
                 func.count(Application.id).label('total_applications'),
                 func.count(
-                    func.nullif(Application.status == ApplicationStatus.HIRED, False)
+                    func.nullif(Application.status == ApplicationStatus.hired, False)
                 ).label('successful_hires')
             ).join(
                 Application, Application.assigned_to == User.id
@@ -240,7 +240,7 @@ class AnalyticsService:
                 User.id, User.first_name, User.last_name
             ).order_by(
                 func.count(
-                    func.nullif(Application.status == ApplicationStatus.HIRED, False)
+                    func.nullif(Application.status == ApplicationStatus.hired, False)
                 ).desc()
             )
         )
@@ -287,7 +287,7 @@ class AnalyticsService:
                 "candidates_count": row.total_candidates,
                 "applications_count": row.total_applications or 0,
                 "placements_count": row.total_placements or 0,
-                "conversion_rate": round((row.total_placements / row.total_candidates * 100) if row.total_candidates > 0 else 0, 2)
+                "conversion_rate": round(((row.total_placements or 0) / row.total_candidates * 100) if row.total_candidates > 0 else 0, 2)
             }
             for row in data
         ]

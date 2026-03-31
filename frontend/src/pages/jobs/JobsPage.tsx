@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useJobs } from '@/hooks/use-jobs';
+import { useAuthStore } from '@/store/auth';
 import { Plus, Search, Briefcase, MapPin, DollarSign, Eye, Users } from 'lucide-react';
 import { JobStatus, EmploymentType } from '@/types/api';
 
@@ -26,6 +27,8 @@ export default function JobsPage() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [employmentTypeFilter, setEmploymentTypeFilter] = useState<string>('');
+    const { user } = useAuthStore();
+    const isCandidate = user?.role === 'candidate';
 
     const { data, isLoading } = useJobs({
         search,
@@ -39,13 +42,15 @@ export default function JobsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
-                    <p className="text-gray-600 mt-1">Manage your job postings</p>
+                    <h1 className="text-3xl font-bold text-gray-900">{isCandidate ? 'Discover Jobs' : 'Jobs'}</h1>
+                    <p className="text-gray-600 mt-1">{isCandidate ? 'Find and apply for exciting opportunities' : 'Manage your job postings'}</p>
                 </div>
-                <Link to="/jobs/create" className="btn-primary flex items-center space-x-2">
-                    <Plus className="w-5 h-5" />
-                    <span>Post New Job</span>
-                </Link>
+                {!isCandidate && (
+                    <Link to="/jobs/create" className="btn-primary flex items-center space-x-2">
+                        <Plus className="w-5 h-5" />
+                        <span>Post New Job</span>
+                    </Link>
+                )}
             </div>
 
             {/* Filters */}
@@ -102,11 +107,15 @@ export default function JobsPage() {
                 <div className="card text-center py-12">
                     <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
-                    <p className="text-gray-600 mb-6">Get started by posting your first job.</p>
-                    <Link to="/jobs/create" className="btn-primary inline-flex items-center space-x-2">
-                        <Plus className="w-5 h-5" />
-                        <span>Post New Job</span>
-                    </Link>
+                    <p className="text-gray-600 mb-6">
+                        {isCandidate ? 'Try adjusting your search criteria.' : 'Get started by posting your first job.'}
+                    </p>
+                    {!isCandidate && (
+                        <Link to="/jobs/create" className="btn-primary inline-flex items-center space-x-2">
+                            <Plus className="w-5 h-5" />
+                            <span>Post New Job</span>
+                        </Link>
+                    )}
                 </div>
             ) : (
                 <div className="space-y-4">

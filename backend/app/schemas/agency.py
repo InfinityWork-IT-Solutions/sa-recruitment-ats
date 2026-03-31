@@ -21,7 +21,7 @@ class AgencyBase(BaseModel):
 # Schema for creating an agency (registration)
 class AgencyCreate(AgencyBase):
     """Schema for creating a new agency"""
-    subscription_tier: SubscriptionTier = Field(SubscriptionTier.STANDARD, description="Subscription tier")
+    subscription_tier: SubscriptionTier = Field(SubscriptionTier.standard, description="Subscription tier")
     
     # Optional company details
     registration_number: Optional[str] = Field(None, max_length=100)

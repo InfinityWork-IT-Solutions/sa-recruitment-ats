@@ -8,7 +8,6 @@ from app.models.client_company import ClientCompany
 from app.models.candidate import Candidate, CandidateStatus, CandidateSource
 from app.models.application import Application, ApplicationStatus, ApplicationSource, RejectionReason
 from app.models.activity import Activity
-print("MODELS/__INIT__.PY FINISHED")
 
 __all__ = [
     "Agency",

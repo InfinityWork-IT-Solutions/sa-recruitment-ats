@@ -1,7 +1,7 @@
 """
 Job model for job postings
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, String, Integer, Text, ForeignKey, Enum, ARRAY, Index
 from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
 from sqlalchemy.orm import relationship
@@ -13,30 +13,30 @@ from app.core.database import Base
 
 class JobStatus(str, enum.Enum):
     """Job status"""
-    DRAFT = "draft"              # Not yet published
-    ACTIVE = "active"            # Published and accepting applications
-    PAUSED = "paused"            # Temporarily paused
-    CLOSED = "closed"            # Closed, no longer accepting applications
-    FILLED = "filled"            # Position filled
-    EXPIRED = "expired"          # Past closing date
+    draft = "draft"              # Not yet published
+    active = "active"            # Published and accepting applications
+    paused = "paused"            # Temporarily paused
+    closed = "closed"            # Closed, no longer accepting applications
+    filled = "filled"            # Position filled
+    expired = "expired"          # Past closing date
 
 
 class EmploymentType(str, enum.Enum):
     """Employment type"""
-    FULL_TIME = "full_time"
-    PART_TIME = "part_time"
-    CONTRACT = "contract"
-    TEMPORARY = "temporary"
-    INTERNSHIP = "internship"
-    FREELANCE = "freelance"
+    full_time = "full_time"
+    part_time = "part_time"
+    contract = "contract"
+    temporary = "temporary"
+    internship = "internship"
+    freelance = "freelance"
 
 
 class ExperienceLevel(str, enum.Enum):
     """Experience level required"""
-    ENTRY_LEVEL = "entry_level"        # 0-2 years
-    MID_LEVEL = "mid_level"            # 3-5 years
-    SENIOR_LEVEL = "senior_level"      # 6-10 years
-    EXECUTIVE = "executive"            # 10+ years
+    entry_level = "entry_level"        # 0-2 years
+    mid_level = "mid_level"            # 3-5 years
+    senior_level = "senior_level"      # 6-10 years
+    executive = "executive"            # 10+ years
 
 
 class Job(Base):
@@ -67,7 +67,7 @@ class Job(Base):
     skills = Column(ARRAY(String), default=list)  # ["Python", "AWS", "Docker"]
     years_of_experience_min = Column(Integer, default=0)
     years_of_experience_max = Column(Integer)
-    experience_level = Column(Enum(ExperienceLevel))
+    experience_level = Column(Enum(ExperienceLevel), nullable=False, default=ExperienceLevel.entry_level)
     
     # Education
     education_level = Column(String(100))  # "Matric", "BCom", "BSc Computer Science"
@@ -82,7 +82,7 @@ class Job(Base):
     remote_type = Column(String(50))  # "fully_remote", "hybrid", "office_only"
     
     # Employment Details
-    employment_type = Column(Enum(EmploymentType), nullable=False, default=EmploymentType.FULL_TIME)
+    employment_type = Column(Enum(EmploymentType), nullable=False, default=EmploymentType.full_time)
     
     # Salary
     salary_min = Column(Integer)  # In ZAR
@@ -97,7 +97,7 @@ class Job(Base):
     start_date = Column(DateTime(timezone=True))  # Expected start date
     
     # Status
-    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.DRAFT, index=True)
+    status = Column(Enum(JobStatus), nullable=False, default=JobStatus.active, index=True)
     is_urgent = Column(Boolean, default=False)
     is_featured = Column(Boolean, default=False)
     
@@ -125,69 +125,8 @@ class Job(Base):
     # Relationships
     agency = relationship("Agency", back_populates="jobs")
     client_company = relationship("ClientCompany", back_populates="jobs")
-    creator = relationship("User", foreign_keys=[created_by])
+    creator = relationship("User", foreign_keys="Job.created_by")
     applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
-    
-    # Indexes for performance
-    __table_args__ = (
-        # GIN index for skills array search
-        Index('idx_jobs_skills', 'skills', postgresql_using='gin'),
-        # GIN index for full-text search
-        Index('idx_jobs_search', 'search_vector', postgresql_using='gin'),
-        # Composite index for agency + status queries
-        Index('idx_jobs_agency_status', 'agency_id', 'status'),
-    )
     
     def __repr__(self):
         return f"<Job {self.reference}: {self.title}>"
-    
-    @property
-    def is_active(self) -> bool:
-        """Check if job is currently active"""
-        return self.status == JobStatus.ACTIVE
-    
-    @property
-    def is_expired(self) -> bool:
-        """Check if job has expired"""
-        if not self.closing_date:
-            return False
-        return datetime.utcnow() > self.closing_date
-    
-    @property
-    def days_until_closing(self) -> int:
-        """Get days until closing date"""
-        if not self.closing_date:
-            return -1
-        delta = self.closing_date - datetime.utcnow()
-        return max(0, delta.days)
-    
-    @property
-    def salary_range_display(self) -> str:
-        """Get formatted salary range"""
-        if not self.show_salary or not self.salary_min:
-            return "Salary not disclosed"
-        
-        currency = self.salary_currency or "ZAR"
-        
-        if self.salary_max:
-            return f"{currency} {self.salary_min:,} - {self.salary_max:,}"
-        return f"{currency} {self.salary_min:,}"
-    
-    def publish(self):
-        """Publish the job (change status to active)"""
-        self.status = JobStatus.ACTIVE
-        self.published_at = datetime.utcnow()
-        
-        # Set default closing date if not set (30 days)
-        if not self.closing_date:
-            self.closing_date = datetime.utcnow() + timedelta(days=30)
-    
-    def close(self):
-        """Close the job"""
-        self.status = JobStatus.CLOSED
-        self.closed_at = datetime.utcnow()
-    
-    def mark_as_filled(self):
-        """Mark job as filled"""
-        self.status = JobStatus.FILLED
-        self.closed_at = datetime.utcnow()

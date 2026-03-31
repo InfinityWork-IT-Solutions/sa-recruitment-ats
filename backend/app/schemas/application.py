@@ -20,7 +20,7 @@ class ApplicationCreate(ApplicationBase):
     """Schema for creating an application"""
     job_id: UUID = Field(..., description="Job ID to apply to")
     candidate_id: UUID = Field(..., description="Candidate ID")
-    source: ApplicationSource = Field(ApplicationSource.DIRECT_APPLY)
+    source: ApplicationSource = Field(ApplicationSource.direct_apply)
     
     model_config = ConfigDict(json_schema_extra={
         "example": {

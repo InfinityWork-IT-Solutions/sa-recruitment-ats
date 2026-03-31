@@ -67,11 +67,11 @@ class ApplicationService:
             agency_id=agency_id,
             client_company_id=job.client_company_id,
             assigned_to=user.id,
-            status=ApplicationStatus.APPLIED
+            status=ApplicationStatus.applied
         )
         
         # Initialize status history
-        application.add_status_change(ApplicationStatus.APPLIED, user.id)
+        application.add_status_change(ApplicationStatus.applied, user.id)
         
         db.add(application)
         
@@ -317,7 +317,7 @@ class ApplicationService:
             application.accept_offer(start_date)
         else:
             application.offer_rejected_at = datetime.utcnow()
-            application.status = ApplicationStatus.REJECTED
+            application.status = ApplicationStatus.rejected
         
         application.add_status_change(application.status, user.id)
         
@@ -344,7 +344,7 @@ class ApplicationService:
         if candidate:
             candidate.placements_count += 1
             from app.models.candidate import CandidateStatus
-            candidate.status = CandidateStatus.PLACED
+            candidate.status = CandidateStatus.placed
         
         await db.commit()
         await db.refresh(application)

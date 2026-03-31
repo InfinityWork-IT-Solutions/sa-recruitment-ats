@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useJob, useUpdateJob, useDeleteJob, useUpdateJobStatus } from '@/hooks/use-jobs';
+import { useAuthStore } from '@/store/auth';
 import { useApplications } from '@/hooks/use-applications';
 import {
     ArrowLeft,
@@ -64,6 +65,8 @@ export default function JobDetailPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [skillInput, setSkillInput] = useState('');
+    const { user } = useAuthStore();
+    const isCandidate = user?.role === 'candidate';
 
     const { data: job, isLoading } = useJob(id!);
     const { data: applicationsData } = useApplications({ job_id: id });
@@ -158,7 +161,11 @@ export default function JobDetailPage() {
                     </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                    {!isEditing ? (
+                    {isCandidate ? (
+                        <button className="btn-primary flex items-center space-x-2">
+                             <span>Apply Now</span>
+                        </button>
+                    ) : !isEditing ? (
                         <>
                             <button
                                 onClick={() => {
@@ -244,7 +251,7 @@ export default function JobDetailPage() {
                     </div>
 
                     {/* Status Actions */}
-                    {!isEditing && (
+                    {!isEditing && !isCandidate && (
                         <div className="card">
                             <h3 className="font-semibold text-gray-900 mb-4">Change Status</h3>
                             <div className="space-y-2">
@@ -527,7 +534,7 @@ export default function JobDetailPage() {
                             )}
 
                             {/* Recent Applications */}
-                            {applicationsData && applicationsData.applications.length > 0 && (
+                            {!isCandidate && applicationsData && applicationsData.applications.length > 0 && (
                                 <div className="card">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-semibold text-gray-900">Recent Applications</h3>

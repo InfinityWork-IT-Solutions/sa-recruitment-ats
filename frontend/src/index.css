@@ -82,3 +82,18 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+@keyframes gradient-xy {
+  0%, 100% {
+    background-size: 400% 400%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 15s ease infinite;
+}

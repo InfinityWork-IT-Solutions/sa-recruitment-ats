@@ -1,2 +1,0 @@
-2026-03-18T16:06:38,651 Using pip 25.2 from C:\Users\mpume\Documents\PROJECTS\sa-recruitment-ats\backend\venv\Lib\site-packages\pip (python 3.13)
-2026-03-18T16:06:38,659 Non-user install because user site-packages disabled

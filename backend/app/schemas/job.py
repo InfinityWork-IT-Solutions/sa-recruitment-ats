@@ -36,7 +36,7 @@ class JobBase(BaseModel):
     remote_type: Optional[str] = Field(None, description="Remote work type")
     
     # Employment
-    employment_type: EmploymentType = Field(EmploymentType.FULL_TIME, description="Type of employment")
+    employment_type: EmploymentType = Field(EmploymentType.full_time, description="Type of employment")
     
     # Salary
     salary_min: Optional[int] = Field(None, ge=0, description="Minimum salary in ZAR")

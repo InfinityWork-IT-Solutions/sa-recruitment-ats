@@ -12,23 +12,53 @@ import {
     Menu,
     X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Jobs', href: '/jobs', icon: Briefcase },
-    { name: 'Candidates', href: '/candidates', icon: Users },
-    { name: 'Applications', href: '/applications', icon: FileText },
-    { name: 'Clients', href: '/clients', icon: Building2 },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Settings', href: '/settings', icon: Settings },
-];
+const getNavigation = (role?: string) => {
+    if (role === 'candidate') {
+        return [
+            { name: 'Dashboard', href: '/candidate-dashboard', icon: LayoutDashboard },
+            { name: 'Jobs', href: '/candidate/jobs', icon: Briefcase },
+            { name: 'Applications', href: '/candidate/applications', icon: FileText },
+            { name: 'Settings', href: '/settings', icon: Settings },
+        ];
+    }
+    
+    if (role === 'client') {
+        return [
+            { name: 'Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
+            { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
+            { name: 'Candidates', href: '/company/candidates', icon: Users },
+            { name: 'Settings', href: '/settings', icon: Settings },
+        ];
+    }
+    
+    // Default recruiter navigation
+    return [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Jobs', href: '/jobs', icon: Briefcase },
+        { name: 'Candidates', href: '/candidates', icon: Users },
+        { name: 'Applications', href: '/applications', icon: FileText },
+        { name: 'Clients', href: '/clients', icon: Building2 },
+        { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+        { name: 'Settings', href: '/settings', icon: Settings },
+    ];
+};
 
 export default function DashboardLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(localStorage.getItem('candidate_avatar'));
+
+    useEffect(() => {
+        const handleAvatarUpdate = () => {
+            setAvatarUrl(localStorage.getItem('candidate_avatar'));
+        };
+        window.addEventListener('avatarUpdated', handleAvatarUpdate);
+        return () => window.removeEventListener('avatarUpdated', handleAvatarUpdate);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -56,7 +86,10 @@ export default function DashboardLayout() {
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-                        <Link to="/" className="flex items-center space-x-2">
+                        <Link 
+                            to={user?.role === 'candidate' ? '/candidate-dashboard' : user?.role === 'client' ? '/client-dashboard' : '/dashboard'} 
+                            className="flex items-center space-x-2"
+                        >
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-xl">R</span>
                             </div>
@@ -72,9 +105,8 @@ export default function DashboardLayout() {
 
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                        {navigation.map((item) => {
-                            const isActive = location.pathname === item.href ||
-                                (item.href !== '/' && location.pathname.startsWith(item.href));
+                        {getNavigation(user?.role).map((item) => {
+                            const isActive = location.pathname === item.href;
                             const Icon = item.icon;
 
                             return (
@@ -100,10 +132,14 @@ export default function DashboardLayout() {
                     {/* User section */}
                     <div className="border-t border-gray-200 p-4">
                         <div className="flex items-center space-x-3 mb-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                                <span className="text-white font-semibold">
-                                    {user?.first_name[0]}{user?.last_name[0]}
-                                </span>
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                                {avatarUrl && user?.role === 'candidate' ? (
+                                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-white font-semibold">
+                                        {user?.first_name[0]}{user?.last_name[0]}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900 truncate">
@@ -136,11 +172,26 @@ export default function DashboardLayout() {
 
                     <div className="flex-1" />
 
-                    {/* User badge (role) */}
-                    <div className="flex items-center space-x-3">
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                    {/* User badge (role) & Profile Link */}
+                    <div className="flex items-center space-x-4">
+                        <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-bold">
                             {user?.role.replace('_', ' ').toUpperCase()}
                         </span>
+                        
+                        <Link 
+                            to={user?.role === 'candidate' ? '/candidate/profile' : '/settings'}
+                            className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:ring-2 hover:ring-blue-300 transition-all shadow-sm overflow-hidden"
+                            title="My Profile"
+                        >
+                            {/* Assuming user profile picture feature is coming, fallback to initials */}
+                            {avatarUrl && user?.role === 'candidate' ? (
+                                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-white font-semibold flex items-center justify-center w-full h-full">
+                                    {user?.first_name[0]}{user?.last_name[0]}
+                                </span>
+                            )}
+                        </Link>
                     </div>
                 </header>
 

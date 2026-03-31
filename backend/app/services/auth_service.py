@@ -25,6 +25,25 @@ class AuthService:
     """Authentication service"""
     
     @staticmethod
+    async def get_or_create_system_agency(db: AsyncSession) -> Agency:
+        """Get or create the default system agency for independent users"""
+        result = await db.execute(select(Agency).where(Agency.name == "RecruitPro Global"))
+        agency = result.scalar_one_or_none()
+        
+        if not agency:
+            agency = Agency(
+                name="RecruitPro Global",
+                email="system@recruitpro.co.za",
+                phone="0000000000",
+                is_active=True,
+                subscription_tier="premium"
+            )
+            db.add(agency)
+            await db.flush()
+            
+        return agency
+    
+    @staticmethod
     async def register_agency_and_user(
         db: AsyncSession,
         registration: RegisterRequest
@@ -68,7 +87,7 @@ class AuthService:
         user = User(
             **user_data,
             agency_id=agency.id,
-            role=UserRole.AGENCY_ADMIN,  # First user is always admin
+            role=UserRole.agency_admin,  # First user is always admin
             hashed_password=hash_password(registration.user.password),
             is_active=True,
             is_verified=False,  # Requires email verification
@@ -93,16 +112,22 @@ class AuthService:
         if existing_user.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already registered")
 
+        # Provide system agency if not specified
+        agency_id = user_data.agency_id
+        if not agency_id:
+            system_agency = await AuthService.get_or_create_system_agency(db)
+            agency_id = system_agency.id
+
         # Create user
         user = User(
             email=user_data.email,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             phone=user_data.phone,
-            role=UserRole.CANDIDATE,
+            role=UserRole.candidate,
             hashed_password=hash_password(user_data.password),
             is_active=True,
-            agency_id=user_data.agency_id # Optional: link to a default agency if provided
+            agency_id=agency_id
         )
         db.add(user)
         await db.flush()
@@ -110,7 +135,7 @@ class AuthService:
         # Create candidate profile
         candidate = Candidate(
             user_id=user.id,
-            agency_id=user.agency_id or None, # Link if agency exists
+            agency_id=agency_id,
             first_name=user.first_name,
             last_name=user.last_name,
             email=user.email,
@@ -135,16 +160,22 @@ class AuthService:
         if existing_user.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already registered")
 
+        # Link to system agency if not specified
+        agency_id = user_data.agency_id
+        if not agency_id:
+            system_agency = await AuthService.get_or_create_system_agency(db)
+            agency_id = system_agency.id
+
         # Create user
         user = User(
             email=user_data.email,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             phone=user_data.phone,
-            role=UserRole.CLIENT,
+            role=UserRole.client,
             hashed_password=hash_password(user_data.password),
             is_active=True,
-            agency_id=user_data.agency_id # Must be linked to an agency in multi-tenant setup
+            agency_id=agency_id
         )
         db.add(user)
         await db.flush()
@@ -152,7 +183,7 @@ class AuthService:
         # Create company
         company = ClientCompany(
             user_id=user.id,
-            agency_id=user.agency_id,
+            agency_id=agency_id,
             **registration.model_dump()
         )
         db.add(company)

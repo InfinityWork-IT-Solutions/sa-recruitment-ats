@@ -6,7 +6,7 @@ interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, expectedType?: string) => Promise<void>;
     register: (data: any) => Promise<void>;
     registerCandidate: (data: any) => Promise<void>;
     registerCompany: (data: any) => Promise<void>;
@@ -19,11 +19,25 @@ export const useAuthStore = create<AuthState>((set) => ({
     isAuthenticated: !!localStorage.getItem('access_token'),
     isLoading: false,
 
-    login: async (email: string, password: string) => {
+    login: async (email: string, password: string, expectedType?: string) => {
         set({ isLoading: true });
         try {
             const response = await apiClient.post<LoginResponse>('/auth/login', { email, password });
             const { tokens, user } = response.data;
+            
+            if (expectedType) {
+                const userRole = user.role;
+                let isValid = false;
+                
+                if (expectedType === 'candidate' && userRole === 'candidate') isValid = true;
+                if (expectedType === 'company' && userRole === 'client') isValid = true;
+                if (expectedType === 'recruiter' && ['agency_admin', 'agency_user', 'admin'].includes(userRole)) isValid = true;
+                
+                if (!isValid) {
+                    throw new Error(`Invalid login type. Your account is not registered as a ${expectedType}.`);
+                }
+            }
+
             localStorage.setItem('access_token', tokens.access_token);
             localStorage.setItem('refresh_token', tokens.refresh_token);
             set({ user, isAuthenticated: true, isLoading: false });
@@ -95,7 +109,10 @@ export const useAuthStore = create<AuthState>((set) => ({
                     city: data.city,
                     province: data.province,
                     current_job_title: data.current_job_title,
-                    years_of_experience: data.years_of_experience
+                    years_of_experience: typeof data.years_of_experience === 'string' 
+                        ? parseInt(data.years_of_experience.split(/[-+]/)[0], 10) || 0 
+                        : (data.years_of_experience || 0),
+                    consent_to_contact: !!data.consent_to_contact
                 }
             };
             const response = await apiClient.post<LoginResponse>('/auth/register/candidate', payload);

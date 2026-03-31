@@ -9,11 +9,21 @@ from app.core.config import settings
 # Load environment variables
 load_dotenv()
 
+import traceback
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 app = FastAPI(
     title=os.getenv("APP_NAME", "RecruitPro SA"),
     description="SA Recruitment ATS - Backend API",
     version="1.0.0",
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    with open("trace.log", "w") as f:
+        f.write(traceback.format_exc())
+    return JSONResponse(status_code=500, content={"detail": str(exc), "trace": traceback.format_exc()})
 
 # Configure CORS
 app.add_middleware(

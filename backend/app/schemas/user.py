@@ -23,7 +23,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for creating a new user"""
     password: str = Field(..., min_length=8, max_length=100, description="Password (min 8 characters)")
-    role: UserRole = Field(UserRole.RECRUITER, description="User role")
+    role: UserRole = Field(UserRole.recruiter, description="User role")
     agency_id: Optional[UUID] = Field(None, description="Agency ID (optional for candidates)")
     
     @field_validator('password')

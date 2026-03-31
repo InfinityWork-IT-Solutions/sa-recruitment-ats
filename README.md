@@ -103,11 +103,14 @@ docker-compose -f docker/docker-compose.dev.yml up -d
 # API Docs: http://localhost:8000/api/v1/docs
 ```
 
-### Option 2: Manual Setup
+### Option 2: Manual Setup (Local Development)
 
 **Backend:**
 ```bash
 cd backend
+
+# Ensure you are using a compatible Python version (3.11 - 3.13) to avoid asyncpg compilation issues on Windows
+poetry env use 3.13
 
 # Install dependencies
 poetry install
@@ -117,14 +120,18 @@ cp ../.env.example .env
 # Edit .env with your credentials
 
 # Initialize database
-psql -c "CREATE DATABASE recruiter_ats"
-psql -d recruiter_ats -f docs/database_schema.sql
+psql -U postgres -c "CREATE DATABASE recruiter_ats"
+psql -U postgres -d recruiter_ats -f docs/database_schema.sql
 
 # Run migrations
-alembic upgrade head
+poetry run alembic upgrade head
 
-# Start server
-uvicorn app.main:app --reload
+# Start local server (Method 1: Poetry)
+poetry run uvicorn app.main:app --reload
+
+# Start local server (Method 2: Virtual Env - Windows PowerShell)
+.\venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 **Frontend:**
@@ -141,6 +148,7 @@ cp .env.example .env.local
 # Start dev server
 npm run dev
 ```
+
 
 ---
 
@@ -668,3 +676,8 @@ Proprietary - © 2026 InfinityWork IT Solutions (Pty) Ltd
 
 **Built with ❤️ in Cape Town, South Africa**  
 **Infinite Tech. Limitless Solutions.**
+
+
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload --port 8000

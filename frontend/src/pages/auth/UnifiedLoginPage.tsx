@@ -22,6 +22,7 @@ export default function UnifiedLoginPage() {
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -34,10 +35,14 @@ export default function UnifiedLoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, data.user_type);
       // Auth store will redirect based on actual user role from backend
     } catch (error: any) {
       console.error('Login failed:', error);
+      setError('root', { 
+        type: 'manual', 
+        message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials and user type.' 
+      });
     }
   };
 
@@ -123,6 +128,13 @@ export default function UnifiedLoginPage() {
       {/* Login Card */}
       <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-10 border border-gray-100 mx-4 sm:mx-0">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          
+          {errors.root && (
+            <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm border border-red-200 font-medium">
+              {errors.root.message}
+            </div>
+          )}
+
           {/* User Type Selector */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-4">

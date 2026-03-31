@@ -29,7 +29,7 @@ def check_client_company_permissions(user: User, action: str = "view"):
     
     if action in ["create", "update", "delete"]:
         # Only agency_admin and recruiter can manage client companies
-        if user.role not in [UserRole.SUPER_ADMIN, UserRole.AGENCY_ADMIN, UserRole.RECRUITER]:
+        if user.role not in [UserRole.super_admin, UserRole.agency_admin, UserRole.recruiter]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to perform this action"
