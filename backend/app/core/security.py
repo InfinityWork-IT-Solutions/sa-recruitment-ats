@@ -94,3 +94,21 @@ async def get_current_active_user(current_user: Any = Depends(get_current_user))
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+async def get_current_super_admin(current_user: Any = Depends(get_current_active_user)):
+    from app.models.user import UserRole
+    if current_user.role != UserRole.super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges"
+        )
+    return current_user
+
+async def get_current_agency_admin(current_user: Any = Depends(get_current_active_user)):
+    from app.models.user import UserRole
+    if current_user.role not in [UserRole.super_admin, UserRole.agency_admin]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges"
+        )
+    return current_user

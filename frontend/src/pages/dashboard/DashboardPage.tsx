@@ -9,6 +9,7 @@ import {
     Clock,
     Target,
     ArrowRight,
+    Building2,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -47,16 +48,15 @@ export default function DashboardPage() {
             value: metrics?.applications_this_period || 0,
             subtitle: `${metrics?.period_days || 30} days`,
             icon: FileText,
-            color: 'bg-purple-500',
+            color: 'bg-indigo-500',
             link: '/applications',
         },
         {
-            name: 'Placements',
-            value: metrics?.placements || 0,
-            subtitle: `${metrics?.period_days || 30} days`,
-            icon: Target,
+            name: 'Managed Clients',
+            value: metrics?.total_clients || 0,
+            icon: Building2,
             color: 'bg-orange-500',
-            link: '/analytics',
+            link: '/clients',
         },
     ];
 

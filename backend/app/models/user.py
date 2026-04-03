@@ -39,6 +39,7 @@ class User(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     phone = Column(String(50))
+    avatar_url = Column(String(255))
     
     # Authorization
     role = Column(Enum(UserRole), nullable=False, default=UserRole.recruiter)

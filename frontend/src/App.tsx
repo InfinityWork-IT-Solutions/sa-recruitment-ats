@@ -19,7 +19,6 @@ import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CandidateDashboard from './pages/dashboard/CandidateDashboard';
 import CandidateProfilePage from './pages/dashboard/CandidateProfilePage';
-import CompanyDashboard from './pages/dashboard/CompanyDashboard';
 
 // Jobs
 import JobsPage from './pages/jobs/JobsPage';
@@ -44,6 +43,18 @@ import AnalyticsPage from './pages/analytics/AnalyticsPage';
 
 // Settings
 import SettingsPage from './pages/settings/SettingsPage';
+
+// Client Portal Pages
+import ClientDashboard from './pages/clients/Dashboard';
+import ClientCandidatesPage from './pages/clients/CandidatesPage';
+import ClientJobsPage from './pages/clients/JobsPage';
+import ClientTeamPage from './pages/clients/TeamManagementPage';
+import ClientSettingsPage from './pages/clients/SettingsPage';
+import ClientIntegrationsSettingsPage from './pages/clients/IntegrationsSettingsPage';
+
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -149,9 +160,28 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/client-dashboard" element={<CompanyDashboard />} />
-            <Route path="/company/jobs" element={<JobsPage />} />
-            <Route path="/company/candidates" element={<div>AI Matched Candidates (Coming Soon)</div>} />
+            <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
+            <Route path="/company/dashboard" element={<ClientDashboard />} />
+            <Route path="/company/jobs" element={<ClientJobsPage />} />
+            <Route path="/company/candidates" element={<ClientCandidatesPage />} />
+            <Route path="/company/team" element={<ClientTeamPage />} />
+            <Route path="/company/settings" element={<ClientSettingsPage />} />
+            <Route path="/company/settings/integrations" element={<ClientIntegrationsSettingsPage />} />
+            {/* Legacy redirect */}
+            <Route path="/client-dashboard" element={<Navigate to="/company/dashboard" replace />} />
+          </Route>
+
+          {/* Admin Portal (Platform Management) */}
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
           </Route>
 
           {/* Shared Routes (Accessible by all roles) */}

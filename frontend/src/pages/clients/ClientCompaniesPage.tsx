@@ -46,7 +46,7 @@ export default function ClientCompaniesPage() {
     } = useForm<ClientCompanyFormData>({
         resolver: zodResolver(clientCompanySchema),
         defaultValues: {
-            country: 'South Africa',
+            country: '',
         },
     });
 
@@ -104,7 +104,7 @@ export default function ClientCompaniesPage() {
         }
     };
 
-    const companies = data?.items || [];
+    const companies = data?.companies || [];
 
     return (
         <div className="p-6">
@@ -387,21 +387,12 @@ export default function ClientCompaniesPage() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Province
                                             </label>
-                                            <select
+                                            <input
                                                 {...register('province')}
+                                                type="text"
                                                 className="input"
-                                            >
-                                                <option value="">Select Province</option>
-                                                <option value="Eastern Cape">Eastern Cape</option>
-                                                <option value="Free State">Free State</option>
-                                                <option value="Gauteng">Gauteng</option>
-                                                <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                                <option value="Limpopo">Limpopo</option>
-                                                <option value="Mpumalanga">Mpumalanga</option>
-                                                <option value="Northern Cape">Northern Cape</option>
-                                                <option value="North West">North West</option>
-                                                <option value="Western Cape">Western Cape</option>
-                                            </select>
+                                                placeholder="e.g. Western Cape or California"
+                                            />
                                         </div>
 
                                         <div>
@@ -412,7 +403,7 @@ export default function ClientCompaniesPage() {
                                                 {...register('country')}
                                                 type="text"
                                                 className="input"
-                                                placeholder="South Africa"
+                                                placeholder="e.g. United Kingdom"
                                             />
                                         </div>
                                     </div>

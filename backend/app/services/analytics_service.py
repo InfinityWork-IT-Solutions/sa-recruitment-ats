@@ -11,7 +11,7 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
-from app.models import Job, Candidate, Application, User, Agency, JobStatus, ApplicationStatus, CandidateStatus
+from app.models import Job, Candidate, Application, User, Agency, JobStatus, ApplicationStatus, CandidateStatus, ClientCompany
 
 
 class AnalyticsService:
@@ -76,6 +76,12 @@ class AnalyticsService:
             )
         )
         applications_this_period = applications_result.scalar()
+
+        # Total clients
+        clients_result = await db.execute(
+            select(func.count(ClientCompany.id)).where(ClientCompany.agency_id == agency_id)
+        )
+        total_clients = clients_result.scalar()
         
         # Successful placements (this period)
         placements_result = await db.execute(
@@ -111,6 +117,7 @@ class AnalyticsService:
             "total_candidates": total_candidates,
             "active_candidates": active_candidates,
             "applications_this_period": applications_this_period,
+            "total_clients": total_clients,
             "placements": placements,
             "avg_time_to_hire_days": round(avg_time_to_hire, 1),
             "success_rate_percentage": round(success_rate, 2)

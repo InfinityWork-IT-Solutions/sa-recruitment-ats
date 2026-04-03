@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useJobs } from '@/hooks/use-jobs';
+import { useJobs, useCreateJob } from '@/hooks/use-jobs';
 import { useAuthStore } from '@/store/auth';
 import { Plus, Search, Briefcase, MapPin, DollarSign, Eye, Users } from 'lucide-react';
 import { JobStatus, EmploymentType } from '@/types/api';
+import apiClient from '@/lib/api-client';
+import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 
 const statusColors: Record<JobStatus, string> = {
     draft: 'badge-gray',
@@ -36,6 +38,77 @@ export default function JobsPage() {
         employment_type: employmentTypeFilter,
         limit: 20,
     });
+    
+    const [showPostJobModal, setShowPostJobModal] = useState(false);
+    const [integrations, setIntegrations] = useState({
+        pnet: { connected: false, enabled: false },
+        indeed: { connected: false, enabled: false },
+        linkedin: { connected: false, enabled: false }
+    });
+    
+    useEffect(() => {
+        const fetchIntegrations = async () => {
+            try {
+                const response = await apiClient.get('/integrations');
+                const data = response.data || [];
+                const statusMap = {
+                    pnet: { connected: false, enabled: false },
+                    indeed: { connected: false, enabled: false },
+                    linkedin: { connected: false, enabled: false }
+                };
+                
+                data.forEach((item: any) => {
+                    if (item.platform in statusMap) {
+                        statusMap[item.platform as keyof typeof statusMap] = {
+                            connected: item.connected,
+                            enabled: item.connected
+                        };
+                    }
+                });
+                
+                setIntegrations(statusMap);
+            } catch (error) {
+                console.error('Error fetching integrations:', error);
+            }
+        };
+        
+        if (!isCandidate && user?.role === 'client') {
+            fetchIntegrations();
+        }
+    }, [isCandidate, user?.role]);
+    
+    const createJob = useCreateJob();
+
+    const handleClientPostJob = async (modalData: any) => {
+        try {
+            const apiData = {
+                title: modalData.title,
+                description: modalData.description,
+                employment_type: modalData.job_type === 'full-time' ? 'full_time' : modalData.job_type === 'part-time' ? 'part_time' : modalData.job_type,
+                location: modalData.location,
+                city: modalData.location.split(',')[0]?.trim() || modalData.location,
+                province: modalData.location.split(',')[1]?.trim() || 'Unspecified',
+                requirements: modalData.requirements,
+                salary_min: modalData.salary_min,
+                salary_max: modalData.salary_max,
+                show_salary: true,
+                is_remote: modalData.work_mode === 'remote',
+                remote_type: modalData.work_mode,
+                years_of_experience_min: modalData.experience_min,
+                years_of_experience_max: modalData.experience_max,
+                skills: modalData.skills.split(',').map((s: string) => s.trim()).filter(Boolean),
+                post_to_pnet: modalData.post_to_pnet,
+                post_to_indeed: modalData.post_to_indeed,
+                post_to_linkedin: modalData.post_to_linkedin,
+            };
+            
+            await createJob.mutateAsync(apiData);
+            setShowPostJobModal(false);
+        } catch (error) {
+            console.error('Error posting job:', error);
+            // toast handles the success/error messages internally in the hook
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -46,10 +119,17 @@ export default function JobsPage() {
                     <p className="text-gray-600 mt-1">{isCandidate ? 'Find and apply for exciting opportunities' : 'Manage your job postings'}</p>
                 </div>
                 {!isCandidate && (
-                    <Link to="/jobs/create" className="btn-primary flex items-center space-x-2">
-                        <Plus className="w-5 h-5" />
-                        <span>Post New Job</span>
-                    </Link>
+                    user?.role === 'client' ? (
+                        <button onClick={() => setShowPostJobModal(true)} className="btn-primary flex items-center space-x-2">
+                            <Plus className="w-5 h-5" />
+                            <span>Post New Job (AI Agent)</span>
+                        </button>
+                    ) : (
+                        <Link to="/jobs/create" className="btn-primary flex items-center space-x-2">
+                            <Plus className="w-5 h-5" />
+                            <span>Post New Job</span>
+                        </Link>
+                    )
                 )}
             </div>
 
@@ -111,10 +191,17 @@ export default function JobsPage() {
                         {isCandidate ? 'Try adjusting your search criteria.' : 'Get started by posting your first job.'}
                     </p>
                     {!isCandidate && (
-                        <Link to="/jobs/create" className="btn-primary inline-flex items-center space-x-2">
-                            <Plus className="w-5 h-5" />
-                            <span>Post New Job</span>
-                        </Link>
+                        user?.role === 'client' ? (
+                            <button onClick={() => setShowPostJobModal(true)} className="btn-primary inline-flex items-center space-x-2">
+                                <Plus className="w-5 h-5" />
+                                <span>Post New Job</span>
+                            </button>
+                        ) : (
+                            <Link to="/jobs/create" className="btn-primary inline-flex items-center space-x-2">
+                                <Plus className="w-5 h-5" />
+                                <span>Post New Job</span>
+                            </Link>
+                        )
                     )}
                 </div>
             ) : (
@@ -141,7 +228,7 @@ export default function JobsPage() {
                                         </div>
                                         <div className="flex items-center space-x-1">
                                             <MapPin className="w-4 h-4" />
-                                            <span>{job.location_city}, {job.location_province}</span>
+                                            <span>{job.location}</span>
                                         </div>
                                         {job.salary_min && (
                                             <div className="flex items-center space-x-1">
@@ -197,6 +284,14 @@ export default function JobsPage() {
                     Showing {data.jobs.length} of {data.total} jobs
                 </div>
             )}
+            
+            {/* Client Modals */}
+            <PostJobModal 
+                isOpen={showPostJobModal} 
+                onClose={() => setShowPostJobModal(false)} 
+                onSubmit={handleClientPostJob}
+                integrations={integrations}
+            />
         </div>
     );
 }

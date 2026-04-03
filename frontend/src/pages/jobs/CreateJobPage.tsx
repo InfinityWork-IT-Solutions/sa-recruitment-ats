@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 const jobSchema = z.object({
     title: z.string().min(1, 'Job title is required'),
     employment_type: z.enum(['full_time', 'part_time', 'contract', 'temporary', 'internship', 'freelance']),
-    experience_level: z.enum(['entry', 'junior', 'mid', 'senior', 'lead', 'executive']).optional(),
+    experience_level: z.enum(['entry_level', 'mid_level', 'senior_level', 'executive']).optional(),
     location_city: z.string().min(1, 'City is required'),
     location_province: z.string().min(1, 'Province is required'),
     description: z.string().min(50, 'Description must be at least 50 characters'),
@@ -58,7 +58,14 @@ export default function CreateJobPage() {
 
     const onSubmit = async (data: JobFormData) => {
         try {
-            await createJob.mutateAsync(data);
+            const apiData = {
+                ...data,
+                location: `${data.location_city}, ${data.location_province}`,
+                city: data.location_city,
+                province: data.location_province,
+            };
+            // @ts-ignore - mapping the flattened form data to the expected API structure
+            await createJob.mutateAsync(apiData);
             navigate('/jobs');
         } catch (error) {
             // Error handled by mutation
@@ -178,12 +185,10 @@ export default function CreateJobPage() {
                                     </label>
                                     <select {...register('experience_level')} className="input">
                                         <option value="">Select level...</option>
-                                        <option value="entry">Entry Level</option>
-                                        <option value="junior">Junior</option>
-                                        <option value="mid">Mid Level</option>
-                                        <option value="senior">Senior</option>
-                                        <option value="lead">Lead</option>
-                                        <option value="executive">Executive</option>
+                                        <option value="entry_level">Entry Level (0-2 years)</option>
+                                        <option value="mid_level">Mid Level (3-5 years)</option>
+                                        <option value="senior_level">Senior Level (6-10 years)</option>
+                                        <option value="executive">Executive (10+ years)</option>
                                     </select>
                                 </div>
                             </div>
@@ -204,7 +209,7 @@ export default function CreateJobPage() {
                                         {...register('location_city')}
                                         type="text"
                                         className="input"
-                                        placeholder="Cape Town"
+                                        placeholder="e.g. London or Remote"
                                     />
                                     {errors.location_city && <p className="mt-1 text-sm text-red-600">{errors.location_city.message}</p>}
                                 </div>
@@ -213,18 +218,12 @@ export default function CreateJobPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Province <span className="text-red-500">*</span>
                                     </label>
-                                    <select {...register('location_province')} className="input">
-                                        <option value="">Select province...</option>
-                                        <option value="Western Cape">Western Cape</option>
-                                        <option value="Gauteng">Gauteng</option>
-                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                        <option value="Eastern Cape">Eastern Cape</option>
-                                        <option value="Free State">Free State</option>
-                                        <option value="Limpopo">Limpopo</option>
-                                        <option value="Mpumalanga">Mpumalanga</option>
-                                        <option value="North West">North West</option>
-                                        <option value="Northern Cape">Northern Cape</option>
-                                    </select>
+                                    <input
+                                        {...register('location_province')}
+                                        type="text"
+                                        className="input"
+                                        placeholder="e.g. London, UK or California, US"
+                                    />
                                     {errors.location_province && <p className="mt-1 text-sm text-red-600">{errors.location_province.message}</p>}
                                 </div>
                             </div>
@@ -320,7 +319,7 @@ export default function CreateJobPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Minimum Salary (ZAR)
+                                        Minimum Salary
                                     </label>
                                     <input
                                         {...register('salary_min', { valueAsNumber: true })}
@@ -332,7 +331,7 @@ export default function CreateJobPage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Maximum Salary (ZAR)
+                                        Maximum Salary
                                     </label>
                                     <input
                                         {...register('salary_max', { valueAsNumber: true })}

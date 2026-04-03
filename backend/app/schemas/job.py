@@ -2,7 +2,7 @@
 Job Pydantic schemas for API requests/responses
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from uuid import UUID
 
@@ -55,6 +55,7 @@ class JobBase(BaseModel):
     post_to_pnet: bool = Field(False, description="Post to PNet?")
     post_to_careerjunction: bool = Field(False, description="Post to CareerJunction?")
     post_to_linkedin: bool = Field(False, description="Post to LinkedIn?")
+    post_to_indeed: bool = Field(False, description="Post to Indeed?")
     
     @field_validator('salary_max')
     @classmethod
@@ -165,6 +166,9 @@ class JobResponse(JobBase):
     published_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
     posting_date: datetime
+    
+    # Meta
+    platform_results: Optional[Dict[str, Any]] = None
     
     model_config = ConfigDict(from_attributes=True)
 

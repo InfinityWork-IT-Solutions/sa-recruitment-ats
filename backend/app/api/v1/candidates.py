@@ -133,9 +133,10 @@ async def list_candidates(
         sort_order=sort_order
     )
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     candidates, total = await candidate_service.list_candidates(
         db,
-        current_user.agency_id,
+        agency_id,
         filters
     )
     
@@ -154,7 +155,8 @@ async def get_candidate_statistics(
     db: AsyncSession = Depends(get_db)
 ):
     """Get candidate statistics for current agency"""
-    stats = await candidate_service.get_candidate_statistics(db, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    stats = await candidate_service.get_candidate_statistics(db, agency_id)
     return CandidateStatistics(**stats)
 
 
@@ -165,7 +167,8 @@ async def get_candidate(
     db: AsyncSession = Depends(get_db)
 ):
     """Get candidate details by ID"""
-    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
     
     if not candidate:
         raise HTTPException(
@@ -190,7 +193,8 @@ async def update_candidate(
     """
     check_candidate_permissions(current_user, "update")
     
-    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
     
     if not candidate:
         raise HTTPException(
@@ -218,7 +222,8 @@ async def delete_candidate(
     """
     check_candidate_permissions(current_user, "delete")
     
-    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
     
     if not candidate:
         raise HTTPException(
@@ -256,7 +261,8 @@ async def upload_resume_with_ai_parsing(
     
     check_candidate_permissions(current_user, "update")
     
-    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
     
     if not candidate:
         raise HTTPException(
@@ -358,8 +364,10 @@ async def calculate_job_match(
     from app.services.ai_resume_parser import ai_resume_parser
     from app.services.job_service import job_service
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    
     # Get candidate
-    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
     if not candidate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -367,7 +375,7 @@ async def calculate_job_match(
         )
     
     # Get job
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    job = await job_service.get_job(db, job_id, agency_id)
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -413,7 +421,8 @@ async def mark_candidate_contacted(
     """
     check_candidate_permissions(current_user, "update")
     
-    candidate = await candidate_service.get_candidate(db, candidate_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
     
     if not candidate:
         raise HTTPException(

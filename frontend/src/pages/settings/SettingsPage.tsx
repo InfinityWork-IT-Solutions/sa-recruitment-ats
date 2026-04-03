@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
-import { User, Building2, Bell, Shield, Save, Key } from 'lucide-react';
+import { User, Building2, Bell, Shield, Save, Key, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 
@@ -12,6 +13,7 @@ const profileSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
+    avatar_url: z.string().url('Invalid URL').optional().or(z.literal('')),
 });
 
 // Password change schema
@@ -42,6 +44,7 @@ export default function SettingsPage() {
             first_name: user?.first_name || '',
             last_name: user?.last_name || '',
             email: user?.email || '',
+            avatar_url: user?.avatar_url || '',
         },
     });
 
@@ -57,8 +60,10 @@ export default function SettingsPage() {
     const onUpdateProfile = async (data: ProfileFormData) => {
         setIsUpdating(true);
         try {
-            await apiClient.put('/users/me', data);
+            await apiClient.put('/auth/me', data);
             toast.success('Profile updated successfully!');
+            // Reload user data in store
+            useAuthStore.getState().refreshUser();
         } catch (error) {
             toast.error('Failed to update profile');
         } finally {
@@ -134,19 +139,22 @@ export default function SettingsPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-600">Agency</p>
-                                <p className="font-medium text-gray-900">Your Agency</p>
+                                <p className="font-medium text-gray-900">{user?.agency_name || 'Your Agency'}</p>
                             </div>
                         </div>
-                        <div className="text-sm text-gray-600 space-y-2">
+                        <div className="text-sm text-gray-600 space-y-3">
                             <div>
-                                <span className="font-medium">Role:</span>{' '}
-                                <span className="text-gray-900">
+                                <span className="font-medium text-gray-700">Role:</span>{' '}
+                                <span className="text-gray-900 font-bold">
                                     {user?.role.replace(/_/g, ' ').toUpperCase()}
                                 </span>
                             </div>
-                            <div>
-                                <span className="font-medium">Status:</span>{' '}
-                                <span className="text-green-600">Active</span>
+                            <div className="flex justify-between items-center bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 group hover:border-blue-200 transition-all">
+                                <span className="font-medium text-gray-700">Managed Clients:</span>{' '}
+                                <Link to="/clients" className="text-blue-600 font-black flex items-center group-hover:scale-105 transition-transform">
+                                    {user?.managed_clients_count || 0}
+                                    <ArrowRight className="w-3 h-3 ml-1" />
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -158,6 +166,32 @@ export default function SettingsPage() {
                     {activeTab === 'profile' && (
                         <div className="card">
                             <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Information</h2>
+                            
+                            {/* Profile Picture Section */}
+                            <div className="flex items-center space-x-6 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <div className="relative group">
+                                    <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden shadow-md ring-4 ring-white">
+                                        {user?.avatar_url ? (
+                                            <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-white text-3xl font-bold">
+                                                {user?.first_name[0]}{user?.last_name[0]}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <label className="block text-sm font-semibold text-gray-900">Profile Picture URL</label>
+                                    <input
+                                        {...registerProfile('avatar_url')}
+                                        type="text"
+                                        className="input text-sm"
+                                        placeholder="https://example.com/your-photo.jpg"
+                                    />
+                                    <p className="text-xs text-gray-500">Provide a link to your photo (JPEG, PNG) for identity recognition.</p>
+                                </div>
+                            </div>
+
                             <form onSubmit={handleSubmitProfile(onUpdateProfile)} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>

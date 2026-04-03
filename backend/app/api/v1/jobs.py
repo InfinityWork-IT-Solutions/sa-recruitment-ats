@@ -8,7 +8,8 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
-from app.models import User, UserRole
+from app.models import User, UserRole, JobStatus
+from datetime import datetime
 from app.schemas import (
     JobCreate,
     JobUpdate,
@@ -20,6 +21,7 @@ from app.schemas import (
     MessageResponse,
 )
 from app.services.job_service import job_service
+from app.services.job_posting_service import JobPostingService
 
 router = APIRouter()
 
@@ -66,7 +68,45 @@ async def create_job(
         current_user
     )
     
-    return JobResponse.model_validate(job)
+    # Post to external platforms if requested
+    platforms = []
+    if job_data.post_to_pnet:
+        platforms.append('pnet')
+    if job_data.post_to_indeed:
+        platforms.append('indeed')
+    if job_data.post_to_linkedin:
+        platforms.append('linkedin')
+    
+    platform_results = {}
+    if platforms:
+        # 2. Publish to platforms
+        job.status = JobStatus.active
+        job.published_at = datetime.utcnow()
+        
+        service = JobPostingService(db, agency_id=current_user.agency_id)
+        
+        # Serialize job for posting - job is a model instance, needed as Dict
+        job_dict = {
+            "id": str(job.id),
+            "title": job.title,
+            "description": job.description,
+            "location": job.location,
+            "city": job.city,
+            "province": job.province,
+            "salary_min": job.salary_min or 0,
+            "salary_max": job.salary_max or 0,
+            "employment_type": job.employment_type.value if hasattr(job.employment_type, 'value') else job.employment_type,
+            "company_name": "RecruitPro SA", # Replace if client company is available
+            "requirements": job.requirements or "",
+            "created_at": job.created_at,
+        }
+        res = await service.post_job_to_platforms(job_dict, platforms)
+        platform_results = res.get('results', {})
+    
+    return {
+        **JobResponse.model_validate(job).model_dump(),
+        "platform_results": platform_results
+    }
 
 
 @router.get("/", response_model=dict)
@@ -114,9 +154,10 @@ async def list_jobs(
         sort_order=sort_order
     )
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     jobs, total = await job_service.list_jobs(
         db,
-        current_user.agency_id,
+        agency_id,
         filters
     )
     
@@ -142,7 +183,8 @@ async def get_job_statistics(
     - Jobs by status
     - Application metrics
     """
-    stats = await job_service.get_job_statistics(db, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    stats = await job_service.get_job_statistics(db, agency_id)
     return JobStatistics(**stats)
 
 
@@ -157,7 +199,8 @@ async def get_job(
     
     **Returns**: Complete job information
     """
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(
@@ -184,7 +227,8 @@ async def update_job(
     """
     check_job_permissions(current_user, "update")
     
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(
@@ -212,7 +256,8 @@ async def delete_job(
     """
     check_job_permissions(current_user, "delete")
     
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(
@@ -243,7 +288,8 @@ async def publish_job(
     """
     check_job_permissions(current_user, "publish")
     
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(
@@ -275,7 +321,8 @@ async def close_job(
     """
     check_job_permissions(current_user, "update")
     
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(
@@ -305,7 +352,8 @@ async def mark_job_filled(
     """
     check_job_permissions(current_user, "update")
     
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(
@@ -337,7 +385,8 @@ async def update_job_status(
     """
     check_job_permissions(current_user, "update")
     
-    job = await job_service.get_job(db, job_id, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
     
     if not job:
         raise HTTPException(

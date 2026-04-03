@@ -2,6 +2,7 @@
 Authentication API endpoints
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -19,6 +20,7 @@ from app.schemas import (
     PasswordChange,
     CandidateRegisterRequest,
     CompanyRegisterRequest,
+    UserUpdate,
 )
 from app.services.auth_service import auth_service
 
@@ -46,6 +48,28 @@ async def register(
     # Create tokens for immediate login
     tokens = auth_service.create_tokens(user)
     
+    # SEND EMAILS
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        import uuid
+        # 1. Verification to user
+        await EmailAutomationService.send_verification_email(
+            user_email=user.email,
+            user_name=f"{user.first_name} {user.last_name}",
+            verification_token=str(uuid.uuid4())
+        )
+        # 2. Alert to Admin
+        await EmailAutomationService.send_admin_registration_notification({
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "role": user.role.value,
+            "city": registration.agency.city if hasattr(registration.agency, 'city') else "Unknown",
+            "province": registration.agency.province if hasattr(registration.agency, 'province') else "Unknown"
+        })
+    except Exception as e:
+        print(f"Registration emails failed: {e}")
+    
     return RegisterResponse(
         message="Registration successful! Please verify your email.",
         agency_id=agency.id,
@@ -62,6 +86,29 @@ async def register_candidate(
     """Register a new candidate"""
     candidate, user = await auth_service.register_candidate(db, registration.candidate, registration.user)
     tokens = auth_service.create_tokens(user)
+    
+    # SEND EMAILS
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        import uuid
+        # 1. Verification to candidate
+        await EmailAutomationService.send_verification_email(
+            user_email=user.email,
+            user_name=f"{user.first_name} {user.last_name}",
+            verification_token=str(uuid.uuid4())
+        )
+        # 2. Alert to Admin
+        await EmailAutomationService.send_admin_registration_notification({
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "role": "candidate",
+            "city": registration.candidate.city if hasattr(registration.candidate, 'city') else "Unknown",
+            "province": registration.candidate.province if hasattr(registration.candidate, 'province') else "Unknown"
+        })
+    except Exception as e:
+        print(f"Candidate registration emails failed: {e}")
+        
     return RegisterResponse(
         message="Candidate registration successful!",
         user_id=user.id,
@@ -78,6 +125,29 @@ async def register_company(
     """Register a new company and admin user"""
     company, user = await auth_service.register_company(db, registration.company, registration.user)
     tokens = auth_service.create_tokens(user)
+    
+    # SEND EMAILS
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        import uuid
+        # 1. Verification to client
+        await EmailAutomationService.send_verification_email(
+            user_email=user.email,
+            user_name=f"{user.first_name} {user.last_name}",
+            verification_token=str(uuid.uuid4())
+        )
+        # 2. Alert to Admin
+        await EmailAutomationService.send_admin_registration_notification({
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "role": "client",
+            "city": registration.company.city if hasattr(registration.company, 'city') else "Unknown",
+            "province": registration.company.province if hasattr(registration.company, 'province') else "Unknown"
+        })
+    except Exception as e:
+        print(f"Company registration emails failed: {e}")
+        
     return RegisterResponse(
         message="Company registration successful!",
         user_id=user.id,
@@ -200,11 +270,29 @@ async def get_current_user_info(
 ):
     """
     Get current authenticated user information
-    
-    **Requires**: Valid access token
     """
     # Eagerly load agency relationship
     await db.refresh(current_user, ["agency"])
+    
+    return UserResponse.model_validate(current_user)
+
+@router.put("/me", response_model=UserResponse)
+async def update_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update current user profile (including avatar)
+    """
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    current_user.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(current_user)
     
     return UserResponse.model_validate(current_user)
 
@@ -281,14 +369,15 @@ async def verify_email(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Verify user email with token
-    
-    **TODO**: Implement email verification token
+    Verify user email with token (Simplified version using user_id as token for now)
     """
-    # Decode token
-    # Get user_id from token
-    # Mark email as verified
-    
-    return MessageResponse(
-        message="Email verified successfully"
-    )
+    from app.services.auth_service import auth_service
+    # In a real app, you would decode the JWT or lookup a token table
+    # Here we assume token is user_id for simplicity in this demo
+    try:
+        user = await auth_service.verify_email(db, token)
+        return MessageResponse(
+            message=f"Success! Email {user.email} has been verified."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")

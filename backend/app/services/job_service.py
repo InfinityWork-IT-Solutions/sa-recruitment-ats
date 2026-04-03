@@ -61,11 +61,11 @@ class JobService:
         agency_id: UUID
     ) -> Optional[Job]:
         """Get job by ID (within agency)"""
-        result = await db.execute(
-            select(Job)
-            .where(Job.id == job_id, Job.agency_id == agency_id)
-            .options(selectinload(Job.client_company))
-        )
+        stmt = select(Job).options(selectinload(Job.client_company)).where(Job.id == job_id)
+        if agency_id:
+            stmt = stmt.where(Job.agency_id == agency_id)
+            
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
     @staticmethod
@@ -75,10 +75,11 @@ class JobService:
         agency_id: UUID
     ) -> Optional[Job]:
         """Get job by reference (within agency)"""
-        result = await db.execute(
-            select(Job)
-            .where(Job.reference == reference, Job.agency_id == agency_id)
-        )
+        stmt = select(Job).where(Job.reference == reference)
+        if agency_id:
+            stmt = stmt.where(Job.agency_id == agency_id)
+            
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
     @staticmethod
@@ -94,7 +95,9 @@ class JobService:
             Tuple of (jobs, total_count)
         """
         # Base query
-        query = select(Job).where(Job.agency_id == agency_id)
+        query = select(Job)
+        if agency_id:
+            query = query.where(Job.agency_id == agency_id)
         
         # Apply filters
         if filters.search:
@@ -285,52 +288,50 @@ class JobService:
         agency_id: UUID
     ) -> dict:
         """Get job statistics for agency"""
+        # Base filters
+        base_stmt = select(Job)
+        if agency_id:
+            base_stmt = base_stmt.where(Job.agency_id == agency_id)
+            
         # Total jobs
         total_result = await db.execute(
-            select(func.count(Job.id)).where(Job.agency_id == agency_id)
+            select(func.count(Job.id)).select_from(base_stmt.subquery())
         )
-        total_jobs = total_result.scalar()
+        total_jobs = total_result.scalar() or 0
         
         # Active jobs
         active_result = await db.execute(
-            select(func.count(Job.id)).where(
-                Job.agency_id == agency_id,
-                Job.status == JobStatus.active
-            )
+            select(func.count(Job.id))
+            .select_from(base_stmt.where(Job.status == JobStatus.active).subquery())
         )
-        active_jobs = active_result.scalar()
+        active_jobs = active_result.scalar() or 0
         
         # Draft jobs
         draft_result = await db.execute(
-            select(func.count(Job.id)).where(
-                Job.agency_id == agency_id,
-                Job.status == JobStatus.draft
-            )
+            select(func.count(Job.id))
+            .select_from(base_stmt.where(Job.status == JobStatus.draft).subquery())
         )
-        draft_jobs = draft_result.scalar()
+        draft_jobs = draft_result.scalar() or 0
         
         # Closed jobs
         closed_result = await db.execute(
-            select(func.count(Job.id)).where(
-                Job.agency_id == agency_id,
-                Job.status == JobStatus.closed
-            )
+            select(func.count(Job.id))
+            .select_from(base_stmt.where(Job.status == JobStatus.closed).subquery())
         )
-        closed_jobs = closed_result.scalar()
+        closed_jobs = closed_result.scalar() or 0
         
         # Filled jobs
         filled_result = await db.execute(
-            select(func.count(Job.id)).where(
-                Job.agency_id == agency_id,
-                Job.status == JobStatus.filled
-            )
+            select(func.count(Job.id))
+            .select_from(base_stmt.where(Job.status == JobStatus.filled).subquery())
         )
-        filled_jobs = filled_result.scalar()
+        filled_jobs = filled_result.scalar() or 0
         
         # Total applications
-        apps_result = await db.execute(
-            select(func.sum(Job.applications_count)).where(Job.agency_id == agency_id)
-        )
+        apps_stmt = select(func.sum(Job.applications_count))
+        if agency_id:
+            apps_stmt = apps_stmt.where(Job.agency_id == agency_id)
+        apps_result = await db.execute(apps_stmt)
         total_applications = apps_result.scalar() or 0
         
         # Average applications per job

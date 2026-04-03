@@ -4,6 +4,7 @@ Client Company service - Business logic for client company operations
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 from uuid import UUID
 
 from app.models import ClientCompany
@@ -39,12 +40,13 @@ class ClientCompanyService:
         agency_id: UUID
     ) -> Optional[ClientCompany]:
         """Get client company by ID (within agency)"""
-        result = await db.execute(
-            select(ClientCompany).where(
-                ClientCompany.id == company_id,
-                ClientCompany.agency_id == agency_id
-            )
+        stmt = select(ClientCompany).where(ClientCompany.id == company_id).options(
+            selectinload(ClientCompany.jobs)
         )
+        if agency_id:
+            stmt = stmt.where(ClientCompany.agency_id == agency_id)
+        
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
     @staticmethod
@@ -63,7 +65,11 @@ class ClientCompanyService:
             Tuple of (companies, total_count)
         """
         # Base query
-        query = select(ClientCompany).where(ClientCompany.agency_id == agency_id)
+        query = select(ClientCompany).options(
+            selectinload(ClientCompany.jobs)
+        )
+        if agency_id:
+            query = query.where(ClientCompany.agency_id == agency_id)
         
         # Apply filters
         if search:

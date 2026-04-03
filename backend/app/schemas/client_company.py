@@ -19,6 +19,7 @@ class ClientCompanyBase(BaseModel):
     
     # Contact
     contact_name: Optional[str] = Field(None, max_length=255)
+    contact_person: Optional[str] = Field(None, alias="contact_name")
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = Field(None, max_length=50)
     contact_position: Optional[str] = Field(None, max_length=100)
@@ -78,14 +79,29 @@ class ClientCompanyResponse(ClientCompanyBase):
     created_at: datetime
     updated_at: datetime
     
-    model_config = ConfigDict(from_attributes=True)
+    # Aliases for frontend consistency
+    @property
+    def contact_person(self) -> Optional[str]:
+        return self.contact_name
+        
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # Brief schema
 class ClientCompanyBrief(BaseModel):
-    """Brief client company information"""
+    """Brief client company information for listings"""
     id: UUID
     name: str
     industry: Optional[str] = None
+    website: Optional[str] = None
+    contact_person: Optional[str] = Field(None, alias="contact_name")
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    city: Optional[str] = None
+    province: Optional[str] = None
+    country: Optional[str] = None
+    jobs_count: int = Field(0, alias="total_jobs")
+    active_jobs: int = 0
+    created_at: datetime
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

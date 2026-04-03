@@ -12,7 +12,7 @@ import uuid
 
 # revision identifiers, used by Alembic.
 revision = '002_add_user_roles'
-down_revision = '001_initial_schema'
+down_revision = '814251e1731a'
 branch_labels = None
 depends_on = None
 

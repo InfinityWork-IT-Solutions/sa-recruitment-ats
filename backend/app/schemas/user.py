@@ -17,6 +17,7 @@ class UserBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100, description="First name")
     last_name: str = Field(..., min_length=1, max_length=100, description="Last name")
     phone: Optional[str] = Field(None, max_length=50, description="Phone number")
+    avatar_url: Optional[str] = Field(None, max_length=255, description="Profile picture URL")
 
 
 # Schema for user registration
@@ -60,6 +61,7 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     phone: Optional[str] = Field(None, max_length=50)
+    avatar_url: Optional[str] = Field(None, max_length=255)
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
 
@@ -101,6 +103,21 @@ class UserResponse(UserBase):
     
     # Include agency info
     agency: Optional[AgencyBrief] = None
+    
+    @property
+    def company_id(self) -> Optional[UUID]:
+        """Helper to get company ID for client users"""
+        return self.client_company.id if hasattr(self, 'client_company') and self.client_company else None
+    
+    @property
+    def agency_name(self) -> Optional[str]:
+        """Helper to get agency name"""
+        return self.agency.name if hasattr(self, 'agency') and self.agency else None
+
+    @property
+    def managed_clients_count(self) -> int:
+        """Helper to get number of clients for this agency"""
+        return len(self.agency.client_companies) if hasattr(self, 'agency') and self.agency and hasattr(self.agency, 'client_companies') else 0
     
     model_config = ConfigDict(from_attributes=True)
 

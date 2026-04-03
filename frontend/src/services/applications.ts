@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client';
-import { Application, ApplicationPipeline } from '@/types/api';
+import { Application, ApplicationPipeline, ApplicationBrief } from '@/types/api';
 
 export interface ApplicationFilters {
     job_id?: string;
@@ -22,7 +22,7 @@ export interface CreateApplicationData {
 export const applicationsService = {
     // Get all applications
     getApplications: async (filters?: ApplicationFilters) => {
-        const response = await apiClient.get<{ applications: Application[]; total: number }>(
+        const response = await apiClient.get<{ applications: ApplicationBrief[]; total: number }>(
             '/applications/',
             { params: filters }
         );

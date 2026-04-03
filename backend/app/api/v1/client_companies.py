@@ -81,9 +81,10 @@ async def list_client_companies(
     
     **Returns**: List of client companies with pagination metadata
     """
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     companies, total = await client_company_service.list_client_companies(
         db,
-        current_user.agency_id,
+        agency_id,
         search=search,
         is_active=is_active,
         skip=skip,
@@ -110,10 +111,11 @@ async def get_client_company(
     
     **Returns**: Complete client company information
     """
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     company = await client_company_service.get_client_company(
         db,
         company_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not company:
@@ -141,10 +143,11 @@ async def update_client_company(
     """
     check_client_company_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     company = await client_company_service.get_client_company(
         db,
         company_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not company:
@@ -177,10 +180,11 @@ async def delete_client_company(
     """
     check_client_company_permissions(current_user, "delete")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     company = await client_company_service.get_client_company(
         db,
         company_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not company:

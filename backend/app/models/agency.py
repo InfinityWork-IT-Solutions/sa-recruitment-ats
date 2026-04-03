@@ -41,7 +41,7 @@ class Agency(Base):
     city = Column(String(100))
     province = Column(String(100))
     postal_code = Column(String(20))
-    country = Column(String(100), default="South Africa")
+    country = Column(String(100))
     
     # Subscription
     subscription_tier = Column(Enum(SubscriptionTier), nullable=False, default=SubscriptionTier.standard)

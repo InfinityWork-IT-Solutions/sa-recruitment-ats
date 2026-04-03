@@ -12,7 +12,7 @@ import {
     Menu,
     X,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const getNavigation = (role?: string) => {
     if (role === 'candidate') {
@@ -26,9 +26,24 @@ const getNavigation = (role?: string) => {
     
     if (role === 'client') {
         return [
-            { name: 'Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
+            { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
             { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
             { name: 'Candidates', href: '/company/candidates', icon: Users },
+            { name: 'Team', href: '/company/team', icon: Users },
+            { name: 'Settings', href: '/company/settings', icon: Settings },
+        ];
+    }
+
+    if (role === 'super_admin') {
+        return [
+            { name: 'Admin Console', href: '/admin/dashboard', icon: LayoutDashboard },
+            { name: 'System Users', href: '/admin/users', icon: Users },
+            { name: 'Recruiter View', href: '/dashboard', icon: Briefcase },
+            { name: 'Jobs', href: '/jobs', icon: Briefcase },
+            { name: 'Candidates', href: '/candidates', icon: Users },
+            { name: 'Applications', href: '/applications', icon: FileText },
+            { name: 'Clients', href: '/clients', icon: Building2 },
+            { name: 'Analytics', href: '/analytics', icon: BarChart3 },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
@@ -50,15 +65,6 @@ export default function DashboardLayout() {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(localStorage.getItem('candidate_avatar'));
-
-    useEffect(() => {
-        const handleAvatarUpdate = () => {
-            setAvatarUrl(localStorage.getItem('candidate_avatar'));
-        };
-        window.addEventListener('avatarUpdated', handleAvatarUpdate);
-        return () => window.removeEventListener('avatarUpdated', handleAvatarUpdate);
-    }, []);
 
     const handleLogout = () => {
         logout();
@@ -133,8 +139,8 @@ export default function DashboardLayout() {
                     <div className="border-t border-gray-200 p-4">
                         <div className="flex items-center space-x-3 mb-3">
                             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
-                                {avatarUrl && user?.role === 'candidate' ? (
-                                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                                {user?.avatar_url ? (
+                                    <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
                                     <span className="text-white font-semibold">
                                         {user?.first_name[0]}{user?.last_name[0]}
@@ -183,9 +189,8 @@ export default function DashboardLayout() {
                             className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:ring-2 hover:ring-blue-300 transition-all shadow-sm overflow-hidden"
                             title="My Profile"
                         >
-                            {/* Assuming user profile picture feature is coming, fallback to initials */}
-                            {avatarUrl && user?.role === 'candidate' ? (
-                                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                            {user?.avatar_url ? (
+                                <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
                                 <span className="text-white font-semibold flex items-center justify-center w-full h-full">
                                     {user?.first_name[0]}{user?.last_name[0]}

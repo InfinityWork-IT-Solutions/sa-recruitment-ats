@@ -19,8 +19,9 @@ export interface CreateJobData {
     requirements?: string;
     responsibilities?: string;
     benefits?: string;
-    location_city: string;
-    location_province: string;
+    location: string;
+    city?: string;
+    province?: string;
     employment_type: string;
     experience_level?: string;
     years_of_experience_min?: number;
@@ -29,6 +30,10 @@ export interface CreateJobData {
     skills?: string[];
     salary_min?: number;
     salary_max?: number;
+    // Integration platforms
+    post_to_pnet?: boolean;
+    post_to_indeed?: boolean;
+    post_to_linkedin?: boolean;
 }
 
 export const jobsService = {

@@ -127,6 +127,7 @@ class AuthService:
             role=UserRole.candidate,
             hashed_password=hash_password(user_data.password),
             is_active=True,
+            is_verified=False,
             agency_id=agency_id
         )
         db.add(user)
@@ -175,6 +176,7 @@ class AuthService:
             role=UserRole.client,
             hashed_password=hash_password(user_data.password),
             is_active=True,
+            is_verified=False,
             agency_id=agency_id
         )
         db.add(user)

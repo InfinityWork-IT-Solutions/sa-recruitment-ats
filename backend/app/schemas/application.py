@@ -20,7 +20,9 @@ class ApplicationCreate(ApplicationBase):
     """Schema for creating an application"""
     job_id: UUID = Field(..., description="Job ID to apply to")
     candidate_id: UUID = Field(..., description="Candidate ID")
-    source: ApplicationSource = Field(ApplicationSource.direct_apply)
+    source: Optional[str] = Field("direct")
+    external_application_id: Optional[str] = Field(None, description="ID from external platform")
+    source_url: Optional[str] = Field(None, description="URL candidate applied from")
     
     model_config = ConfigDict(json_schema_extra={
         "example": {
@@ -56,7 +58,9 @@ class ApplicationResponse(ApplicationBase):
     assigned_to: Optional[UUID] = None
     
     status: ApplicationStatus
-    source: ApplicationSource
+    source: Optional[str] = "direct"
+    external_application_id: Optional[str] = None
+    source_url: Optional[str] = None
     
     # Screening
     screening_score: Optional[int] = None
@@ -99,6 +103,10 @@ class ApplicationResponse(ApplicationBase):
     
     notes: Optional[str] = None
     
+    # Joined fields
+    candidate_name: Optional[str] = None
+    job_title: Optional[str] = None
+    
     # Timestamps
     created_at: datetime
     updated_at: datetime
@@ -115,6 +123,10 @@ class ApplicationBrief(BaseModel):
     status: ApplicationStatus
     match_score: Optional[int] = None
     created_at: datetime
+    
+    # Joined fields
+    candidate_name: Optional[str] = None
+    job_title: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 

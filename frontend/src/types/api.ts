@@ -7,6 +7,9 @@ export interface User {
     role: UserRole;
     agency_id: string | null;
     company_id?: string | null;
+    avatar_url?: string | null;
+    agency_name?: string | null;
+    managed_clients_count?: number;
     is_active: boolean;
     is_verified: boolean;
     created_at: string;
@@ -35,8 +38,12 @@ export interface Job {
     requirements: string | null;
     responsibilities: string | null;
     benefits: string | null;
-    location_city: string;
-    location_province: string;
+    location: string;
+    city: string | null;
+    province: string | null;
+    country: string;
+    is_remote: boolean;
+    remote_type: string | null;
     employment_type: EmploymentType;
     experience_level: ExperienceLevel;
     years_of_experience_min: number | null;
@@ -55,7 +62,7 @@ export interface Job {
 }
 
 export type EmploymentType = 'full_time' | 'part_time' | 'contract' | 'temporary' | 'internship' | 'freelance';
-export type ExperienceLevel = 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'executive';
+export type ExperienceLevel = 'entry_level' | 'mid_level' | 'senior_level' | 'executive';
 export type JobStatus = 'draft' | 'active' | 'paused' | 'closed' | 'filled' | 'expired';
 
 export interface Candidate {
@@ -100,6 +107,8 @@ export interface Application {
     interview_rating: number | null;
     offer_amount: number | null;
     match_score: number | null;
+    candidate_name?: string;
+    job_title?: string;
     created_at: string;
     updated_at: string;
 }
@@ -130,6 +139,10 @@ export interface ClientCompany {
     contact_person: string | null;
     contact_email: string | null;
     contact_phone: string | null;
+    address?: string | null;
+    city?: string | null;
+    province?: string | null;
+    country?: string | null;
     jobs_count: number;
     created_at: string;
 }
@@ -143,6 +156,7 @@ export interface DashboardMetrics {
     active_candidates: number;
     applications_this_period: number;
     placements: number;
+    total_clients: number;
     avg_time_to_hire_days: number;
     success_rate_percentage: number;
 }
@@ -162,8 +176,11 @@ export interface ApplicationPipelineStage {
 
 export interface ApplicationBrief {
     id: string;
+    job_id: string;
     candidate_id: string;
     candidate_name: string;
+    job_title?: string;
+    status: ApplicationStatus;
     match_score: number | null;
     created_at: string;
 }

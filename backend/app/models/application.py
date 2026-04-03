@@ -33,6 +33,7 @@ class ApplicationSource(str, enum.Enum):
     linkedin = "linkedin"
     pnet = "pnet"
     career_junction = "career_junction"
+    indeed = "indeed"
     other = "other"
     direct_apply = "direct_apply"
 
@@ -72,6 +73,8 @@ class Application(Base):
     # Application Details
     status = Column(Enum(ApplicationStatus), nullable=False, default=ApplicationStatus.applied, index=True)
     source = Column(Enum(ApplicationSource), default=ApplicationSource.direct_apply)
+    external_application_id = Column(String(255))
+    source_url = Column(Text)
     
     # Cover Letter & Resume
     cover_letter = Column(Text)

@@ -58,7 +58,7 @@ class Candidate(Base):
     # Location
     city = Column(String(100))
     province = Column(String(100))
-    country = Column(String(100), default="South Africa")
+    country = Column(String(100))
     is_willing_to_relocate = Column(Boolean, default=False)
     
     # Professional Information
@@ -77,10 +77,10 @@ class Candidate(Base):
     notice_period_days = Column(Integer)  # Notice period in days
     
     # Salary
-    current_salary = Column(Integer)  # In ZAR
-    expected_salary_min = Column(Integer)  # In ZAR
-    expected_salary_max = Column(Integer)  # In ZAR
-    salary_currency = Column(String(10), default="ZAR")
+    current_salary = Column(Integer)
+    expected_salary_min = Column(Integer)
+    expected_salary_max = Column(Integer)
+    salary_currency = Column(String(10))
     
     # Resume/CV
     resume_filename = Column(String(255))

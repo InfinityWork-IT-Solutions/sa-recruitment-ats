@@ -141,7 +141,7 @@ export default function CreateCandidatePage() {
                                 {...register('phone')}
                                 type="tel"
                                 className="input"
-                                placeholder="+27 82 555 1234"
+                                placeholder="e.g. +44 20 7123 4567"
                             />
                             {errors.phone && (
                                 <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
@@ -166,18 +166,12 @@ export default function CreateCandidatePage() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Province</label>
-                            <select {...register('province')} className="input">
-                                <option value="">Select province...</option>
-                                <option value="Western Cape">Western Cape</option>
-                                <option value="Gauteng">Gauteng</option>
-                                <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                <option value="Eastern Cape">Eastern Cape</option>
-                                <option value="Free State">Free State</option>
-                                <option value="Limpopo">Limpopo</option>
-                                <option value="Mpumalanga">Mpumalanga</option>
-                                <option value="North West">North West</option>
-                                <option value="Northern Cape">Northern Cape</option>
-                            </select>
+                            <input
+                                {...register('province')}
+                                type="text"
+                                className="input"
+                                placeholder="e.g. Western Cape or California"
+                            />
                         </div>
                     </div>
                 </div>
@@ -282,7 +276,7 @@ export default function CreateCandidatePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Minimum Expected Salary (ZAR)
+                                Minimum Expected Salary
                             </label>
                             <input
                                 {...register('expected_salary_min', { valueAsNumber: true })}
@@ -295,7 +289,7 @@ export default function CreateCandidatePage() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Maximum Expected Salary (ZAR)
+                                Maximum Expected Salary
                             </label>
                             <input
                                 {...register('expected_salary_max', { valueAsNumber: true })}

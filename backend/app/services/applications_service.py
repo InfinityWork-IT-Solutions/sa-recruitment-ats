@@ -66,12 +66,12 @@ class ApplicationService:
             **application_dict,
             agency_id=agency_id,
             client_company_id=job.client_company_id,
-            assigned_to=user.id,
+            assigned_to=user.id if user else None,
             status=ApplicationStatus.applied
         )
         
         # Initialize status history
-        application.add_status_change(ApplicationStatus.applied, user.id)
+        application.add_status_change(ApplicationStatus.applied, user.id if user else None)
         
         db.add(application)
         
@@ -98,14 +98,14 @@ class ApplicationService:
         agency_id: UUID
     ) -> Optional[Application]:
         """Get application by ID (within agency)"""
-        result = await db.execute(
-            select(Application)
-            .where(Application.id == application_id, Application.agency_id == agency_id)
-            .options(
+        stmt = select(Application).where(Application.id == application_id).options(
                 selectinload(Application.job),
                 selectinload(Application.candidate)
             )
-        )
+        if agency_id:
+            stmt = stmt.where(Application.agency_id == agency_id)
+            
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
     @staticmethod
@@ -121,7 +121,12 @@ class ApplicationService:
             Tuple of (applications, total_count)
         """
         # Base query
-        query = select(Application).where(Application.agency_id == agency_id)
+        query = select(Application).options(
+            selectinload(Application.job),
+            selectinload(Application.candidate)
+        )
+        if agency_id:
+            query = query.where(Application.agency_id == agency_id)
         
         # Apply filters
         if filters.job_id:
@@ -392,11 +397,11 @@ class ApplicationService:
         from app.models.application import ApplicationStatus as AppStatus
         
         # Get all applications for this job
-        result = await db.execute(
-            select(Application)
-            .where(Application.job_id == job_id, Application.agency_id == agency_id)
-            .options(selectinload(Application.candidate))
-        )
+        stmt = select(Application).where(Application.job_id == job_id).options(selectinload(Application.candidate))
+        if agency_id:
+            stmt = stmt.where(Application.agency_id == agency_id)
+            
+        result = await db.execute(stmt)
         applications = result.scalars().all()
         
         # Group by status
@@ -430,23 +435,26 @@ class ApplicationService:
         agency_id: UUID
     ) -> dict:
         """Get application statistics"""
+        # Base filters
+        base_stmt = select(Application)
+        if agency_id:
+            base_stmt = base_stmt.where(Application.agency_id == agency_id)
+            
         # Total applications
         total_result = await db.execute(
-            select(func.count(Application.id)).where(Application.agency_id == agency_id)
+            select(func.count(Application.id)).select_from(base_stmt.subquery())
         )
-        total_applications = total_result.scalar()
+        total_applications = total_result.scalar() or 0
         
         # Count by status
         by_status = {}
         from app.models.application import ApplicationStatus as AppStatus
         for status in AppStatus:
             count_result = await db.execute(
-                select(func.count(Application.id)).where(
-                    Application.agency_id == agency_id,
-                    Application.status == status
-                )
+                select(func.count(Application.id))
+                .select_from(base_stmt.where(Application.status == status).subquery())
             )
-            by_status[status.value] = count_result.scalar()
+            by_status[status.value] = count_result.scalar() or 0
         
         # Calculate conversion rates
         conversion_rates = {}

@@ -37,12 +37,18 @@ app.add_middleware(
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
+@app.on_event("startup")
+async def on_startup():
+    from app.tasks.daily_jobs import setup_scheduler
+    app.state.scheduler = setup_scheduler()
+
 @app.get("/")
 async def root():
     return {
         "message": f"Welcome to {os.getenv('APP_NAME', 'RecruitPro SA')} API",
         "status": "online",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "scheduler": "active"
     }
 
 @app.get("/health")

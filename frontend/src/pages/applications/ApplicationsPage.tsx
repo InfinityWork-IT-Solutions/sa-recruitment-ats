@@ -168,7 +168,7 @@ export default function ApplicationsPage() {
                                                 to={`/candidates/${application.candidate_id}`}
                                                 className="text-sm font-medium text-blue-600 hover:underline"
                                             >
-                                                Candidate #{application.candidate_id.slice(0, 8)}
+                                                {application.candidate_name}
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -176,7 +176,7 @@ export default function ApplicationsPage() {
                                                 to={`/jobs/${application.job_id}`}
                                                 className="text-sm font-medium text-blue-600 hover:underline"
                                             >
-                                                Job #{application.job_id.slice(0, 8)}
+                                                {application.job_title || `Job #${application.job_id.slice(0, 8)}`}
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -234,10 +234,10 @@ export default function ApplicationsPage() {
                                 </div>
                                 <div className="space-y-1 text-sm">
                                     <p className="text-gray-900 font-medium">
-                                        Candidate: #{application.candidate_id.slice(0, 8)}
+                                        Candidate: {application.candidate_name}
                                     </p>
                                     <p className="text-gray-600">
-                                        Job: #{application.job_id.slice(0, 8)}
+                                        Job: {application.job_title || `Job #${application.job_id.slice(0, 8)}`}
                                     </p>
                                     {application.match_score !== null && (
                                         <div className="flex items-center space-x-2 mt-2">

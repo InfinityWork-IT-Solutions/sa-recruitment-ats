@@ -10,11 +10,21 @@ from app.api.v1 import (
     candidates,
     applications,
     analytics,
-    i18n
+    i18n,
+    integrations,
+    feeds,
+    admin
 )
 
 # Create main API router
 api_router = APIRouter()
+
+# Admin
+api_router.include_router(
+    admin.router,
+    prefix="/admin",
+    tags=["Platform Administration"]
+)
 
 # Sprint 1: Authentication
 api_router.include_router(
@@ -65,6 +75,20 @@ api_router.include_router(
     tags=["Internationalization"]
 )
 
+# Integrations
+api_router.include_router(
+    integrations.router,
+    prefix="/integrations",
+    tags=["Integrations"]
+)
+
+# Feeds
+api_router.include_router(
+    feeds.router,
+    prefix="/feeds",
+    tags=["Feeds"]
+)
+
 
 @api_router.get("/")
 async def api_root():
@@ -93,6 +117,8 @@ async def api_root():
             "applications": "/applications",
             "analytics": "/analytics",
             "i18n": "/i18n",
+            "integrations": "/integrations",
+            "feeds": "/feeds",
             "docs": "/docs",
             "health": "/health",
         },

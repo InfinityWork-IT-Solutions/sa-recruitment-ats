@@ -64,11 +64,11 @@ class CandidateService:
         agency_id: UUID
     ) -> Optional[Candidate]:
         """Get candidate by ID (within agency)"""
-        result = await db.execute(
-            select(Candidate)
-            .where(Candidate.id == candidate_id, Candidate.agency_id == agency_id)
-            .options(selectinload(Candidate.applications))
-        )
+        stmt = select(Candidate).options(selectinload(Candidate.applications)).where(Candidate.id == candidate_id)
+        if agency_id:
+            stmt = stmt.where(Candidate.agency_id == agency_id)
+            
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
     @staticmethod
@@ -78,12 +78,11 @@ class CandidateService:
         agency_id: UUID
     ) -> Optional[Candidate]:
         """Get candidate by email (within agency)"""
-        result = await db.execute(
-            select(Candidate).where(
-                func.lower(Candidate.email) == email.lower(),
-                Candidate.agency_id == agency_id
-            )
-        )
+        stmt = select(Candidate).where(func.lower(Candidate.email) == email.lower())
+        if agency_id:
+            stmt = stmt.where(Candidate.agency_id == agency_id)
+            
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
     @staticmethod
@@ -99,7 +98,9 @@ class CandidateService:
             Tuple of (candidates, total_count)
         """
         # Base query
-        query = select(Candidate).where(Candidate.agency_id == agency_id)
+        query = select(Candidate)
+        if agency_id:
+            query = query.where(Candidate.agency_id == agency_id)
         
         # Apply filters
         if filters.search:
@@ -291,43 +292,43 @@ class CandidateService:
         agency_id: UUID
     ) -> dict:
         """Get candidate statistics for agency"""
+        # Base filters
+        base_stmt = select(Candidate)
+        if agency_id:
+            base_stmt = base_stmt.where(Candidate.agency_id == agency_id)
+            
         # Total candidates
         total_result = await db.execute(
-            select(func.count(Candidate.id)).where(Candidate.agency_id == agency_id)
+            select(func.count(Candidate.id)).select_from(base_stmt.subquery())
         )
-        total_candidates = total_result.scalar()
+        total_candidates = total_result.scalar() or 0
         
         # Active candidates
         active_result = await db.execute(
-            select(func.count(Candidate.id)).where(
-                Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.active
-            )
+            select(func.count(Candidate.id))
+            .select_from(base_stmt.where(Candidate.status == CandidateStatus.active).subquery())
         )
-        active_candidates = active_result.scalar()
+        active_candidates = active_result.scalar() or 0
         
         # Passive candidates
         passive_result = await db.execute(
-            select(func.count(Candidate.id)).where(
-                Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.passive
-            )
+            select(func.count(Candidate.id))
+            .select_from(base_stmt.where(Candidate.status == CandidateStatus.passive).subquery())
         )
-        passive_candidates = passive_result.scalar()
+        passive_candidates = passive_result.scalar() or 0
         
         # Placed candidates
         placed_result = await db.execute(
-            select(func.count(Candidate.id)).where(
-                Candidate.agency_id == agency_id,
-                Candidate.status == CandidateStatus.placed
-            )
+            select(func.count(Candidate.id))
+            .select_from(base_stmt.where(Candidate.status == CandidateStatus.placed).subquery())
         )
-        placed_candidates = placed_result.scalar()
+        placed_candidates = placed_result.scalar() or 0
         
         # Total applications
-        apps_result = await db.execute(
-            select(func.sum(Candidate.applications_count)).where(Candidate.agency_id == agency_id)
-        )
+        apps_stmt = select(func.sum(Candidate.applications_count))
+        if agency_id:
+            apps_stmt = apps_stmt.where(Candidate.agency_id == agency_id)
+        apps_result = await db.execute(apps_stmt)
         total_applications = apps_result.scalar() or 0
         
         # Average applications per candidate

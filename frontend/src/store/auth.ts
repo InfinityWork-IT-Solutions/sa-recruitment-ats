@@ -28,10 +28,15 @@ export const useAuthStore = create<AuthState>((set) => ({
             if (expectedType) {
                 const userRole = user.role;
                 let isValid = false;
-                
-                if (expectedType === 'candidate' && userRole === 'candidate') isValid = true;
-                if (expectedType === 'company' && userRole === 'client') isValid = true;
-                if (expectedType === 'recruiter' && ['agency_admin', 'agency_user', 'admin'].includes(userRole)) isValid = true;
+                if (userRole === 'super_admin') {
+                    isValid = true;
+                } else if (expectedType === 'candidate' && userRole === 'candidate') {
+                    isValid = true;
+                } else if (expectedType === 'company' && userRole === 'client') {
+                    isValid = true;
+                } else if (expectedType === 'recruiter' && ['agency_admin', 'agency_user', 'admin'].includes(userRole)) {
+                    isValid = true;
+                }
                 
                 if (!isValid) {
                     throw new Error(`Invalid login type. Your account is not registered as a ${expectedType}.`);
@@ -43,7 +48,8 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ user, isAuthenticated: true, isLoading: false });
 
             // Role-based redirection
-            if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
+            if (user.role === 'super_admin') window.location.href = '/admin/dashboard';
+            else if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
             else if (user.role === 'client') window.location.href = '/client-dashboard';
             else window.location.href = '/dashboard';
         } catch (error) {

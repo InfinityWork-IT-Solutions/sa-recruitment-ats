@@ -29,6 +29,8 @@ from app.schemas import (
     MessageResponse,
 )
 from app.services.applications_service import application_service
+from app.models.job_platform import JobPlatformPosting
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -46,6 +48,86 @@ def check_application_permissions(user: User, action: str = "view"):
             )
     
     return True
+
+@router.post("/jobs/{job_id}/apply", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+async def apply_to_job(
+    job_id: UUID,
+    application_data: ApplicationCreate,
+    source: str = Query(default="direct"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Public endpoint to apply to a job with source tracking
+    """
+    # Assuming agency_id is fetched via job
+    from app.models.job import Job
+    job_result = await db.execute(select(Job).where(Job.id == job_id))
+    job = job_result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    application = await application_service.create_application(
+        db,
+        application_data,
+        job.agency_id,
+        None  # no current_user for public apply
+    )
+    
+    # Track source and external ID
+    application.source = source
+    if hasattr(application_data, 'external_application_id'):
+        application.external_application_id = application_data.external_application_id
+        
+    if source != 'direct':
+        posting_result = await db.execute(select(JobPlatformPosting).filter_by(
+            job_id=job_id,
+            platform=source
+        ))
+        posting = posting_result.scalar_one_or_none()
+        if posting:
+            posting.applications_count = (posting.applications_count or 0) + 1
+            
+    await db.commit()
+    await db.refresh(application)
+    
+    # SEND AUTOMATED EMAILS
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        from app.models.user import User, UserRole
+        from app.models.agency import Agency
+        
+        # Get candidate details (if user_id exists)
+        candidate_name = f"{application_data.first_name} {application_data.last_name}"
+        candidate_email = application_data.email
+        
+        # Get Job and Agency details
+        await db.refresh(job, ["agency"])
+        agency = job.agency
+        
+        # 1. Confirmation to candidate
+        await EmailAutomationService.send_application_confirmation(
+            candidate_email=candidate_email,
+            candidate_name=candidate_name,
+            job_title=job.title,
+            company_name=agency.name
+        )
+        
+        # 2. Alert to company (Recruiters/Admins of the agency)
+        # For simplicity, we send to the primary agency email
+        await EmailAutomationService.send_new_application_alert(
+            company_email=agency.email,
+            recruiter_name=agency.name,
+            candidate_name=candidate_name,
+            job_title=job.title,
+            match_score=int(application.match_score or 0),
+            application_id=str(application.id)
+        )
+    except Exception as e:
+        print(f"Error sending automated emails: {e}")
+        # We don't want to fail the application if email fails
+    
+    return ApplicationResponse.model_validate(application)
 
 
 @router.post("/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
@@ -109,9 +191,10 @@ async def list_applications(
         sort_order=sort_order
     )
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     applications, total = await application_service.list_applications(
         db,
-        current_user.agency_id,
+        agency_id,
         filters
     )
     
@@ -130,7 +213,8 @@ async def get_application_statistics(
     db: AsyncSession = Depends(get_db)
 ):
     """Get application statistics for current agency"""
-    stats = await application_service.get_application_statistics(db, current_user.agency_id)
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    stats = await application_service.get_application_statistics(db, agency_id)
     return ApplicationStatistics(**stats)
 
 
@@ -145,10 +229,11 @@ async def get_job_pipeline(
     
     **Returns**: Applications grouped by status for drag-and-drop board
     """
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     pipeline = await application_service.get_pipeline_for_job(
         db,
         job_id,
-        current_user.agency_id
+        agency_id
     )
     
     # Get job title
@@ -191,10 +276,11 @@ async def get_application(
     db: AsyncSession = Depends(get_db)
 ):
     """Get application details by ID"""
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -220,10 +306,11 @@ async def update_application(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -255,10 +342,11 @@ async def delete_application(
     """
     check_application_permissions(current_user, "delete")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -291,10 +379,11 @@ async def screen_application(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -311,6 +400,25 @@ async def screen_application(
         screening_data.notes or "",
         current_user
     )
+    
+    # SEND STATUS UPDATE EMAIL
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        new_status = 'shortlisted' if screening_data.passed else 'rejected'
+        
+        # Load necessary relations
+        await db.refresh(application, ["candidate", "job"])
+        await db.refresh(application.job, ["agency"])
+        
+        await EmailAutomationService.send_status_update(
+            candidate_email=application.candidate.email,
+            candidate_name=application.candidate.full_name,
+            job_title=application.job.title,
+            company_name=application.job.agency.name,
+            new_status=new_status
+        )
+    except Exception as e:
+        print(f"Error sending status update email: {e}")
     
     return ApplicationResponse.model_validate(application)
 
@@ -331,10 +439,11 @@ async def schedule_interview(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -350,6 +459,27 @@ async def schedule_interview(
         current_user
     )
     
+    # SEND INTERVIEW INVITATION EMAIL
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        
+        # Load necessary relations
+        await db.refresh(application, ["candidate", "job"])
+        await db.refresh(application.job, ["agency"])
+        
+        await EmailAutomationService.send_interview_invitation(
+            candidate_email=application.candidate.email,
+            candidate_name=application.candidate.full_name,
+            company_name=application.job.agency.name,
+            job_title=application.job.title,
+            interview_date=interview_data.interview_time.strftime('%Y-%m-%d'),
+            interview_time=interview_data.interview_time.strftime('%H:%M'),
+            interview_location="Dashboard / Office",
+            interview_type="In-Person" # Default or logic based on data
+        )
+    except Exception as e:
+        print(f"Error sending interview invitation email: {e}")
+        
     return ApplicationResponse.model_validate(application)
 
 
@@ -369,10 +499,11 @@ async def complete_interview(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -408,10 +539,11 @@ async def make_offer(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -445,10 +577,11 @@ async def respond_to_offer(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -484,10 +617,11 @@ async def hire_candidate(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -521,10 +655,11 @@ async def reject_application(
     """
     check_application_permissions(current_user, "update")
     
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:
@@ -541,6 +676,25 @@ async def reject_application(
         current_user
     )
     
+    # SEND REJECTION EMAIL
+    try:
+        from app.services.email_automation_service import EmailAutomationService
+        
+        # Load necessary relations
+        await db.refresh(application, ["candidate", "job"])
+        await db.refresh(application.job, ["agency"])
+        
+        await EmailAutomationService.send_status_update(
+            candidate_email=application.candidate.email,
+            candidate_name=application.candidate.full_name,
+            job_title=application.job.title,
+            company_name=application.job.agency.name,
+            new_status='rejected',
+            message=rejection_data.notes
+        )
+    except Exception as e:
+        print(f"Error sending rejection email: {e}")
+        
     return ApplicationResponse.model_validate(application)
 
 
@@ -556,10 +710,11 @@ async def withdraw_application(
     
     **Status change**: → WITHDRAWN
     """
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     application = await application_service.get_application(
         db,
         application_id,
-        current_user.agency_id
+        agency_id
     )
     
     if not application:

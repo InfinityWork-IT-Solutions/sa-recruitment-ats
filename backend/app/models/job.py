@@ -77,7 +77,7 @@ class Job(Base):
     location = Column(String(255), nullable=False)
     city = Column(String(100))
     province = Column(String(100))
-    country = Column(String(100), default="South Africa")
+    country = Column(String(100))
     is_remote = Column(Boolean, default=False)
     remote_type = Column(String(50))  # "fully_remote", "hybrid", "office_only"
     
@@ -85,9 +85,9 @@ class Job(Base):
     employment_type = Column(Enum(EmploymentType), nullable=False, default=EmploymentType.full_time)
     
     # Salary
-    salary_min = Column(Integer)  # In ZAR
-    salary_max = Column(Integer)  # In ZAR
-    salary_currency = Column(String(10), default="ZAR")
+    salary_min = Column(Integer)
+    salary_max = Column(Integer)
+    salary_currency = Column(String(10))
     salary_period = Column(String(20), default="monthly")  # "monthly", "annually", "hourly"
     show_salary = Column(Boolean, default=False)
     
@@ -105,9 +105,11 @@ class Job(Base):
     post_to_pnet = Column(Boolean, default=False)
     post_to_careerjunction = Column(Boolean, default=False)
     post_to_linkedin = Column(Boolean, default=False)
+    post_to_indeed = Column(Boolean, default=False)
     pnet_job_id = Column(String(100))
     careerjunction_job_id = Column(String(100))
     linkedin_job_id = Column(String(100))
+    indeed_job_id = Column(String(100))
     
     # Metrics
     views_count = Column(Integer, default=0)
