@@ -25,6 +25,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         f.write(traceback.format_exc())
     return JSONResponse(status_code=500, content={"detail": str(exc), "trace": traceback.format_exc()})
 
+from fastapi.staticfiles import StaticFiles
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -33,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/static/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")

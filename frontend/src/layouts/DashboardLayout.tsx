@@ -11,12 +11,14 @@ import {
     LogOut,
     Menu,
     X,
+    User,
 } from 'lucide-react';
 import { useState } from 'react';
 
 const getNavigation = (role?: string) => {
     if (role === 'candidate') {
         return [
+            { name: 'Profile', href: '/candidate/profile', icon: User },
             { name: 'Dashboard', href: '/candidate-dashboard', icon: LayoutDashboard },
             { name: 'Jobs', href: '/candidate/jobs', icon: Briefcase },
             { name: 'Applications', href: '/candidate/applications', icon: FileText },
@@ -26,6 +28,7 @@ const getNavigation = (role?: string) => {
     
     if (role === 'client') {
         return [
+            { name: 'Profile', href: '/company/profile', icon: Building2 },
             { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
             { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
             { name: 'Candidates', href: '/company/candidates', icon: Users },
@@ -139,11 +142,11 @@ export default function DashboardLayout() {
                     <div className="border-t border-gray-200 p-4">
                         <div className="flex items-center space-x-3 mb-3">
                             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
-                                {user?.avatar_url ? (
-                                    <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                {(user?.avatar_url || localStorage.getItem(`user_avatar_${user?.id}`)) ? (
+                                    <img src={user?.avatar_url || localStorage.getItem(`user_avatar_${user?.id}`) || ""} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="text-white font-semibold">
-                                        {user?.first_name[0]}{user?.last_name[0]}
+                                    <span className="text-white font-semibold flex items-center justify-center w-full h-full">
+                                        {user?.first_name?.[0]}{user?.last_name?.[0]}
                                     </span>
                                 )}
                             </div>
@@ -180,20 +183,22 @@ export default function DashboardLayout() {
 
                     {/* User badge (role) & Profile Link */}
                     <div className="flex items-center space-x-4">
-                        <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-bold">
-                            {user?.role.replace('_', ' ').toUpperCase()}
-                        </span>
+                        {user?.role && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-bold">
+                                {user.role.replace('_', ' ').toUpperCase()}
+                            </span>
+                        )}
                         
                         <Link 
                             to={user?.role === 'candidate' ? '/candidate/profile' : '/settings'}
                             className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:ring-2 hover:ring-blue-300 transition-all shadow-sm overflow-hidden"
                             title="My Profile"
                         >
-                            {user?.avatar_url ? (
-                                <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                            {(user?.avatar_url || localStorage.getItem(`user_avatar_${user?.id}`)) ? (
+                                <img src={user?.avatar_url || localStorage.getItem(`user_avatar_${user?.id}`) || ""} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
                                 <span className="text-white font-semibold flex items-center justify-center w-full h-full">
-                                    {user?.first_name[0]}{user?.last_name[0]}
+                                    {user?.first_name?.[0]}{user?.last_name?.[0]}
                                 </span>
                             )}
                         </Link>

@@ -6,6 +6,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
+import UsageDashboard from '@/components/UsageDashboard';
 
 interface CompanyProfile {
     company_name: string;
@@ -292,17 +293,31 @@ export default function SettingsPage() {
                              </div>
                          )}
 
-                         {(activeTab === 'billing' || activeTab === 'notifications') && (
+                         {activeTab === 'billing' && (
+                             <div className="space-y-6">
+                                 <UsageDashboard />
+                                 
+                                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-20 text-center">
+                                     <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                                         <Shield className="w-10 h-10 text-gray-200" />
+                                     </div>
+                                     <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Security Hardening</h3>
+                                     <p className="text-gray-400 font-bold max-w-md mx-auto mb-10">Advanced billing panels are currently being hardened. AI Usage tracking is the first module deployed.</p>
+                                     <div className="inline-flex items-center space-x-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 animate-pulse">
+                                         <Check className="w-4 h-4" />
+                                         <span>Security Validated</span>
+                                     </div>
+                                 </div>
+                             </div>
+                         )}
+
+                         {activeTab === 'notifications' && (
                              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-20 text-center">
                                  <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8">
                                      <Shield className="w-10 h-10 text-gray-200" />
                                  </div>
-                                 <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Administrative Override</h3>
-                                 <p className="text-gray-400 font-bold max-w-md mx-auto mb-10">These secure panels are currently being hardened against unauthorized access and will be available in the next security patch.</p>
-                                 <div className="inline-flex items-center space-x-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 animate-bounce">
-                                     <Check className="w-4 h-4" />
-                                     <span>Security Validated</span>
-                                 </div>
+                                 <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Notifications Logic</h3>
+                                 <p className="text-gray-400 font-bold max-w-md mx-auto mb-10">Notification settings are scheduled for deployment in the next sprint.</p>
                              </div>
                          )}
                     </div>

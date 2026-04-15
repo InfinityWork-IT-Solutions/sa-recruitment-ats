@@ -104,21 +104,6 @@ class UserResponse(UserBase):
     # Include agency info
     agency: Optional[AgencyBrief] = None
     
-    @property
-    def company_id(self) -> Optional[UUID]:
-        """Helper to get company ID for client users"""
-        return self.client_company.id if hasattr(self, 'client_company') and self.client_company else None
-    
-    @property
-    def agency_name(self) -> Optional[str]:
-        """Helper to get agency name"""
-        return self.agency.name if hasattr(self, 'agency') and self.agency else None
-
-    @property
-    def managed_clients_count(self) -> int:
-        """Helper to get number of clients for this agency"""
-        return len(self.agency.client_companies) if hasattr(self, 'agency') and self.agency and hasattr(self.agency, 'client_companies') else 0
-    
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -132,7 +117,3 @@ class UserBrief(BaseModel):
     role: UserRole
     
     model_config = ConfigDict(from_attributes=True)
-    
-    @property
-    def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"

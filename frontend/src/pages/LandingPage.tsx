@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Users, Briefcase, TrendingUp, Shield, Zap, Globe,
     Check, ArrowRight, Menu, X, BarChart3, FileText,
@@ -454,72 +455,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Meet the Founder Section */}
-            <section className="py-24 bg-white relative overflow-hidden border-b border-gray-200">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-16">
-                        {/* Image Frame Column */}
-                        <div className="w-full md:w-1/3 flex justify-center pb-8 md:pb-0">
-                            <div className="relative group perspective">
-                                <div className="absolute -inset-4 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                                <div className="relative bg-white p-4 rounded-[2rem] shadow-2xl border border-gray-100 transform rotate-[-2deg] hover:rotate-[0deg] transition duration-500 ease-out z-10 w-64 md:w-72">
-                                    <div className="aspect-[4/5] rounded-[1.5rem] overflow-hidden bg-gray-100 relative">
-                                        <img 
-                                            src="/founder.jpg" 
-                                            alt="Mpumelelo Magagula" 
-                                            className="absolute inset-0 w-full h-full object-cover object-top"
-                                            onError={(e) => {
-                                                e.currentTarget.src = 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="pt-6 pb-2 text-center">
-                                        <h4 className="text-xl font-bold text-gray-900">Mpumelelo Magagula</h4>
-                                        <p className="text-blue-600 font-semibold text-sm">Founder & CEO</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Founder Bio Column */}
-                        <div className="w-full md:w-2/3">
-                            <div className="inline-flex items-center space-x-2 bg-purple-50 text-purple-700 px-4 py-1.5 rounded-full text-sm font-bold mb-6 border border-purple-100 uppercase tracking-wider">
-                                <Code className="w-4 h-4" />
-                                <span>Behind the Code</span>
-                            </div>
-                            
-                            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8 tracking-tight">Meet the Founder</h2>
-                            
-                            <div className="space-y-6 text-lg text-gray-600 font-medium">
-                                <p className="leading-relaxed">
-                                    I'm Mpumelelo Magagula, founder of <strong className="text-blue-600">InfinityWork IT Solutions</strong> — a specialized technology company pioneering DevOps, scalable cloud infrastructure, and AI-powered automation.
-                                </p>
-                                <p className="leading-relaxed">
-                                    As a DevOps engineer, I've experienced the severe friction of the hiring process firsthand. Having been the job seeker sending endless applications into the void, I knew exactly how brilliant candidates were getting completely lost in the noise of manual screeners.
-                                </p>
-                                <p className="leading-relaxed">
-                                    In 2025, after launching my own business and while helping consulting clients automate their complex operations, the realization finally hit me: 
-                                    <span className="block mt-4 pl-6 border-l-4 border-blue-500 text-gray-900 text-xl font-bold italic">
-                                        "Why is recruitment still this manual?"
-                                    </span>
-                                </p>
-                            </div>
-                            
-                            <div className="mt-10 pt-8 border-t border-gray-100">
-                                <a 
-                                    href="https://infinityworkitsolutions.com/" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center text-blue-600 font-bold hover:text-blue-700 group text-lg"
-                                >
-                                    Visit InfinityWork IT Solutions
-                                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* PRICING SECTION */}
             <section id="pricing" className="py-24 bg-gray-50 border-b border-gray-200">
@@ -530,7 +465,7 @@ export default function LandingPage() {
                   <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-6 sm:space-y-0 sm:space-x-8 relative z-10">
                     <div className="text-7xl pt-2">🎁</div>
                     <div className="flex-1 text-center sm:text-left">
-                      <h3 className="text-3xl font-extrabold text-gray-900 mb-3">
+                      <h3 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">
                         Founding Member Offer: 30% OFF Forever!
                       </h3>
                       <p className="text-gray-600 mb-6 font-medium text-lg leading-relaxed">
@@ -549,7 +484,7 @@ export default function LandingPage() {
                 
                 {/* Section Header */}
                 <div className="text-center mb-16">
-                  <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  <h2 className="text-5xl md:text-7xl font-black text-gray-900 mb-8 tracking-tighter uppercase">
                     Simple, Transparent Pricing
                   </h2>
                   <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium">
@@ -557,7 +492,7 @@ export default function LandingPage() {
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                   {/* Starter Plan */}
                   <div className="bg-white rounded-[2rem] border border-gray-200 p-10 hover:shadow-xl transition-shadow relative flex flex-col group">
                     <h3 className="text-3xl font-bold text-gray-900 mb-2">Starter</h3>
@@ -700,7 +635,9 @@ export default function LandingPage() {
                     </ul>
                     
                     <a 
-                      href="#contact" 
+                      href="https://infinityworkitsolutions.com/#contact" 
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block w-full text-center py-4 bg-white border-2 border-gray-900 text-gray-900 rounded-xl font-bold hover:bg-gray-900 hover:text-white transition-colors"
                     >
                       Contact Sales
@@ -744,13 +681,82 @@ export default function LandingPage() {
                     Start 14-Day Free Trial
                   </a>
                   <a 
-                    href="#contact" 
+                    href="https://infinityworkitsolutions.com/#contact" 
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full sm:w-auto px-10 py-5 bg-black/20 border border-white/30 text-white rounded-xl font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-md"
                   >
                     Schedule Platform Demo
                   </a>
                 </div>
               </div>
+            </section>
+
+            {/* Meet the Founder Section */}
+            <section className="py-24 bg-white relative overflow-hidden border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-16">
+                        {/* Image Frame Column */}
+                        <div className="w-full md:w-1/3 flex justify-center pb-8 md:pb-0">
+                            <div className="relative group perspective">
+                                <div className="absolute -inset-4 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                                <div className="relative bg-white p-4 rounded-[2rem] shadow-2xl border border-gray-100 transform rotate-[-2deg] hover:rotate-[0deg] transition duration-500 ease-out z-10 w-64 md:w-72">
+                                    <div className="aspect-[4/5] rounded-[1.5rem] overflow-hidden bg-gray-100 relative">
+                                        <img 
+                                            src="/founder.jpg" 
+                                            alt="Mpumelelo Magagula" 
+                                            className="absolute inset-0 w-full h-full object-cover object-top"
+                                            onError={(e) => {
+                                                e.currentTarget.src = 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="pt-6 pb-2 text-center">
+                                        <h4 className="text-xl font-bold text-gray-900">Mpumelelo Magagula</h4>
+                                        <p className="text-blue-600 font-semibold text-sm">Founder & CEO</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Founder Bio Column */}
+                        <div className="w-full md:w-2/3">
+                            <div className="inline-flex items-center space-x-2 bg-purple-50 text-purple-700 px-6 py-2 rounded-full text-base font-black mb-6 border border-purple-100 uppercase tracking-widest">
+                                <Code className="w-5 h-5 text-purple-600" />
+                                <span>Behind the Code</span>
+                            </div>
+                            
+                            <h2 className="text-5xl md:text-7xl font-black text-gray-900 mb-8 tracking-tighter">Meet the Founder</h2>
+                            
+                            <div className="space-y-6 text-xl text-gray-600 font-bold leading-relaxed">
+                                <p>
+                                    I'm Mpumelelo Magagula, founder of <strong className="text-blue-600">InfinityWork IT Solutions</strong> — a specialized technology company pioneering DevOps, scalable cloud infrastructure, and AI-powered automation.
+                                </p>
+                                <p>
+                                    As a DevOps engineer, I've experienced the severe friction of the hiring process firsthand. Having been the job seeker sending endless applications into the void, I knew exactly how brilliant candidates were getting completely lost in the noise of manual screeners.
+                                </p>
+                                <p>
+                                    In 2025, after launching my own business and while helping consulting clients automate their complex operations, the realization finally hit me: 
+                                    <span className="block mt-6 pl-8 border-l-8 border-blue-500 text-gray-900 text-2xl font-black italic">
+                                        "Why is recruitment still this manual?"
+                                    </span>
+                                </p>
+                            </div>
+                            
+                            <div className="mt-12 pt-10 border-t border-gray-100">
+                                <a 
+                                    href="https://infinityworkitsolutions.com/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center text-blue-600 font-black hover:text-blue-700 group text-xl uppercase tracking-widest"
+                                >
+                                    Visit InfinityWork IT Solutions
+                                    <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             {/* Footer */}
@@ -816,8 +822,8 @@ export default function LandingPage() {
                         <div className="md:mt-4">
                             <h3 className="text-white font-bold mb-6 tracking-wide uppercase text-sm">Trust & Legal</h3>
                             <ul className="space-y-4">
-                                <li><a href="/privacy" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Privacy Policy</a></li>
-                                <li><a href="/terms" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Terms of Service</a></li>
+                                <li><Link to="/privacy" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Privacy Policy</Link></li>
+                                <li><Link to="/terms" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Terms of Service</Link></li>
                                 <li><a href="/compliance" className="hover:text-blue-400 font-medium transition-colors text-gray-400">POPIA Compliance Center</a></li>
                                 <li><a href="/security" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Data Security Specs</a></li>
                             </ul>

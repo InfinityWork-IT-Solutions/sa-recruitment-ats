@@ -48,7 +48,18 @@ class ClientCompanyService:
         
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
-    
+    @staticmethod
+    async def get_client_company_by_user_id(
+        db: AsyncSession,
+        user_id: UUID
+    ) -> Optional[ClientCompany]:
+        """Get client company associated with user"""
+        stmt = select(ClientCompany).where(ClientCompany.user_id == user_id).options(
+            selectinload(ClientCompany.jobs)
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
     @staticmethod
     async def list_client_companies(
         db: AsyncSession,

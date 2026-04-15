@@ -7,6 +7,8 @@ import { useAuthStore } from '@/store/auth';
 import { User, Building2, Bell, Shield, Save, Key, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart3, TrendingUp, Users as UsersIcon } from 'lucide-react';
 
 // Profile update schema
 const profileSchema = z.object({
@@ -31,7 +33,7 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
     const user = useAuthStore((state) => state.user);
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics'>('profile');
     const [isUpdating, setIsUpdating] = useState(false);
 
     const {
@@ -55,6 +57,15 @@ export default function SettingsPage() {
         formState: { errors: passwordErrors },
     } = useForm<PasswordFormData>({
         resolver: zodResolver(passwordSchema),
+    });
+
+    const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery({
+        queryKey: ['profile-analytics'],
+        queryFn: async () => {
+            const res = await apiClient.get('/candidates/profile-analytics/views');
+            return res.data;
+        },
+        enabled: activeTab === 'analytics' && user?.role === 'candidate',
     });
 
     const onUpdateProfile = async (data: ProfileFormData) => {
@@ -129,6 +140,18 @@ export default function SettingsPage() {
                             <Bell className="w-5 h-5" />
                             <span className="font-medium">Notifications</span>
                         </button>
+                        {user?.role === 'candidate' && (
+                            <button
+                                onClick={() => setActiveTab('analytics')}
+                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'analytics'
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                            >
+                                <BarChart3 className="w-5 h-5" />
+                                <span className="font-medium">Profile Analytics</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Agency Info */}
@@ -339,6 +362,26 @@ export default function SettingsPage() {
                                 </p>
                                 <button className="btn-secondary">Enable 2FA</button>
                             </div>
+
+                            {/* Danger Zone */}
+                            <div className="card border-red-200 bg-red-50">
+                                <h2 className="text-xl font-semibold text-red-700 mb-2">
+                                    Danger Zone
+                                </h2>
+                                <p className="text-red-600 mb-4 text-sm">
+                                    Once you delete your account, there is no going back. Please be certain.
+                                </p>
+                                <button 
+                                    onClick={() => {
+                                        if(window.confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                                            toast.error('Account deletion requested. Please contact support to finalize.');
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                    Delete Account
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -429,6 +472,58 @@ export default function SettingsPage() {
                                         <Save className="w-4 h-4" />
                                         <span>Save Preferences</span>
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Analytics Tab (Candidate Only) */}
+                    {activeTab === 'analytics' && user?.role === 'candidate' && (
+                        <div className="space-y-6">
+                            <div className="card bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden relative border-0">
+                                <div className="absolute top-0 right-0 p-8 opacity-10">
+                                    <BarChart3 className="w-32 h-32" />
+                                </div>
+                                <div className="relative z-10">
+                                    <h2 className="text-2xl font-bold mb-6 text-white">Profile Insights</h2>
+                                    
+                                    {isLoadingAnalytics ? (
+                                        <div className="flex items-center justify-center h-32">
+                                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm border border-white/10">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-gray-300 font-medium tracking-wide text-sm uppercase">Views This Week</h3>
+                                                    <TrendingUp className={`w-5 h-5 ${analyticsData?.change_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`} />
+                                                </div>
+                                                <div className="text-5xl font-black mb-2">{analyticsData?.views_this_week || 0}</div>
+                                                <div className={`text-sm font-medium flex items-center gap-1 ${analyticsData?.change_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {analyticsData?.change_percentage >= 0 ? '↑' : '↓'} {Math.abs(analyticsData?.change_percentage || 0)}% from last week
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm border border-white/10">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <UsersIcon className="w-5 h-5 text-blue-400" />
+                                                    <h3 className="text-gray-300 font-medium tracking-wide text-sm uppercase">Top Viewers</h3>
+                                                </div>
+                                                {analyticsData?.top_viewers?.length > 0 ? (
+                                                    <ul className="space-y-3">
+                                                        {analyticsData.top_viewers.map((viewer: any, idx: number) => (
+                                                            <li key={idx} className="flex justify-between items-center text-sm">
+                                                                <span className="text-white truncate pr-4 opacity-90">{viewer.company || "Anonymous Company"}</span>
+                                                                <span className="bg-white/20 px-2 py-1 rounded text-xs font-bold w-[24px] text-center">{viewer.count}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="text-sm text-gray-400 italic">No detailed viewer data available for this period.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

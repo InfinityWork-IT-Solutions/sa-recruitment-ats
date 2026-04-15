@@ -132,3 +132,14 @@ class Job(Base):
     
     def __repr__(self):
         return f"<Job {self.reference}: {self.title}>"
+
+class JobView(Base):
+    """Analytics model for tracking job impressions and views"""
+    __tablename__ = "job_views"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    viewer_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    viewed_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
+    
+    job = relationship("Job")

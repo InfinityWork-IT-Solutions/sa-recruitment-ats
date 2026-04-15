@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera } from 'lucide-react';
-import { useRef } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
+import { ImageCropperModal } from '@/components/common/ImageCropperModal';
 
 export default function CandidateProfilePage() {
     const { user } = useAuthStore();
@@ -9,7 +12,7 @@ export default function CandidateProfilePage() {
     const [uploadSla, setUploadSla] = useState(false);
     
     // Persistent Profile State
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(localStorage.getItem('candidate_avatar') || null);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url || (user ? localStorage.getItem(`user_avatar_${user.id}`) : null));
     const [profileData, setProfileData] = useState(() => {
         const saved = localStorage.getItem('candidate_profile');
         return saved ? JSON.parse(saved) : {
@@ -18,6 +21,7 @@ export default function CandidateProfilePage() {
             company: 'TechCorp South Africa',
             noticePeriod: '30 days',
             skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Python', 'AWS', 'Docker'],
+            summary: '',
             title: 'Software Developer',
             workHistory: [
                { id: '1', title: 'Software Developer', company: 'TechCorp South Africa', timeline: 'Jan 2022 - Present', description: '• Developed fully responsive React applications.\n• Engineered high-performance backend APIs.' },
@@ -36,19 +40,57 @@ export default function CandidateProfilePage() {
     const [editForm, setEditForm] = useState(profileData);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const queryClient = useQueryClient();
+    
+    // Cropper State
+    const [cropperModalOpen, setCropperModalOpen] = useState(false);
+    const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setAvatarUrl(base64String);
-                localStorage.setItem('candidate_avatar', base64String);
-                // Dispatch event so layout can capture it immediately
-                window.dispatchEvent(new Event('avatarUpdated'));
+                setSelectedImageSrc(reader.result as string);
+                setCropperModalOpen(true);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setCropperModalOpen(false);
+        setSelectedImageSrc(null);
+
+        // Optimistic preview
+        const croppedUrl = URL.createObjectURL(croppedBlob);
+        setAvatarUrl(croppedUrl);
+        
+        // Convert Blob to File
+        const file = new File([croppedBlob], `avatar_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            if(user) localStorage.setItem(`user_avatar_${user.id}`, reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to backend
+        try {
+            const formData = new FormData();
+            formData.append('photo', file);
+            
+            // Assuming apiClient handles FormData correctly
+            await apiClient.post('/candidates/upload-photo', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            toast.success('Profile photo uploaded!');
+            // Refresh auth store to get updated avatar URL globally
+            useAuthStore.getState().refreshUser();
+        } catch (error) {
+            toast.error('Failed to upload photo');
+            console.error('Upload error:', error);
         }
     };
 
@@ -57,9 +99,50 @@ export default function CandidateProfilePage() {
         localStorage.setItem('candidate_profile', JSON.stringify(editForm));
         setIsEditing(false);
     };
-    
+
+    const calculateCompletion = () => {
+        let score = 0;
+        if (avatarUrl) score += 20;
+        if (profileData.summary && profileData.summary.length >= 50) score += 20;
+        if (profileData.skills && profileData.skills.length >= 5) score += 20;
+        if (profileData.workHistory && profileData.workHistory.length > 0) score += 20;
+        if (profileData.educationHistory && profileData.educationHistory.length > 0) score += 20;
+        return score;
+    };
+
+    const completionScore = calculateCompletion();
+    const missingItems = [];
+    if (!avatarUrl) missingItems.push("Photo");
+    if (!profileData.summary || profileData.summary.length < 50) missingItems.push("Summary");
+    if (!profileData.skills || profileData.skills.length < 5) missingItems.push("5+ Skills");
+    if (!profileData.workHistory || profileData.workHistory.length === 0) missingItems.push("Experience");
+    if (!profileData.educationHistory || profileData.educationHistory.length === 0) missingItems.push("Education");
+
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
+            {completionScore < 100 && (
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white shadow-lg overflow-hidden relative">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    <div className="relative z-10">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h3 className="font-bold text-lg">Profile Completion: {completionScore}%</h3>
+                                <p className="text-blue-100 text-sm mt-1">Complete your profile to get up to 3x more recruiter views!</p>
+                            </div>
+                            <div className="text-sm bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/30">
+                                <span className="font-medium mr-2">Missing:</span>
+                                {missingItems.join(", ")}
+                            </div>
+                            <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm tracking-wide shadow-sm hover:scale-105 transition-transform" onClick={() => setIsEditing(true)}>
+                                COMPLETE NOW
+                            </button>
+                        </div>
+                        <div className="w-full bg-black/20 h-2 mt-4 rounded-full overflow-hidden border border-white/10">
+                            <div className="h-full bg-white rounded-full transition-all duration-1000 ease-out" style={{ width: `${completionScore}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
             </div>
@@ -107,6 +190,37 @@ export default function CandidateProfilePage() {
                         </div>
                     </div>
 
+                    {/* Quick Stats Dashboard */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 hover:border-blue-300 transition-colors cursor-pointer group">
+                            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <FileText className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Applied Jobs</p>
+                                <p className="text-2xl font-bold text-gray-900">12</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 hover:border-green-300 transition-colors cursor-pointer group">
+                            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Interviews</p>
+                                <p className="text-2xl font-bold text-gray-900">3</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 hover:border-purple-300 transition-colors cursor-pointer group">
+                            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <Edit className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Saved Jobs</p>
+                                <p className="text-2xl font-bold text-gray-900">8</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Tabs Area */}
                     <div className="card">
                         <div className="border-b border-gray-200 mb-6">
@@ -131,6 +245,20 @@ export default function CandidateProfilePage() {
                         <div className="space-y-8 animate-in fade-in duration-300">
                             {activeTab === 'Overview' && (
                                 <>
+                                    {/* Professional Summary Section (Inline Editable) */}
+                                    <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h3 className="text-lg font-bold text-gray-900">Professional Summary</h3>
+                                        </div>
+                                        {profileData.summary ? (
+                                            <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{profileData.summary}</p>
+                                        ) : (
+                                            <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
+                                                <p className="text-gray-500 mb-2">No professional summary added yet.</p>
+                                                <button className="text-blue-600 font-medium hover:underline text-sm" onClick={() => { setEditTab('Basic Info'); setEditForm(profileData); setIsEditing(true); }}>Add a summary to stand out</button>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900 mb-4">Personal Information</h3>
                                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -397,6 +525,20 @@ export default function CandidateProfilePage() {
                                                 <option value="Calendar Month">Calendar Month</option>
                                             </select>
                                         </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Professional Summary
+                                            </label>
+                                            <textarea 
+                                                className="input w-full py-2 min-h-[120px]" 
+                                                value={editForm.summary || ''} 
+                                                onChange={(e) => setEditForm({...editForm, summary: e.target.value})}
+                                                placeholder="Write a brief professional summary to highlight your expertise..."
+                                            />
+                                            <div className={`text-xs mt-1 font-medium ${(editForm.summary?.length || 0) < 50 ? 'text-amber-600' : 'text-green-600'}`}>
+                                                {(editForm.summary?.length || 0)} characters {(editForm.summary?.length || 0) < 50 ? '(At least 50 chars recommended)' : '✓ Great summary length'}
+                                            </div>
+                                        </div>
                                     </div>
                                     
                                     <div className="pt-2">
@@ -501,6 +643,19 @@ export default function CandidateProfilePage() {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Image Cropper Modal */}
+            {selectedImageSrc && (
+                <ImageCropperModal
+                    isOpen={cropperModalOpen}
+                    onClose={() => {
+                        setCropperModalOpen(false);
+                        setSelectedImageSrc(null);
+                    }}
+                    imageSrc={selectedImageSrc}
+                    onCropComplete={handleCropComplete}
+                    aspectRatio={1} // Keep it square
+                />
             )}
         </div>
     );

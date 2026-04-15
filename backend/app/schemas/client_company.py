@@ -71,7 +71,7 @@ class ClientCompanyResponse(ClientCompanyBase):
     
     registration_number: Optional[str] = None
     vat_number: Optional[str] = None
-    country: str
+    country: Optional[str] = None
     
     is_active: bool
     notes: Optional[str] = None
@@ -79,11 +79,6 @@ class ClientCompanyResponse(ClientCompanyBase):
     created_at: datetime
     updated_at: datetime
     
-    # Aliases for frontend consistency
-    @property
-    def contact_person(self) -> Optional[str]:
-        return self.contact_name
-        
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 

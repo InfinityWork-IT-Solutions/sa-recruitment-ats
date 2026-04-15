@@ -2,7 +2,7 @@
 User model for authentication and authorization
 """
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, String, ForeignKey, Enum, Integer
+from sqlalchemy import Boolean, Column, DateTime, String, ForeignKey, Enum, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -49,6 +49,12 @@ class User(Base):
     is_verified = Column(Boolean, default=False, nullable=False)
     email_verified_at = Column(DateTime(timezone=True))
     
+    # Enhanced Profile Fields
+    profile_photo = Column(String(500))
+    professional_summary = Column(Text)
+    profile_views_count = Column(Integer, default=0)
+    profile_completion_percentage = Column(Integer, default=0)
+    
     # Security
     last_login_at = Column(DateTime(timezone=True))
     last_login_ip = Column(String(45))  # IPv6 compatible
@@ -88,3 +94,18 @@ class User(Base):
     def can_manage_jobs(self) -> bool:
         """Check if user can manage jobs"""
         return self.role in [UserRole.super_admin, UserRole.agency_admin, UserRole.recruiter]
+
+
+class ProfileView(Base):
+    """Profile View Analytics Model"""
+    __tablename__ = "profile_views"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    profile_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    viewer_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    viewer_company = Column(String(255))
+    viewed_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
+    
+    # Relationships
+    profile_user = relationship("User", foreign_keys=[profile_user_id])
+    viewer_user = relationship("User", foreign_keys=[viewer_user_id])

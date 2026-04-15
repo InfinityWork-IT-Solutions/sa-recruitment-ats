@@ -2,7 +2,7 @@
 Client Company model - Companies that hire through the agency
 """
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, String, Text, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, String, Text, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -59,6 +59,10 @@ class ClientCompany(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
+    # Analytics & Profile Completeness
+    profile_views_count = Column(Integer, default=0)
+    profile_completion_percentage = Column(Integer, default=0)
+    
     # Relationships
     agency = relationship("Agency", back_populates="client_companies")
     user = relationship("User", back_populates="client_company")
@@ -83,3 +87,15 @@ class ClientCompany(Base):
             return 0
         from app.models.job import JobStatus
         return len([j for j in self.jobs if j.status == JobStatus.active])
+
+
+class CompanyProfileView(Base):
+    """Analytics model for tracking when candidates view a company profile"""
+    __tablename__ = "company_profile_views"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("client_companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    viewer_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    viewed_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
+    
+    company = relationship("ClientCompany")

@@ -8,6 +8,7 @@ from uuid import UUID
 import os
 import shutil
 from pathlib import Path
+import uuid
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
@@ -23,6 +24,11 @@ from app.schemas import (
     MessageResponse,
 )
 from app.services.candidate_service import candidate_service
+from app.middleware.usage_limits import (
+    enforce_cv_parse_limit,
+    enforce_ai_match_limit,
+    increment_usage
+)
 
 router = APIRouter()
 
@@ -241,6 +247,7 @@ async def upload_resume_with_ai_parsing(
     candidate_id: UUID,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
+    usage_check = Depends(enforce_cv_parse_limit),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -328,6 +335,17 @@ async def upload_resume_with_ai_parsing(
                 resume_text
             )
         
+        # Increment usage counter
+        await increment_usage(
+            agency_id=str(current_user.agency_id),
+            usage_type='cv_parse',
+            db=db,
+            user_id=str(current_user.id),
+            resource_id=str(candidate_id),
+            tokens_used=parsed_data.get('parsing_metadata', {}).get('tokens_used'),
+            success=True
+        )
+        
         return ResumeUploadResponse(
             filename=file.filename,
             url=str(file_path),
@@ -336,6 +354,17 @@ async def upload_resume_with_ai_parsing(
         )
         
     except Exception as e:
+        # Increment even on failure if AI was likely called
+        await increment_usage(
+            agency_id=str(current_user.agency_id),
+            usage_type='cv_parse',
+            db=db,
+            user_id=str(current_user.id),
+            resource_id=str(candidate_id),
+            success=False,
+            error_message=str(e)
+        )
+        
         # If AI parsing fails, still return success for upload
         return ResumeUploadResponse(
             filename=file.filename,
@@ -352,6 +381,7 @@ async def calculate_job_match(
     candidate_id: UUID,
     job_id: UUID,
     current_user: User = Depends(get_current_active_user),
+    usage_check = Depends(enforce_ai_match_limit),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -405,6 +435,16 @@ async def calculate_job_match(
         job_data
     )
     
+    # Increment usage
+    await increment_usage(
+        agency_id=str(current_user.agency_id),
+        usage_type='ai_match',
+        db=db,
+        user_id=str(current_user.id),
+        resource_id=f"{candidate_id}:{job_id}",
+        success=True
+    )
+    
     return match_result
 
 
@@ -433,3 +473,132 @@ async def mark_candidate_contacted(
     await candidate_service.update_last_contacted(db, candidate)
     
     return MessageResponse(message="Candidate marked as contacted")
+
+
+@router.post("/upload-photo")
+async def upload_profile_photo(
+    photo: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Upload candidate profile photo"""
+    
+    # Validate file type
+    if not photo.content_type.startswith('image/'):
+        raise HTTPException(400, "File must be an image")
+    
+    # Generate unique filename
+    file_ext = photo.filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{file_ext}"
+    filepath = f"uploads/profile-photos/{filename}"
+    
+    # Save file
+    os.makedirs("uploads/profile-photos", exist_ok=True)
+    with open(filepath, "wb") as f:
+        content = await photo.read()
+        f.write(content)
+    
+    # Update user record
+    current_user.profile_photo = filepath
+    current_user.avatar_url = f"http://localhost:8000/static/{filepath}" # Using localhost for local dev so frontend gets full URL
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return {
+        'photo_url': f"/static/{filepath}",
+        'message': 'Photo uploaded successfully'
+    }
+
+@router.get("/profile/{candidate_id}")
+async def get_candidate_profile(
+    candidate_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get candidate profile and track view"""
+    from sqlalchemy.future import select
+    from app.models.user import ProfileView
+    
+    # Assuming candidate_id here means user_id since profile_views tracks users
+    # But it says candidate_id. Let's find the user.
+    stmt = select(User).where(User.id == candidate_id)
+    res = await db.execute(stmt)
+    candidate_user = res.scalar_one_or_none()
+    if not candidate_user:
+        raise HTTPException(404, "Candidate not found")
+    
+    # Track profile view (don't track own views)
+    if str(current_user.id) != candidate_id:
+        view = ProfileView(
+            profile_user_id=candidate_user.id,
+            viewer_user_id=current_user.id,
+            viewer_company=current_user.client_company.name if getattr(current_user, 'client_company', None) else None
+        )
+        db.add(view)
+        
+        # Increment view count
+        candidate_user.profile_views_count = (candidate_user.profile_views_count or 0) + 1
+        await db.commit()
+    
+    return candidate_user
+
+@router.get("/profile-analytics/views")
+async def get_profile_analytics(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get profile view analytics"""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    from sqlalchemy.future import select
+    from app.models.user import ProfileView
+    
+    # Views this week
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    stmt_this = select(func.count(ProfileView.id)).where(
+        ProfileView.profile_user_id == current_user.id,
+        ProfileView.viewed_at >= week_ago
+    )
+    res_this = await db.execute(stmt_this)
+    views_this_week = res_this.scalar() or 0
+    
+    # Views last week
+    two_weeks_ago = datetime.utcnow() - timedelta(days=14)
+    stmt_last = select(func.count(ProfileView.id)).where(
+        ProfileView.profile_user_id == current_user.id,
+        ProfileView.viewed_at >= two_weeks_ago,
+        ProfileView.viewed_at < week_ago
+    )
+    res_last = await db.execute(stmt_last)
+    views_last_week = res_last.scalar() or 0
+    
+    # Calculate change percentage
+    change = 0
+    if views_last_week > 0:
+        change = round(((views_this_week - views_last_week) / views_last_week) * 100)
+    
+    # Top viewers
+    stmt_top = select(
+        ProfileView.viewer_company,
+        func.count(ProfileView.id).label('view_count')
+    ).where(
+        ProfileView.profile_user_id == current_user.id,
+        ProfileView.viewed_at >= week_ago,
+        ProfileView.viewer_company.isnot(None)
+    ).group_by(
+        ProfileView.viewer_company
+    ).order_by(
+        func.count(ProfileView.id).desc()
+    ).limit(5)
+    res_top = await db.execute(stmt_top)
+    top_viewers = [
+        {'company': row[0], 'count': row[1]}
+        for row in res_top.all()
+    ]
+    
+    return {
+        'views_this_week': views_this_week,
+        'change_percentage': change,
+        'top_viewers': top_viewers
+    }

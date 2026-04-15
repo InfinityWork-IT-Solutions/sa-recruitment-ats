@@ -15,6 +15,10 @@ import LandingPage from './pages/LandingPage';
 import UnifiedLoginPage from './pages/auth/UnifiedLoginPage';
 import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
 
+// Legal Pages
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import TermsOfService from './pages/legal/TermsOfService';
+
 // Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CandidateDashboard from './pages/dashboard/CandidateDashboard';
@@ -51,6 +55,7 @@ import ClientJobsPage from './pages/clients/JobsPage';
 import ClientTeamPage from './pages/clients/TeamManagementPage';
 import ClientSettingsPage from './pages/clients/SettingsPage';
 import ClientIntegrationsSettingsPage from './pages/clients/IntegrationsSettingsPage';
+import CompanyProfile from './pages/clients/CompanyProfile';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -109,6 +114,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
@@ -162,6 +169,7 @@ function App() {
           >
             <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
             <Route path="/company/dashboard" element={<ClientDashboard />} />
+            <Route path="/company/profile" element={<CompanyProfile />} />
             <Route path="/company/jobs" element={<ClientJobsPage />} />
             <Route path="/company/candidates" element={<ClientCandidatesPage />} />
             <Route path="/company/team" element={<ClientTeamPage />} />

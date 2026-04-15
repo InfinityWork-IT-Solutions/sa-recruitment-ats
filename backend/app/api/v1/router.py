@@ -13,7 +13,8 @@ from app.api.v1 import (
     i18n,
     integrations,
     feeds,
-    admin
+    admin,
+    usage
 )
 
 # Create main API router
@@ -87,6 +88,13 @@ api_router.include_router(
     feeds.router,
     prefix="/feeds",
     tags=["Feeds"]
+)
+
+# Usage & AI Cost Tracking
+api_router.include_router(
+    usage.router,
+    prefix="/usage",
+    tags=["Usage & AI Cost Tracking"]
 )
 
 

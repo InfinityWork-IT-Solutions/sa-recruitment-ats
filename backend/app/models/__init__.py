@@ -3,13 +3,14 @@ SQLAlchemy models
 """
 from app.models.agency import Agency, SubscriptionTier
 from app.models.user import User, UserRole
-from app.models.job import Job, JobStatus, EmploymentType, ExperienceLevel
-from app.models.client_company import ClientCompany
+from app.models.job import Job, JobStatus, EmploymentType, ExperienceLevel, JobView
+from app.models.client_company import ClientCompany, CompanyProfileView
 from app.models.candidate import Candidate, CandidateStatus, CandidateSource
 from app.models.application import Application, ApplicationStatus, ApplicationSource, RejectionReason
 from app.models.activity import Activity
 from app.models.integration import IntegrationConnection
 from app.models.job_platform import JobPlatformPosting
+from app.models.usage import SubscriptionPlanLimits, CompanyUsageTracking, UsageLog, UsageAlert
 
 __all__ = [
     "Agency",
@@ -20,7 +21,9 @@ __all__ = [
     "JobStatus",
     "EmploymentType",
     "ExperienceLevel",
+    "JobView",
     "ClientCompany",
+    "CompanyProfileView",
     "Candidate",
     "CandidateStatus",
     "CandidateSource",
@@ -31,4 +34,8 @@ __all__ = [
     "Activity",
     "IntegrationConnection",
     "JobPlatformPosting",
+    "SubscriptionPlanLimits",
+    "CompanyUsageTracking",
+    "UsageLog",
+    "UsageAlert",
 ]
