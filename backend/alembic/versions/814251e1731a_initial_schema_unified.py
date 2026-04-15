@@ -21,30 +21,14 @@ def create_enum_if_not_exists(name, values):
     op.execute(f"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({values_str}); EXCEPTION WHEN duplicate_object THEN null; END $$;")
 
 def upgrade() -> None:
-    # --- CLEAN SWEEP: Drop everything to handle stalled/dirty initial states ---
-    bind = op.get_bind()
-    # Drop tables in safe order
-    op.execute("DROP TABLE IF EXISTS applications CASCADE;")
-    op.execute("DROP TABLE IF EXISTS jobs CASCADE;")
-    op.execute("DROP TABLE IF EXISTS candidates CASCADE;")
-    op.execute("DROP TABLE IF EXISTS activities CASCADE;")
-    op.execute("DROP TABLE IF EXISTS users CASCADE;")
-    op.execute("DROP TABLE IF EXISTS client_companies CASCADE;")
-    op.execute("DROP TABLE IF EXISTS agencies CASCADE;")
+    # --- NUCLEAR OPTION: Total Fresh Start ---
+    # This wipes every single thing in the 'public' schema (tables, types, views)
+    # and recreates the schema from scratch.
+    op.execute("DROP SCHEMA public CASCADE;")
+    op.execute("CREATE SCHEMA public;")
+    op.execute("GRANT ALL ON SCHEMA public TO public;") # Ensure permissions are restored
     
-    # Drop custom types
-    types = [
-        'subscriptiontier', 'userrole', 'candidatestatus', 'candidatesource',
-        'experiencelevel', 'employmenttype', 'jobstatus', 'applicationstatus',
-        'applicationsource', 'rejectionreason'
-    ]
-    for t in types:
-        op.execute(f"DROP TYPE IF EXISTS {t} CASCADE;")
-    
-    # Force a commit of the drops so the types are gone before DDL runs
-    op.execute("COMMIT;")
-
-    # --- REBUILD: Now build from a guaranteed clean slate ---
+    # --- REBUILD: Now build from a 100% fresh slate ---
     # Safely create all ENUMs first
     create_enum_if_not_exists('subscriptiontier', ['LITE', 'STANDARD', 'PREMIUM'])
     create_enum_if_not_exists('userrole', ['SUPER_ADMIN', 'AGENCY_ADMIN', 'RECRUITER', 'VIEWER'])
