@@ -18,21 +18,33 @@ depends_on = None
 
 def create_enum_if_not_exists(name, values):
     values_str = ", ".join([f"'{v}'" for v in values])
+    op.execute(f"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({values_str}); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+
+def upgrade() -> None:
+    # --- CLEAN SWEEP: Drop everything to handle stalled/dirty initial states ---
     try:
-        op.execute(f"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({values_str}); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+        bind = op.get_bind()
+        # Drop tables in safe order
+        op.execute("DROP TABLE IF EXISTS applications CASCADE;")
+        op.execute("DROP TABLE IF EXISTS jobs CASCADE;")
+        op.execute("DROP TABLE IF EXISTS candidates CASCADE;")
+        op.execute("DROP TABLE IF EXISTS activities CASCADE;")
+        op.execute("DROP TABLE IF EXISTS users CASCADE;")
+        op.execute("DROP TABLE IF EXISTS client_companies CASCADE;")
+        op.execute("DROP TABLE IF EXISTS agencies CASCADE;")
+        
+        # Drop custom types
+        types = [
+            'subscriptiontier', 'userrole', 'candidatestatus', 'candidatesource',
+            'experiencelevel', 'employmenttype', 'jobstatus', 'applicationstatus',
+            'applicationsource', 'rejectionreason'
+        ]
+        for t in types:
+            op.execute(f"DROP TYPE IF EXISTS {t} CASCADE;")
     except Exception:
         pass
 
-def upgrade() -> None:
-    # Check if the database is already initialized by looking for 'agencies'
-    bind = op.get_bind()
-    inspector = sa.inspect(bind)
-    tables = inspector.get_table_names()
-    
-    if 'agencies' in tables:
-        # Database already has tables, just exit safely
-        return
-
+    # --- REBUILD: Now build from a guaranteed clean slate ---
     # Safely create all ENUMs first
     create_enum_if_not_exists('subscriptiontier', ['LITE', 'STANDARD', 'PREMIUM'])
     create_enum_if_not_exists('userrole', ['SUPER_ADMIN', 'AGENCY_ADMIN', 'RECRUITER', 'VIEWER'])
