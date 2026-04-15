@@ -22,27 +22,27 @@ def create_enum_if_not_exists(name, values):
 
 def upgrade() -> None:
     # --- CLEAN SWEEP: Drop everything to handle stalled/dirty initial states ---
-    try:
-        bind = op.get_bind()
-        # Drop tables in safe order
-        op.execute("DROP TABLE IF EXISTS applications CASCADE;")
-        op.execute("DROP TABLE IF EXISTS jobs CASCADE;")
-        op.execute("DROP TABLE IF EXISTS candidates CASCADE;")
-        op.execute("DROP TABLE IF EXISTS activities CASCADE;")
-        op.execute("DROP TABLE IF EXISTS users CASCADE;")
-        op.execute("DROP TABLE IF EXISTS client_companies CASCADE;")
-        op.execute("DROP TABLE IF EXISTS agencies CASCADE;")
-        
-        # Drop custom types
-        types = [
-            'subscriptiontier', 'userrole', 'candidatestatus', 'candidatesource',
-            'experiencelevel', 'employmenttype', 'jobstatus', 'applicationstatus',
-            'applicationsource', 'rejectionreason'
-        ]
-        for t in types:
-            op.execute(f"DROP TYPE IF EXISTS {t} CASCADE;")
-    except Exception:
-        pass
+    bind = op.get_bind()
+    # Drop tables in safe order
+    op.execute("DROP TABLE IF EXISTS applications CASCADE;")
+    op.execute("DROP TABLE IF EXISTS jobs CASCADE;")
+    op.execute("DROP TABLE IF EXISTS candidates CASCADE;")
+    op.execute("DROP TABLE IF EXISTS activities CASCADE;")
+    op.execute("DROP TABLE IF EXISTS users CASCADE;")
+    op.execute("DROP TABLE IF EXISTS client_companies CASCADE;")
+    op.execute("DROP TABLE IF EXISTS agencies CASCADE;")
+    
+    # Drop custom types
+    types = [
+        'subscriptiontier', 'userrole', 'candidatestatus', 'candidatesource',
+        'experiencelevel', 'employmenttype', 'jobstatus', 'applicationstatus',
+        'applicationsource', 'rejectionreason'
+    ]
+    for t in types:
+        op.execute(f"DROP TYPE IF EXISTS {t} CASCADE;")
+    
+    # Force a commit of the drops so the types are gone before DDL runs
+    op.execute("COMMIT;")
 
     # --- REBUILD: Now build from a guaranteed clean slate ---
     # Safely create all ENUMs first
