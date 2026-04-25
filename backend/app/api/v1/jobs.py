@@ -19,6 +19,8 @@ from app.schemas import (
     JobStatusUpdate,
     JobStatistics,
     MessageResponse,
+    PublicJobBrief,
+    PublicJobDetail,
 )
 from app.services.job_service import job_service
 from app.services.job_posting_service import JobPostingService
@@ -41,6 +43,36 @@ def check_job_permissions(user: User, action: str = "view"):
             )
     
     return True
+
+
+@router.get("/public", response_model=dict)
+async def list_public_jobs(
+    category: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """List search results for public (unauthenticated) jobs"""
+    jobs = await job_service.list_public_jobs(db, category, search)
+    return {
+        "jobs": [PublicJobBrief.from_orm_custom(job) for job in jobs]
+    }
+
+
+@router.get("/public/{job_id}", response_model=dict)
+async def get_public_job(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get public job details (unauthenticated)"""
+    job = await job_service.get_public_job(db, job_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found or no longer active"
+        )
+    return {
+        "job": PublicJobDetail.from_orm_custom(job)
+    }
 
 
 @router.post("/", response_model=JobResponse, status_code=status.HTTP_201_CREATED)

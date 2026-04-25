@@ -84,8 +84,139 @@ export default function LandingPage() {
                 )}
             </header>
 
+            {/* THREE PORTALS SECTION */}
+            <section className="pt-36 pb-24 bg-gray-50 border-b border-gray-200 relative">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="text-center mb-16">
+                  <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+                    Built for Everyone in the Hiring Process
+                  </h2>
+                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Whether you're a recruiter filling roles, a company seeking talent, or a job seeker looking for your next opportunity — we've got you covered.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* Job Seeker Portal */}
+                  <div className="bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl transition-all border-t-4 border-green-600 flex flex-col h-full group">
+                    <div className="w-16 h-16 bg-green-50 group-hover:bg-green-100 transition-colors rounded-2xl flex items-center justify-center mb-8 border border-green-100">
+                      <Target className="w-8 h-8 text-green-600" />
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">For Job Seekers</h3>
+                    <p className="text-gray-600 mb-8 font-medium leading-relaxed flex-grow">
+                      Build your profile, track applications automatically, and let AI bring the right opportunities directly to you.
+                    </p>
+                    
+                    <ul className="space-y-4 mb-10">
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Browse 500+ active jobs</span>
+                      </li>
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Smart AI job recommendations</span>
+                      </li>
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Transparent application tracking</span>
+                      </li>
+                    </ul>
+                    
+                    <a 
+                      href="/jobs" 
+                      className="block w-full text-center py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg mb-4"
+                    >
+                      Browse Available Jobs
+                    </a>
+                    
+                    <div className="text-center">
+                      <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-bold border border-green-200">
+                        ✨ 100% FREE for Job Seekers
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Company Portal */}
+                  <div className="bg-white rounded-3xl p-10 shadow-xl hover:shadow-2xl transition-all border-t-4 border-blue-600 relative flex flex-col h-full transform md:-translate-y-4 ring-1 ring-black/5 group">
+                    {/* Popular badge */}
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-1.5 rounded-full text-sm font-bold shadow-lg tracking-wider">
+                      MOST POPULAR
+                    </div>
+                    
+                    <div className="w-16 h-16 bg-blue-50 group-hover:bg-blue-100 transition-colors rounded-2xl flex items-center justify-center mb-8 border border-blue-100">
+                      <Briefcase className="w-8 h-8 text-blue-600" />
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">For Companies</h3>
+                    <p className="text-gray-600 mb-8 font-medium leading-relaxed flex-grow">
+                      Post your open roles, review highly-qualified applicants, and collaborate closely with your recruitment team.
+                    </p>
+                    
+                    <ul className="space-y-4 mb-10">
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Unlimited job postings</span>
+                      </li>
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Real-time candidate pipelines</span>
+                      </li>
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Advanced analytics & reporting</span>
+                      </li>
+                    </ul>
+                    
+                    <a 
+                      href="/register?type=company" 
+                      className="block w-full text-center py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+                    >
+                      Register Your Company
+                    </a>
+                  </div>
+                  
+                  {/* Recruiter Portal */}
+                  <div className="bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl transition-all border-t-4 border-purple-600 flex flex-col h-full group">
+                    <div className="w-16 h-16 bg-purple-50 group-hover:bg-purple-100 transition-colors rounded-2xl flex items-center justify-center mb-8 border border-purple-100">
+                      <Users className="w-8 h-8 text-purple-600" />
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">For Recruiters</h3>
+                    <p className="text-gray-600 mb-8 font-medium leading-relaxed flex-grow">
+                      Manage candidates, track applications, and close positions faster 
+                      with AI-powered matching workflows.
+                    </p>
+                    
+                    <ul className="space-y-4 mb-10">
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Kanban pipeline management</span>
+                      </li>
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">AI candidate matching</span>
+                      </li>
+                      <li className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                        <span className="text-gray-700 font-medium">Bulk operations & automation</span>
+                      </li>
+                    </ul>
+                    
+                    <a 
+                      href="/register?type=recruiter" 
+                      className="block w-full text-center py-4 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
+                    >
+                      Get Started as Recruiter
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+
             {/* HERO SECTION */}
-            <section className="relative overflow-hidden pt-36 pb-24 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 animate-gradient-xy text-white">
+            <section className="relative overflow-hidden py-24 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 animate-gradient-xy text-white">
               {/* Subtle Overlay Pattern */}
               <div className="absolute inset-0 bg-white/5 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:16px_16px]"></div>
               
@@ -165,136 +296,6 @@ export default function LandingPage() {
                     <div className="px-4">
                       <div className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-md">99.9%</div>
                       <div className="text-sm md:text-base text-blue-50 mt-2 font-medium">Uptime Guarantee</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* THREE PORTALS SECTION */}
-            <section className="py-24 bg-gray-50 border-b border-gray-200 relative">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                <div className="text-center mb-16">
-                  <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-                    Built for Everyone in the Hiring Process
-                  </h2>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                    Whether you're a recruiter filling roles, a company seeking talent, or a job seeker looking for your next opportunity — we've got you covered.
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {/* Recruiter Portal */}
-                  <div className="bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl transition-all border-t-4 border-purple-600 flex flex-col h-full group">
-                    <div className="w-16 h-16 bg-purple-50 group-hover:bg-purple-100 transition-colors rounded-2xl flex items-center justify-center mb-8 border border-purple-100">
-                      <Users className="w-8 h-8 text-purple-600" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">For Recruiters</h3>
-                    <p className="text-gray-600 mb-8 font-medium leading-relaxed flex-grow">
-                      Manage candidates, track applications, and close positions faster 
-                      with AI-powered matching workflows.
-                    </p>
-                    
-                    <ul className="space-y-4 mb-10">
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Kanban pipeline management</span>
-                      </li>
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">AI candidate matching</span>
-                      </li>
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Bulk operations & automation</span>
-                      </li>
-                    </ul>
-                    
-                    <a 
-                      href="/register" 
-                      className="block w-full text-center py-4 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
-                    >
-                      Get Started as Recruiter
-                    </a>
-                  </div>
-                  
-                  {/* Company Portal */}
-                  <div className="bg-white rounded-3xl p-10 shadow-xl hover:shadow-2xl transition-all border-t-4 border-blue-600 relative flex flex-col h-full transform md:-translate-y-4 ring-1 ring-black/5 group">
-                    {/* Popular badge */}
-                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-1.5 rounded-full text-sm font-bold shadow-lg tracking-wider">
-                      MOST POPULAR
-                    </div>
-                    
-                    <div className="w-16 h-16 bg-blue-50 group-hover:bg-blue-100 transition-colors rounded-2xl flex items-center justify-center mb-8 border border-blue-100">
-                      <Briefcase className="w-8 h-8 text-blue-600" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">For Companies</h3>
-                    <p className="text-gray-600 mb-8 font-medium leading-relaxed flex-grow">
-                      Post your open roles, review highly-qualified applicants, and collaborate closely with your recruitment team.
-                    </p>
-                    
-                    <ul className="space-y-4 mb-10">
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Unlimited job postings</span>
-                      </li>
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Real-time candidate pipelines</span>
-                      </li>
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Advanced analytics & reporting</span>
-                      </li>
-                    </ul>
-                    
-                    <a 
-                      href="/register" 
-                      className="block w-full text-center py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
-                    >
-                      Register Your Company
-                    </a>
-                  </div>
-                  
-                  {/* Job Seeker Portal */}
-                  <div className="bg-white rounded-3xl p-10 shadow-lg hover:shadow-2xl transition-all border-t-4 border-green-600 flex flex-col h-full group">
-                    <div className="w-16 h-16 bg-green-50 group-hover:bg-green-100 transition-colors rounded-2xl flex items-center justify-center mb-8 border border-green-100">
-                      <Target className="w-8 h-8 text-green-600" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">For Job Seekers</h3>
-                    <p className="text-gray-600 mb-8 font-medium leading-relaxed flex-grow">
-                      Build your profile, track applications automatically, and let AI bring the right opportunities directly to you.
-                    </p>
-                    
-                    <ul className="space-y-4 mb-10">
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Browse 500+ active jobs</span>
-                      </li>
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Smart AI job recommendations</span>
-                      </li>
-                      <li className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-                        <span className="text-gray-700 font-medium">Transparent application tracking</span>
-                      </li>
-                    </ul>
-                    
-                    <a 
-                      href="/register" 
-                      className="block w-full text-center py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg mb-4"
-                    >
-                      Find Jobs & Apply
-                    </a>
-                    
-                    <div className="text-center">
-                      <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-bold border border-green-200">
-                        ✨ 100% FREE for Job Seekers
-                      </span>
                     </div>
                   </div>
                 </div>

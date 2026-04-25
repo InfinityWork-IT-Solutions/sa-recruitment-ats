@@ -33,16 +33,72 @@ const statusColors: Record<ApplicationStatus, string> = {
     withdrawn: 'bg-gray-50 border-gray-300',
 };
 
+const MOCK_PIPELINE = {
+    job_id: 'mock-id',
+    job_title: 'Senior Software Engineer',
+    total_applications: 5,
+    stages: [
+        {
+            status: 'applied',
+            count: 2,
+            applications: [
+                { id: 'app1', candidate_name: 'Sizwe Khoza', match_score: 98, created_at: new Date().toISOString() },
+                { id: 'app2', candidate_name: 'Lerato Mokoena', match_score: 85, created_at: new Date().toISOString() }
+            ]
+        },
+        {
+            status: 'screening',
+            count: 0,
+            applications: []
+        },
+        {
+            status: 'shortlisted',
+            count: 1,
+            applications: [
+                { id: 'app3', candidate_name: 'David Smith', match_score: 92, created_at: new Date().toISOString() }
+            ]
+        },
+        {
+            status: 'interview_scheduled',
+            count: 1,
+            applications: [
+                { id: 'app4', candidate_name: 'Emma Wilson', match_score: 88, created_at: new Date().toISOString() }
+            ]
+        },
+        {
+            status: 'offer_pending',
+            count: 1,
+            applications: [
+                { id: 'app5', candidate_name: 'Alex Johnson', match_score: 95, created_at: new Date().toISOString() }
+            ]
+        },
+        {
+            status: 'rejected',
+            count: 0,
+            applications: []
+        },
+        {
+            status: 'withdrawn',
+            count: 0,
+            applications: []
+        }
+    ]
+};
+
 export default function KanbanBoardPage() {
     const { jobId } = useParams<{ jobId: string }>();
+
+    const isMockJob = jobId?.startsWith('123e4567');
 
     const { data: pipeline, isLoading } = useQuery({
         queryKey: ['pipeline', jobId],
         queryFn: () => applicationsService.getPipeline(jobId!),
-        enabled: !!jobId,
+        enabled: !!jobId && !isMockJob,
     });
 
-    if (isLoading) {
+    const displayPipeline = isMockJob ? (MOCK_PIPELINE as any) : pipeline;
+
+    if (isLoading && !isMockJob) {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
@@ -50,17 +106,24 @@ export default function KanbanBoardPage() {
         );
     }
 
-    if (!pipeline) {
-        return <div>Pipeline not found</div>;
+    if (!displayPipeline) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Pipeline not found</h2>
+                    <p className="text-gray-600">This job does not exist or has no pipeline data.</p>
+                </div>
+            </div>
+        );
     }
 
     // Main pipeline stages (exclude rejected/withdrawn)
-    const mainStages = pipeline.stages.filter(
-        (stage) => !['rejected', 'withdrawn'].includes(stage.status)
+    const mainStages = displayPipeline.stages.filter(
+        (stage: any) => !['rejected', 'withdrawn'].includes(stage.status)
     );
 
-    const rejectedStage = pipeline.stages.find((s) => s.status === 'rejected');
-    const withdrawnStage = pipeline.stages.find((s) => s.status === 'withdrawn');
+    const rejectedStage = displayPipeline.stages.find((s: any) => s.status === 'rejected');
+    const withdrawnStage = displayPipeline.stages.find((s: any) => s.status === 'withdrawn');
 
     return (
         <div className="space-y-6">
@@ -71,9 +134,9 @@ export default function KanbanBoardPage() {
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">{pipeline.job_title}</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">{displayPipeline.job_title}</h1>
                         <p className="text-gray-600 mt-1">
-                            {pipeline.total_applications} total applications
+                            {displayPipeline.total_applications} total applications
                         </p>
                     </div>
                 </div>
@@ -82,7 +145,7 @@ export default function KanbanBoardPage() {
             {/* Kanban Board */}
             <div className="overflow-x-auto pb-6">
                 <div className="inline-flex space-x-4 min-w-full">
-                    {mainStages.map((stage) => (
+                    {mainStages.map((stage: any) => (
                         <div key={stage.status} className="flex-shrink-0 w-80">
                             <div className={`rounded-lg border-2 ${statusColors[stage.status]} p-4`}>
                                 {/* Stage header */}
@@ -97,7 +160,7 @@ export default function KanbanBoardPage() {
 
                                 {/* Applications */}
                                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                                    {stage.applications.map((app) => (
+                                    {stage.applications.map((app: any) => (
                                         <Link
                                             key={app.id}
                                             to={`/applications/${app.id}`}
@@ -147,8 +210,8 @@ export default function KanbanBoardPage() {
                             <h3 className="font-semibold text-red-600 mb-3">
                                 Rejected ({rejectedStage.count})
                             </h3>
-                            <div className="space-y-2">
-                                {rejectedStage.applications.slice(0, 5).map((app) => (
+                             <div className="space-y-2">
+                                 {rejectedStage.applications.slice(0, 5).map((app: any) => (
                                     <Link
                                         key={app.id}
                                         to={`/applications/${app.id}`}
@@ -171,8 +234,8 @@ export default function KanbanBoardPage() {
                             <h3 className="font-semibold text-gray-600 mb-3">
                                 Withdrawn ({withdrawnStage.count})
                             </h3>
-                            <div className="space-y-2">
-                                {withdrawnStage.applications.slice(0, 5).map((app) => (
+                             <div className="space-y-2">
+                                 {withdrawnStage.applications.slice(0, 5).map((app: any) => (
                                     <Link
                                         key={app.id}
                                         to={`/applications/${app.id}`}

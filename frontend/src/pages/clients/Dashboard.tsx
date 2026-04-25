@@ -1,29 +1,43 @@
-import { useState, useEffect } from 'react';
-import { 
-  Briefcase, Users, TrendingUp, Calendar, Plus, Settings as SettingsIcon, 
-  Sparkles, UserPlus, CreditCard, AlertCircle, Clock, CheckCircle, XCircle 
+import React, { useState, useEffect } from 'react';
+import {
+  Settings as SettingsIcon, Plus, Briefcase, Users, TrendingUp, Calendar,
+  Sparkles, UserPlus, CreditCard, AlertCircle, Clock, CheckCircle, XCircle,
+  LayoutTemplate
 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 import ConfigureAIAgentModal from '@/components/modals/ConfigureAIAgentModal';
 import InviteTeamMemberModal from '@/components/modals/InviteTeamMemberModal';
 import apiClient from '@/lib/api-client';
 
 export default function CompleteDashboard() {
+  const navigate = useNavigate();
   const [showPostJobModal, setShowPostJobModal] = useState(false);
   const [showAIAgentModal, setShowAIAgentModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [decisions, setDecisions] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [integrations, setIntegrations] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboardData();
     fetchIntegrations();
+    fetchPendingDecisions();
   }, []);
+
+  const fetchPendingDecisions = async () => {
+    try {
+      const response = await apiClient.get('/decisions/pending');
+      setDecisions(response.data);
+    } catch (error) {
+      console.error('Error fetching decisions:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
-      const response = await apiClient.get('/analytics/dashboard'); // Use standardized analytics endpoint if exists
+      const response = await apiClient.get('/analytics/dashboard');
       setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -48,14 +62,14 @@ export default function CompleteDashboard() {
     }
   };
 
-  // Mock data for demo - replace with real data from API
+  // Stats derived from real data if available
   const stats = {
-    activeJobs: 5,
-    totalApplicants: 48,
-    topMatches: 12,
-    scheduledInterviews: 8,
-    shortlisted: 15,
-    offered: 3,
+    activeJobs: dashboardData?.active_jobs || 5,
+    totalApplicants: dashboardData?.total_applicants || 48,
+    topMatches: decisions?.totals?.total_pending || 12,
+    scheduledInterviews: dashboardData?.scheduled_interviews || 8,
+    shortlisted: dashboardData?.shortlisted || 15,
+    offered: dashboardData?.offered || 3,
   };
 
   const teamSeats = {
@@ -78,17 +92,21 @@ export default function CompleteDashboard() {
     { id: 4, type: 'shortlist', candidate: 'Emma Wilson', job: 'UX Designer', time: '3 hours ago' },
   ];
 
-  const topCandidates = [
-    { id: 1, name: 'Alex Johnson', title: 'Senior DevOps Engineer', matchScore: 98, location: 'London, UK', skills: 'AWS, Docker, Kubernetes', avatar: 'AJ', color: 'bg-blue-600' },
-    { id: 2, name: 'Sarah Miller', title: 'Fullstack Developer', matchScore: 95, location: 'New York, USA', skills: 'React, Node.js, PostgreSQL', avatar: 'SM', color: 'bg-purple-600' },
-    { id: 3, name: 'David Smith', title: 'Frontend Engineer', matchScore: 92, location: 'Berlin, Germany', skills: 'Vue.js, TypeScript, Tailwind', avatar: 'DS', color: 'bg-green-600' },
-    { id: 4, name: 'Elena Petrova', title: 'UX Designer', matchScore: 89, location: 'Remote', skills: 'Figma, Design Systems, User Research', avatar: 'EP', color: 'bg-pink-600' },
-  ];
+  const topCandidates = decisions?.all_decisions?.slice(0, 4).map((d: any, idx: number) => ({
+    id: d.decision_id,
+    name: d.candidate_name,
+    title: d.job_title,
+    matchScore: d.ai_confidence,
+    location: d.proposed_action?.details?.location || 'South Africa',
+    skills: d.proposed_action?.details?.skills || 'Skills analyzed by AI',
+    avatar: d.candidate_name.split(' ').map((n: string) => n[0]).join(''),
+    color: ['bg-blue-600', 'bg-purple-600', 'bg-green-600', 'bg-pink-600'][idx % 4]
+  })) || [];
 
   const activeJobs = [
-    { id: 1, title: 'Senior Software Engineer', applicants: 23, matches: 5, status: 'active', posted: '3 days ago' },
-    { id: 2, title: 'DevOps Engineer', applicants: 15, matches: 3, status: 'active', posted: '1 week ago' },
-    { id: 3, title: 'Product Manager', applicants: 10, matches: 4, status: 'active', posted: '2 weeks ago' },
+    { id: "123e4567-e89b-12d3-a456-426614174000", title: 'Senior Software Engineer', applicants: 23, matches: 5, status: 'active', posted: '3 days ago' },
+    { id: "123e4567-e89b-12d3-a456-426614174001", title: 'DevOps Engineer', applicants: 15, matches: 3, status: 'active', posted: '1 week ago' },
+    { id: "123e4567-e89b-12d3-a456-426614174002", title: 'Product Manager', applicants: 10, matches: 4, status: 'active', posted: '2 weeks ago' },
   ];
 
   const handlePostJob = async (modalData: any) => {
@@ -157,7 +175,7 @@ export default function CompleteDashboard() {
             </div>
             <div className="flex space-x-3">
               <button
-                onClick={() => window.location.href = '/company/analytics'}
+                onClick={() => navigate('/company/analytics')}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-all flex items-center space-x-2"
               >
                 <SettingsIcon className="w-5 h-5" />
@@ -230,6 +248,37 @@ export default function CompleteDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Main Content */}
           <div className="lg:col-span-2 space-y-8">
+            {/* NEW: AI Decision Queue (Human-in-the-loop Semi-Auto mode) */}
+            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 rounded-xl shadow-lg border-2 border-blue-400 p-6 text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-32 h-32" />
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center animate-pulse">
+                    <CheckCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">AI Decision Queue</h2>
+                    <p className="text-blue-100 text-sm">Semi-Auto Mode Active</p>
+                  </div>
+                </div>
+                
+                <p className="mb-6 text-blue-50 text-sm max-w-lg">
+                  The AI has analyzed your applicants and prepared recommendations. 
+                  Approve auto-rejections, video screenings, and fast-track interviews with one click.
+                </p>
+                
+                <Link
+                  to="/automation/decisions"
+                  className="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-bold shadow-md hover:bg-blue-50 transition-all transform hover:scale-105"
+                >
+                  <Clock className="w-5 h-5 mr-2" />
+                  Review Recommendations
+                </Link>
+              </div>
+            </div>
+
             {/* AI Intelligent Feed */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-6">
@@ -272,7 +321,7 @@ export default function CompleteDashboard() {
               </div>
 
               <button 
-                onClick={() => window.location.href = '/company/candidates'}
+                onClick={() => navigate('/company/candidates')}
                 className="w-full mt-6 py-3 text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-all"
               >
                 View All Candidates →
@@ -284,7 +333,7 @@ export default function CompleteDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Active Jobs</h2>
                 <button 
-                  onClick={() => window.location.href = '/company/jobs'}
+                  onClick={() => navigate('/company/jobs')}
                   className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                 >
                   View All →
@@ -299,17 +348,16 @@ export default function CompleteDashboard() {
                         <h3 className="font-semibold text-gray-900">{job.title}</h3>
                         <p className="text-sm text-gray-500">Posted {job.posted}</p>
                       </div>
-                      <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                        {job.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-6 text-sm">
-                      <span className="text-gray-600">
-                        <strong className="text-gray-900">{job.applicants}</strong> applicants
-                      </span>
                       <span className="text-gray-600">
                         <strong className="text-green-600">{job.matches}</strong> top matches
                       </span>
+                      <Link 
+                        to={`/jobs/${job.id}/kanban`}
+                        className="text-blue-600 hover:text-blue-700 font-medium ml-auto flex items-center space-x-1"
+                      >
+                        <LayoutTemplate className="w-4 h-4" />
+                        <span>Kanban Board</span>
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -417,7 +465,7 @@ export default function CompleteDashboard() {
                     </p>
                   </div>
                   <button
-                    onClick={() => window.location.href = '/company/settings/billing'}
+                    onClick={() => navigate('/company/settings/billing')}
                     className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-all flex items-center justify-center space-x-2"
                   >
                     <CreditCard className="w-4 h-4" />
@@ -427,7 +475,7 @@ export default function CompleteDashboard() {
               )}
 
               <button
-                onClick={() => window.location.href = '/company/team'}
+                onClick={() => navigate('/company/team')}
                 className="w-full mt-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-all text-sm"
               >
                 Manage Team →

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, UserPlus, Mail, Shield, Trash2, Edit, MoreVertical,
   CheckCircle, Clock, XCircle, CreditCard, AlertCircle, RefreshCw
 } from 'lucide-react';
 import InviteTeamMemberModal from '@/components/modals/InviteTeamMemberModal';
 import ChangeRoleModal from '@/components/modals/ChangeRoleModal';
+import apiClient from '@/lib/api-client';
 
 interface TeamMember {
   id: string;
@@ -26,6 +28,7 @@ interface TeamSeats {
 }
 
 export default function TeamManagementPage() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [seats, setSeats] = useState<TeamSeats>({ used: 0, total: 0, available: 0, plan: '' });
   const [loading, setLoading] = useState(true);
@@ -43,10 +46,8 @@ export default function TeamManagementPage() {
 
   const fetchTeamData = async () => {
     try {
-      const response = await fetch('/api/team/members', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const response = await apiClient.get('/team/members');
+      const data = response.data;
       setMembers(data.members || mockMembers);
       setSeats(data.seats || mockSeats);
     } catch (error) {
@@ -60,17 +61,7 @@ export default function TeamManagementPage() {
 
   const handleInviteMember = async (data: any) => {
     try {
-      const response = await fetch('/api/team/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) throw new Error('Failed to invite member');
-
+      await apiClient.post('/team/invite', data);
       alert('Invitation sent successfully!');
       fetchTeamData();
     } catch (error) {
@@ -81,17 +72,7 @@ export default function TeamManagementPage() {
 
   const handleChangeRole = async (memberId: string, newRole: string) => {
     try {
-      const response = await fetch(`/api/team/members/${memberId}/role`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (!response.ok) throw new Error('Failed to change role');
-
+      await apiClient.patch(`/team/members/${memberId}/role`, { role: newRole });
       setMembers(members.map(m => 
         m.id === memberId ? { ...m, role: newRole as any } : m
       ));
@@ -106,13 +87,7 @@ export default function TeamManagementPage() {
     if (!memberToRemove) return;
 
     try {
-      const response = await fetch(`/api/team/members/${memberToRemove}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-
-      if (!response.ok) throw new Error('Failed to remove member');
-
+      await apiClient.delete(`/team/members/${memberToRemove}`);
       setMembers(members.filter(m => m.id !== memberToRemove));
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
@@ -126,13 +101,7 @@ export default function TeamManagementPage() {
 
   const handleResendInvitation = async (memberId: string) => {
     try {
-      const response = await fetch(`/api/team/members/${memberId}/resend-invitation`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-
-      if (!response.ok) throw new Error('Failed to resend invitation');
-
+      await apiClient.post(`/team/members/${memberId}/resend-invitation`);
       alert('Invitation resent successfully!');
     } catch (error) {
       console.error('Error resending invitation:', error);
@@ -272,7 +241,7 @@ export default function TeamManagementPage() {
                     You've reached your team seat limit. Upgrade your plan to add more members.
                   </p>
                   <button
-                    onClick={() => window.location.href = '/company/settings/billing'}
+                    onClick={() => navigate('/company/settings/billing')}
                     className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-all flex items-center space-x-2"
                   >
                     <CreditCard className="w-4 h-4" />

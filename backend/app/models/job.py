@@ -58,10 +58,13 @@ class Job(Base):
     # Basic Information
     title = Column(String(255), nullable=False)
     reference = Column(String(50), unique=True, nullable=False, index=True)  # JOB-2026-0001
+    category = Column(String(50), nullable=False, index=True, default="other")
     description = Column(Text, nullable=False)
-    requirements = Column(Text)
-    responsibilities = Column(Text)
-    benefits = Column(Text)
+    requirements = Column(ARRAY(String), default=list)
+    responsibilities = Column(ARRAY(String), default=list)
+    qualifications = Column(ARRAY(String), default=list)
+    benefits = Column(ARRAY(String), default=list)
+    positions_available = Column(Integer, default=1)
     
     # Skills & Experience
     skills = Column(ARRAY(String), default=list)  # ["Python", "AWS", "Docker"]

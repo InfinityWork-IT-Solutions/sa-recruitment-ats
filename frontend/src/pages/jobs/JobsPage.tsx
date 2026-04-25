@@ -216,8 +216,8 @@ export default function JobsPage() {
                                 <div className="flex-1">
                                     <div className="flex items-center space-x-3 mb-2">
                                         <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-                                        <span className={`badge ${statusColors[job.status]}`}>
-                                            {job.status}
+                                        <span className={`badge ${statusColors[job.status.toLowerCase() as JobStatus] || 'badge-gray'}`}>
+                                            {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                                         </span>
                                     </div>
 
@@ -242,14 +242,14 @@ export default function JobsPage() {
                                     </div>
 
                                     {job.skills && job.skills.length > 0 && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {job.skills.slice(0, 5).map((skill) => (
-                                                <span key={skill} className="badge badge-blue">
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {job.skills.filter(s => s.trim() !== '').slice(0, 5).map((skill) => (
+                                                <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider border border-blue-100">
                                                     {skill}
                                                 </span>
                                             ))}
                                             {job.skills.length > 5 && (
-                                                <span className="badge badge-gray">
+                                                <span className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded text-[10px] font-bold uppercase border border-gray-100">
                                                     +{job.skills.length - 5} more
                                                 </span>
                                             )}

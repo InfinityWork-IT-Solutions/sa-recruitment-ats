@@ -183,6 +183,51 @@ class JobService:
         return jobs, total_count
     
     @staticmethod
+    async def list_public_jobs(
+        db: AsyncSession,
+        category: Optional[str] = None,
+        search: Optional[str] = None
+    ) -> List[Job]:
+        """List active jobs for public view"""
+        stmt = (
+            select(Job)
+            .options(selectinload(Job.client_company))
+            .where(Job.status == JobStatus.active)
+        )
+        
+        if category and category != 'all':
+            stmt = stmt.where(Job.category == category)
+            
+        if search:
+            search_term = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    Job.title.ilike(search_term),
+                    Job.location.ilike(search_term)
+                )
+            )
+            
+        stmt = stmt.order_by(Job.published_at.desc())
+        
+        result = await db.execute(stmt)
+        return result.scalars().all()
+    
+    @staticmethod
+    async def get_public_job(
+        db: AsyncSession,
+        job_id: UUID
+    ) -> Optional[Job]:
+        """Get a single job for public view"""
+        stmt = (
+            select(Job)
+            .options(selectinload(Job.client_company))
+            .where(Job.id == job_id, Job.status == JobStatus.active)
+        )
+        
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    @staticmethod
     async def update_job(
         db: AsyncSession,
         job: Job,

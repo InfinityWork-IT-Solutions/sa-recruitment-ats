@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,7 +42,7 @@ const createRegisterSchema = (userType: string) => {
       company_website: z.string().url('Invalid website URL').optional().or(z.literal('')),
       city: z.string().min(1, 'City is required'),
       province: z.string().min(1, 'Province is required'),
-      subscription_plan: z.enum(['starter', 'professional']),
+      subscription_plan: z.enum(['lite', 'standard', 'premium']),
       accept_terms: z.boolean().refine((val) => val === true, {
         message: 'You must accept the terms and conditions',
       }),
@@ -73,6 +73,8 @@ export default function UnifiedRegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userType, setUserType] = useState<'candidate' | 'company' | 'recruiter'>('candidate');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlPlan = searchParams.get('plan');
   const { register: registerUser } = useAuthStore();
 
   const {
@@ -85,7 +87,7 @@ export default function UnifiedRegisterPage() {
     resolver: zodResolver(createRegisterSchema(userType)),
     defaultValues: {
       user_type: 'candidate',
-      subscription_plan: 'professional',
+      subscription_plan: urlPlan || 'standard',
     },
   });
 
@@ -213,8 +215,9 @@ export default function UnifiedRegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-3">Choose Your Plan</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { id: 'starter', name: 'Starter', price: 'R2,499/mo', seats: '2 seats' },
-                    { id: 'professional', name: 'Professional', price: 'R4,999/mo', seats: '5 seats', popular: true },
+                    { id: 'lite', name: 'Lite', price: 'R725/mo', seats: '2 seats' },
+                    { id: 'standard', name: 'Standard', price: 'R925/mo', seats: '5 seats', popular: true },
+                    { id: 'premium', name: 'Premium', price: 'R1,150/mo', seats: '10 seats' },
                   ].map((plan) => (
                     <label
                       key={plan.id}

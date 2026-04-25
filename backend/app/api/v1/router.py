@@ -12,9 +12,12 @@ from app.api.v1 import (
     analytics,
     i18n,
     integrations,
-    feeds,
     admin,
-    usage
+    usage,
+    automation,
+    decision_queue,
+    feeds,
+    video_screening
 )
 
 # Create main API router
@@ -95,6 +98,26 @@ api_router.include_router(
     usage.router,
     prefix="/usage",
     tags=["Usage & AI Cost Tracking"]
+)
+# AI Automation & Workflows
+api_router.include_router(
+    automation.router,
+    prefix="/automation",
+    tags=["AI Automation & Workflows"]
+)
+
+# AI Decision Queue (Semi-Auto Mode)
+api_router.include_router(
+    decision_queue.router,
+    # Prefix is defined in the router itself as /api/decisions
+    tags=["AI Decision Queue"]
+)
+
+# Video Screening
+api_router.include_router(
+    video_screening.router,
+    prefix="/video-screening",
+    tags=["Video Screening"]
 )
 
 

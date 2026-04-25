@@ -35,7 +35,11 @@
 
   /* Card styles */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-300;
+  }
+
+  .card:hover {
+    @apply shadow-lg transform -translate-y-1 border-blue-200;
   }
 
   /* Badge styles */
@@ -61,6 +65,22 @@
 
   .badge-gray {
     @apply bg-gray-100 text-gray-800;
+  }
+
+  .badge-purple {
+    @apply bg-purple-100 text-purple-800;
+  }
+
+  .badge-orange {
+    @apply bg-orange-100 text-orange-800;
+  }
+
+  .badge-indigo {
+    @apply bg-indigo-100 text-indigo-800;
+  }
+
+  .badge-pink {
+    @apply bg-pink-100 text-pink-800;
   }
 }
 

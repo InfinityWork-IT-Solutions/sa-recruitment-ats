@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import {
   Search, Plus, Briefcase, MapPin, Users, TrendingUp, Eye,
   Edit, Copy, Trash2, Pause, Play, DollarSign,
-  Calendar, CheckCircle, X
+  Calendar, CheckCircle, X, LayoutTemplate
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 import apiClient from '@/lib/api-client';
 import EditJobModal from '@/components/modals/EditJobModal';
@@ -107,8 +108,8 @@ export default function JobsPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(j =>
-        j.title.toLowerCase().includes(query) ||
-        j.location.toLowerCase().includes(query)
+        (j.title || '').toLowerCase().includes(query) ||
+        (j.location || '').toLowerCase().includes(query)
       );
     }
 
@@ -387,19 +388,19 @@ export default function JobsPage() {
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-2">
                             <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>{job.location}</span>
+                            <span>{job.location || 'Remote'}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Briefcase className="w-4 h-4 text-gray-400" />
-                            <span className="capitalize">{job.job_type.replace('-', ' ')}</span>
+                            <span className="capitalize">{(job.job_type || 'full-time').replace('-', ' ')}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <DollarSign className="w-4 h-4 text-gray-400" />
-                            <span>R{(job.salary_min / 1000).toFixed(0)}k - R{(job.salary_max / 1000).toFixed(0)}k</span>
+                            <span>R{((job.salary_min || 0) / 1000).toFixed(0)}k - R{((job.salary_max || 0) / 1000).toFixed(0)}k</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Calendar className="w-4 h-4 text-gray-400" />
-                            <span>Posted {job.posted_date}</span>
+                            <span>Posted {job.posted_date || 'Recently'}</span>
                           </div>
                         </div>
                       </div>
@@ -428,6 +429,14 @@ export default function JobsPage() {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
+                        <Link
+                          to={`/jobs/${job.id}/kanban`}
+                          className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200 transition-all flex items-center space-x-2"
+                        >
+                          <LayoutTemplate className="w-4 h-4" />
+                          <span>Pipeline</span>
+                        </Link>
+
                         <button
                           onClick={() => handleStatusChange(job.id, statusAction.newStatus)}
                           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${statusAction.newStatus === 'active'

@@ -2,6 +2,7 @@
 Authentication API endpoints
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from typing import Optional, Union
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +21,7 @@ from app.schemas import (
     PasswordChange,
     CandidateRegisterRequest,
     CompanyRegisterRequest,
+    UnifiedRegisterRequest,
     UserUpdate,
 )
 from app.services.auth_service import auth_service
@@ -29,7 +31,7 @@ router = APIRouter()
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(
-    registration: RegisterRequest,
+    registration: Union[RegisterRequest, UnifiedRegisterRequest],
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -43,7 +45,12 @@ async def register(
     **Note**: Email verification required before full access
     """
     # Create agency and user
-    agency, user = await auth_service.register_agency_and_user(db, registration)
+    if hasattr(registration, 'userType'):
+        # Unified registration from the new frontend
+        agency, user = await auth_service.register_unified(db, registration)
+    else:
+        # Legacy/direct agency registration
+        agency, user = await auth_service.register_agency_and_user(db, registration)
     
     # Create tokens for immediate login
     tokens = auth_service.create_tokens(user)
@@ -72,7 +79,7 @@ async def register(
     
     return RegisterResponse(
         message="Registration successful! Please verify your email.",
-        agency_id=agency.id,
+        agency_id=agency.id if agency else user.agency_id,
         user_id=user.id,
         tokens=TokenResponse(**tokens)
     )

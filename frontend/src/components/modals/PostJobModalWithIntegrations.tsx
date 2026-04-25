@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Briefcase, MapPin, DollarSign, Clock, Building, CheckCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +39,7 @@ interface PostJobModalProps {
 }
 
 export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }: PostJobModalProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   
   const {

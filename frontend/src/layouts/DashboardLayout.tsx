@@ -12,6 +12,7 @@ import {
     Menu,
     X,
     User,
+    Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -33,6 +34,8 @@ const getNavigation = (role?: string) => {
             { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
             { name: 'Candidates', href: '/company/candidates', icon: Users },
             { name: 'Team', href: '/company/team', icon: Users },
+            { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
+            { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
             { name: 'Settings', href: '/company/settings', icon: Settings },
         ];
     }
@@ -47,6 +50,7 @@ const getNavigation = (role?: string) => {
             { name: 'Applications', href: '/applications', icon: FileText },
             { name: 'Clients', href: '/clients', icon: Building2 },
             { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+            { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
@@ -59,6 +63,7 @@ const getNavigation = (role?: string) => {
         { name: 'Applications', href: '/applications', icon: FileText },
         { name: 'Clients', href: '/clients', icon: Building2 },
         { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+        { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
         { name: 'Settings', href: '/settings', icon: Settings },
     ];
 };

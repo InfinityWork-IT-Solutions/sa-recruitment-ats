@@ -23,7 +23,7 @@ class EmailAutomationService:
             company_name=company_name
         )
         
-        email_service.send_email(
+        await email_service.send_email(
             recipient=candidate_email,
             subject=subject,
             body=f"Hi {candidate_name}, your application for {job_title} at {company_name} has been received.",
@@ -51,7 +51,7 @@ class EmailAutomationService:
             application_url=f"https://recruitpro.co.za/company/applications/{application_id}"
         )
         
-        email_service.send_email(
+        await email_service.send_email(
             recipient=company_email,
             subject=subject,
             body=f"Hi {recruiter_name}, a new candidate {candidate_name} applied for {job_title}.",
@@ -76,7 +76,7 @@ class EmailAutomationService:
             matched_jobs=matched_jobs
         )
         
-        email_service.send_email(
+        await email_service.send_email(
             recipient=candidate_email,
             subject=subject,
             body=f"Hi {candidate_name}, we found new jobs for you.",
@@ -108,7 +108,7 @@ class EmailAutomationService:
             interview_type=interview_type
         )
         
-        email_service.send_email(
+        await email_service.send_email(
             recipient=candidate_email,
             subject=subject,
             body=f"Hi {candidate_name}, you have been invited for an interview.",
@@ -144,7 +144,7 @@ class EmailAutomationService:
             message=message
         )
         
-        email_service.send_email(
+        await email_service.send_email(
             recipient=candidate_email,
             subject=subject,
             body=f"Hi {candidate_name}, your application status has been updated.",
@@ -182,7 +182,8 @@ class EmailAutomationService:
         await email_service.send_email(
             recipient=user_email,
             subject="Action Required: Verify your RecruitPro SA account",
-            html_content=html
+            body=f"Hello {user_name}, please verify your account at {verification_link}",
+            html=html
         )
 
     @staticmethod
@@ -221,7 +222,42 @@ class EmailAutomationService:
         await email_service.send_email(
             recipient=admin_email,
             subject=f"Security Alert: New {user_details.get('role', 'User').capitalize()} Registered",
-            html_content=html
+            html=html
+        )
+
+    @staticmethod
+    async def send_rejection_email(candidate_email: str, candidate_name: str):
+        """Send rejection email (SendGrid integration)"""
+        subject = f'Application Update - {candidate_name}'
+        html = f'''
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: #f8fafc; padding: 30px; border-radius: 10px; border-left: 4px solid #ef4444;">
+                <h2 style="color: #1e293b;">Hi {candidate_name},</h2>
+                <p style="color: #475569; line-height: 1.6;">
+                    Thank you for your application and for the interest you've shown in joining our team.
+                </p>
+                <p style="color: #475569; line-height: 1.6;">
+                    After careful consideration, we regret to inform you that we will not be moving forward with your application at this time. 
+                    However, we will keep your profile in our database for future opportunities that match your skills.
+                </p>
+                <p style="color: #475569; line-height: 1.6;">
+                    We wish you the very best in your job search and future career endeavors.
+                </p>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                <p style="font-size: 14px; color: #94a3b8;">
+                    Best Regards,<br>
+                    The Hiring Team | RecruitPro SA
+                </p>
+            </div>
+        </body>
+        </html>
+        '''
+        return await email_service.send_email(
+            recipient=candidate_email,
+            subject=subject,
+            body=f"Hi {candidate_name}, thank you for your application. We regret to inform you that we won't be moving forward at this time.",
+            html=html
         )
     
     # EMAIL TEMPLATES

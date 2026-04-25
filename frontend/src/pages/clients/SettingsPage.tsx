@@ -297,16 +297,19 @@ export default function SettingsPage() {
                              <div className="space-y-6">
                                  <UsageDashboard />
                                  
-                                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-20 text-center">
-                                     <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                                         <Shield className="w-10 h-10 text-gray-200" />
-                                     </div>
-                                     <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Security Hardening</h3>
-                                     <p className="text-gray-400 font-bold max-w-md mx-auto mb-10">Advanced billing panels are currently being hardened. AI Usage tracking is the first module deployed.</p>
-                                     <div className="inline-flex items-center space-x-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 animate-pulse">
-                                         <Check className="w-4 h-4" />
-                                         <span>Security Validated</span>
-                                     </div>
+                                 <div className="bg-blue-600/5 p-8 rounded-3xl border border-blue-100 flex items-center justify-between">
+                                      <div className="flex items-center space-x-6">
+                                          <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center">
+                                              <Shield className="w-7 h-7 text-white" />
+                                          </div>
+                                          <div>
+                                              <h4 className="font-black text-sm uppercase tracking-widest text-blue-900 mb-1">Authenticated Account</h4>
+                                              <p className="text-xs text-blue-700 font-bold">Your subscription is active and managed via the primary billing gateway.</p>
+                                          </div>
+                                      </div>
+                                      <div className="bg-green-500 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-500/20">
+                                          Live
+                                      </div>
                                  </div>
                              </div>
                          )}

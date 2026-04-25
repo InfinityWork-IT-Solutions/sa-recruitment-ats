@@ -194,7 +194,7 @@ export default function JobDetailPage() {
                                 className="btn-primary flex items-center space-x-2"
                             >
                                 <Users className="w-4 h-4" />
-                                <span>View Pipeline</span>
+                                <span>Kanban Board</span>
                             </Link>
                         </>
                     ) : (
@@ -539,7 +539,7 @@ export default function JobDetailPage() {
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-semibold text-gray-900">Recent Applications</h3>
                                         <Link to={`/jobs/${id}/kanban`} className="text-sm text-blue-600 hover:underline">
-                                            View all in pipeline →
+                                            Kanban Board →
                                         </Link>
                                     </div>
                                     <div className="space-y-3">

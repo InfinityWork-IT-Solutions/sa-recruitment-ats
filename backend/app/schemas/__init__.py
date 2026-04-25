@@ -29,6 +29,7 @@ from app.schemas.auth import (
     MessageResponse,
     CandidateRegisterRequest,
     CompanyRegisterRequest,
+    UnifiedRegisterRequest,
 )
 from app.schemas.job import (
     JobBase,
@@ -39,6 +40,8 @@ from app.schemas.job import (
     JobFilter,
     JobStatusUpdate,
     JobStatistics,
+    PublicJobBrief,
+    PublicJobDetail,
 )
 from app.schemas.client_company import (
     ClientCompanyBase,
@@ -104,6 +107,7 @@ __all__ = [
     "MessageResponse",
     "CandidateRegisterRequest",
     "CompanyRegisterRequest",
+    "UnifiedRegisterRequest",
     # Job
     "JobBase",
     "JobCreate",
@@ -113,6 +117,8 @@ __all__ = [
     "JobFilter",
     "JobStatusUpdate",
     "JobStatistics",
+    "PublicJobBrief",
+    "PublicJobDetail",
     # Client Company
     "ClientCompanyBase",
     "ClientCompanyCreate",

@@ -14,6 +14,8 @@ import LandingPage from './pages/LandingPage';
 // Auth Pages
 import UnifiedLoginPage from './pages/auth/UnifiedLoginPage';
 import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
+import PublicJobsPage from './pages/PublicJobsPage';
+import PublicJobDetailPage from './pages/PublicJobDetailPage';
 
 // Legal Pages
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
@@ -56,10 +58,18 @@ import ClientTeamPage from './pages/clients/TeamManagementPage';
 import ClientSettingsPage from './pages/clients/SettingsPage';
 import ClientIntegrationsSettingsPage from './pages/clients/IntegrationsSettingsPage';
 import CompanyProfile from './pages/clients/CompanyProfile';
+import AIDecisionDashboard from './pages/clients/AIDecisionDashboard';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
+
+// Video Screening
+import VideoScreeningLanding from './pages/video-screening/VideoScreeningLanding';
+import VideoRecordingPage from './pages/video-screening/VideoRecordingPage';
+import VideoScreeningComplete from './pages/video-screening/VideoScreeningComplete';
+import RecruiterVideoReviewDashboard from './pages/video-screening/RecruiterVideoReviewDashboard';
+import VideoScreeningDetailView from './pages/video-screening/VideoScreeningDetailView';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -116,6 +126,13 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/jobs" element={<PublicJobsPage />} />
+          <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+
+          {/* Video Screening Routes */}
+          <Route path="/video-screening/:access_token" element={<VideoScreeningLanding />} />
+          <Route path="/video-screening/:access_token/record" element={<VideoRecordingPage />} />
+          <Route path="/video-screening/:access_token/complete" element={<VideoScreeningComplete />} />
 
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
@@ -140,9 +157,11 @@ function App() {
             <Route path="/candidates/:id" element={<CandidateDetailPage />} />
             <Route path="/applications" element={<ApplicationsPage />} />
             <Route path="/applications/:id" element={<ApplicationDetailPage />} />
-            <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
             <Route path="/clients" element={<ClientCompaniesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
+            <Route path="/recruiter/video-screenings" element={<RecruiterVideoReviewDashboard />} />
+            <Route path="/recruiter/video-screening/:screening_id" element={<VideoScreeningDetailView />} />
           </Route>
 
           {/* Candidate Portal */}
@@ -175,6 +194,9 @@ function App() {
             <Route path="/company/team" element={<ClientTeamPage />} />
             <Route path="/company/settings" element={<ClientSettingsPage />} />
             <Route path="/company/settings/integrations" element={<ClientIntegrationsSettingsPage />} />
+            <Route path="/company/settings/billing" element={<ClientSettingsPage />} />
+            <Route path="/company/analytics" element={<AnalyticsPage />} />
+            <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
             {/* Legacy redirect */}
             <Route path="/client-dashboard" element={<Navigate to="/company/dashboard" replace />} />
           </Route>
@@ -202,6 +224,7 @@ function App() {
           >
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
+            <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
           </Route>
 
           {/* Catch all - dynamic redirect based on role */}

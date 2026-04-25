@@ -11,6 +11,25 @@ from app.models.activity import Activity
 from app.models.integration import IntegrationConnection
 from app.models.job_platform import JobPlatformPosting
 from app.models.usage import SubscriptionPlanLimits, CompanyUsageTracking, UsageLog, UsageAlert
+from app.models.automation import (
+    AutomatedScreeningResult,
+    VideoScreeningTemplate,
+    VideoScreeningInvitation,
+    VideoScreeningResponse,
+    VideoScreeningResult,
+    SourcingCampaign,
+    SourcingProspect,
+    InterviewAvailabilitySlot,
+    ScheduledInterview,
+    InterviewTranscript,
+    JobGenerationRequest,
+    MessageTemplate,
+    AutomatedMessage,
+    AIAutomationMetric,
+    AIProviderConfig,
+    AIDecision,
+    AIDecisionAuditLog
+)
 
 __all__ = [
     "Agency",
@@ -38,4 +57,21 @@ __all__ = [
     "CompanyUsageTracking",
     "UsageLog",
     "UsageAlert",
+    "AutomatedScreeningResult",
+    "VideoScreeningTemplate",
+    "VideoScreeningInvitation",
+    "VideoScreeningResponse",
+    "VideoScreeningResult",
+    "SourcingCampaign",
+    "SourcingProspect",
+    "InterviewAvailabilitySlot",
+    "ScheduledInterview",
+    "InterviewTranscript",
+    "JobGenerationRequest",
+    "MessageTemplate",
+    "AutomatedMessage",
+    "AIAutomationMetric",
+    "AIProviderConfig",
+    "AIDecision",
+    "AIDecisionAuditLog",
 ]

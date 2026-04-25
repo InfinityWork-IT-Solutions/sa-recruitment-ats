@@ -180,8 +180,8 @@ export default function ApplicationsPage() {
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${statusColors[application.status]}`}>
-                                                {statusLabels[application.status]}
+                                            <span className={`badge ${statusColors[application.status as ApplicationStatus] || 'badge-gray'}`}>
+                                                {statusLabels[application.status as ApplicationStatus] || application.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -200,7 +200,7 @@ export default function ApplicationsPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {application.source.replace(/_/g, ' ')}
+                                            {application.source?.replace(/_/g, ' ') || 'Direct'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link

@@ -2,11 +2,11 @@
 import asyncio
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import SessionLocal
+from app.core.database import AsyncSessionLocal
 from app.models.usage import SubscriptionPlanLimits
 
 async def seed_limits():
-    async with SessionLocal() as db:
+    async with AsyncSessionLocal() as db:
         plans = [
             {
                 "plan_name": "lite",

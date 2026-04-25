@@ -16,6 +16,7 @@ from app.schemas import (
     AgencyCreate,
     CandidateCreate,
     ClientCompanyCreate,
+    UnifiedRegisterRequest,
 )
 from app.models.candidate import Candidate
 from app.models.client_company import ClientCompany
@@ -43,6 +44,89 @@ class AuthService:
             
         return agency
     
+    @staticmethod
+    async def register_unified(
+        db: AsyncSession,
+        registration: UnifiedRegisterRequest
+    ) -> Tuple[Optional[Agency], User]:
+        """Unified registration logic"""
+        if registration.userType == 'candidate':
+            from app.schemas.candidate import CandidateCreate
+            from app.schemas.user import UserCreate
+            
+            cand_data = CandidateCreate(
+                first_name=registration.firstName or "",
+                last_name=registration.lastName or "",
+                email=registration.email,
+                phone=registration.phone or ""
+            )
+            user_data = UserCreate(
+                email=registration.email,
+                password=registration.password,
+                first_name=registration.firstName or "",
+                last_name=registration.lastName or "",
+                phone=registration.phone or "",
+                role=UserRole.candidate
+            )
+            # Re-use existing candidate reg logic
+            candidate, user = await AuthService.register_candidate(db, cand_data, user_data)
+            return None, user
+            
+        elif registration.userType == 'company':
+            from app.schemas.client_company import ClientCompanyCreate
+            from app.schemas.user import UserCreate
+            
+            comp_data = ClientCompanyCreate(
+                name=registration.companyName or "Unnamed Company",
+                industry=registration.industry,
+                company_size=registration.companySize
+            )
+            user_data = UserCreate(
+                email=registration.email,
+                password=registration.password,
+                first_name=registration.companyName or "Company",
+                last_name="Admin",
+                role=UserRole.client
+            )
+            # Re-use existing company reg logic
+            company, user = await AuthService.register_company(db, comp_data, user_data)
+            return None, user
+            
+        elif registration.userType == 'recruiter':
+            # This is basically the agency registration
+            from app.schemas.agency import AgencyCreate
+            from app.schemas.user import UserCreate
+            from app.schemas.auth import RegisterRequest
+            from app.models.agency import SubscriptionTier
+
+            # Map plan string to SubscriptionTier enum
+            tier_map = {
+                'lite': SubscriptionTier.lite,
+                'standard': SubscriptionTier.standard,
+                'premium': SubscriptionTier.premium
+            }
+            selected_tier = tier_map.get(registration.plan.lower(), SubscriptionTier.standard) if registration.plan else SubscriptionTier.standard
+            
+            reg = RegisterRequest(
+                agency=AgencyCreate(
+                    name=registration.agency or f"{registration.recruiterName}'s Agency",
+                    email=registration.email,
+                    subscription_tier=selected_tier
+                ),
+                user=UserCreate(
+                    email=registration.email,
+                    password=registration.password,
+                    first_name=registration.recruiterName or "Recruiter",
+                    last_name="",
+                    role=UserRole.agency_admin
+                )
+            )
+            agency, user = await AuthService.register_agency_and_user(db, reg)
+            return agency, user
+            
+        else:
+            raise HTTPException(status_code=400, detail="Invalid userType")
+
     @staticmethod
     async def register_agency_and_user(
         db: AsyncSession,
@@ -186,7 +270,7 @@ class AuthService:
         company = ClientCompany(
             user_id=user.id,
             agency_id=agency_id,
-            **registration.model_dump()
+            **registration.model_dump(exclude={'contact_person'})
         )
         db.add(company)
         await db.commit()

@@ -13,10 +13,13 @@ from app.models.job import JobStatus, EmploymentType, ExperienceLevel
 class JobBase(BaseModel):
     """Base job schema"""
     title: str = Field(..., min_length=5, max_length=255, description="Job title")
+    category: str = Field("other", description="Job category (e.g. it, health, finance)")
     description: str = Field(..., min_length=50, description="Job description")
-    requirements: Optional[str] = Field(None, description="Job requirements")
-    responsibilities: Optional[str] = Field(None, description="Job responsibilities")
-    benefits: Optional[str] = Field(None, description="Benefits offered")
+    requirements: List[str] = Field(default_factory=list, description="Job requirements")
+    responsibilities: List[str] = Field(default_factory=list, description="Job responsibilities")
+    qualifications: List[str] = Field(default_factory=list, description="Job qualifications")
+    benefits: List[str] = Field(default_factory=list, description="Benefits offered")
+    positions_available: int = Field(1, ge=1, description="Number of positions available")
     
     # Skills & Experience
     skills: List[str] = Field(default_factory=list, description="Required skills")
@@ -101,10 +104,13 @@ class JobCreate(JobBase):
 class JobUpdate(BaseModel):
     """Schema for updating job details"""
     title: Optional[str] = Field(None, min_length=5, max_length=255)
+    category: Optional[str] = None
     description: Optional[str] = Field(None, min_length=50)
-    requirements: Optional[str] = None
-    responsibilities: Optional[str] = None
-    benefits: Optional[str] = None
+    requirements: Optional[List[str]] = None
+    responsibilities: Optional[List[str]] = None
+    qualifications: Optional[List[str]] = None
+    benefits: Optional[List[str]] = None
+    positions_available: Optional[int] = Field(None, ge=1)
     
     skills: Optional[List[str]] = None
     years_of_experience_min: Optional[int] = Field(None, ge=0, le=50)
@@ -236,3 +242,65 @@ class JobStatistics(BaseModel):
     filled_jobs: int
     total_applications: int
     avg_applications_per_job: float
+
+
+# Schema for public job listings
+class PublicJobBrief(BaseModel):
+    """Public job information for anonymous browsing"""
+    id: UUID
+    title: str
+    company_name: Optional[str] = "Confidential"
+    location: str
+    salary_range: Optional[str] = None
+    job_type: str
+    category: str
+    description: str  # Short preview
+    closing_date: datetime
+    posted_date: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    @classmethod
+    def from_orm_custom(cls, job: Any) -> "PublicJobBrief":
+        salary_range = None
+        if job.show_salary and job.salary_min:
+            if job.salary_max:
+                salary_range = f"R{job.salary_min:,} - R{job.salary_max:,}"
+            else:
+                salary_range = f"R{job.salary_min:,}+"
+        
+        return cls(
+            id=job.id,
+            title=job.title,
+            company_name=job.client_company.name if job.client_company else "RecruitPro Client",
+            location=job.location,
+            salary_range=salary_range,
+            job_type=job.employment_type.value if hasattr(job.employment_type, 'value') else str(job.employment_type),
+            category=job.category or "other",
+            description=job.description[:200] + "..." if len(job.description) > 200 else job.description,
+            closing_date=job.closing_date or (job.published_at or datetime.utcnow()),
+            posted_date=job.published_at or job.created_at
+        )
+
+# Schema for public job detail
+class PublicJobDetail(PublicJobBrief):
+    """Full public job details"""
+    responsibilities: List[str]
+    requirements: List[str]
+    qualifications: List[str]
+    benefits: List[str]
+    experience_level: str
+    positions_available: int
+    
+    @classmethod
+    def from_orm_custom(cls, job: Any) -> "PublicJobDetail":
+        base = PublicJobBrief.from_orm_custom(job)
+        return cls(
+            **base.model_dump(),
+            responsibilities=job.responsibilities or [],
+            requirements=job.requirements or [],
+            qualifications=job.qualifications or [],
+            benefits=job.benefits or [],
+            experience_level=job.experience_level.value if hasattr(job.experience_level, 'value') else str(job.experience_level),
+            positions_available=job.positions_available or 1
+        )

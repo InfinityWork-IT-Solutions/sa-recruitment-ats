@@ -105,6 +105,29 @@ class CompanyRegisterRequest(BaseModel):
     company: ClientCompanyCreate
 
 
+class UnifiedRegisterRequest(BaseModel):
+    """Unified registration for candidate, company, or recruiter"""
+    userType: str  # candidate, company, recruiter
+    email: EmailStr
+    password: str
+    jobId: Optional[UUID] = None
+    plan: Optional[str] = 'lite'  # lite, standard, premium
+    
+    # Candidate fields
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    phone: Optional[str] = None
+    
+    # Company fields
+    companyName: Optional[str] = None
+    companySize: Optional[str] = None
+    industry: Optional[str] = None
+    
+    # Recruiter fields
+    recruiterName: Optional[str] = None
+    agency: Optional[str] = None
+
+
 class RegisterResponse(BaseModel):
     """Registration response"""
     message: str = Field(..., description="Success message")

@@ -4,9 +4,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
-import { User, Building2, Bell, Shield, Save, Key, ArrowRight } from 'lucide-react';
+import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
+import UsageDashboard from '@/components/UsageDashboard';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, TrendingUp, Users as UsersIcon } from 'lucide-react';
 
@@ -32,8 +33,8 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
-    const user = useAuthStore((state) => state.user);
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics'>('profile');
+    const { user, refreshUser } = useAuthStore();
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics' | 'billing'>('profile');
     const [isUpdating, setIsUpdating] = useState(false);
 
     const {
@@ -140,6 +141,18 @@ export default function SettingsPage() {
                             <Bell className="w-5 h-5" />
                             <span className="font-medium">Notifications</span>
                         </button>
+                        {['agency_admin', 'super_admin'].includes(user?.role || '') && (
+                            <button
+                                onClick={() => setActiveTab('billing')}
+                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'billing'
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                            >
+                                <CreditCard className="w-5 h-5" />
+                                <span className="font-medium">Billing & Subscription</span>
+                            </button>
+                        )}
                         {user?.role === 'candidate' && (
                             <button
                                 onClick={() => setActiveTab('analytics')}
@@ -382,6 +395,13 @@ export default function SettingsPage() {
                                     Delete Account
                                 </button>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Billing Tab */}
+                    {activeTab === 'billing' && (
+                        <div className="space-y-6">
+                            <UsageDashboard />
                         </div>
                     )}
 
