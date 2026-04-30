@@ -259,8 +259,39 @@ class EmailAutomationService:
             body=f"Hi {candidate_name}, thank you for your application. We regret to inform you that we won't be moving forward at this time.",
             html=html
         )
-    
-    # EMAIL TEMPLATES
+    @staticmethod
+    async def send_generic_email(
+        recipient_email: str,
+        subject: str,
+        body: str,
+        company_name: str = "RecruitPro"
+    ):
+        """Send a generic branded email"""
+        template = """
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:linear-gradient(135deg,#2563eb,#1e40af);padding:30px;border-radius:12px 12px 0 0;text-align:center;">
+        <h1 style="color:#fff;margin:0;">{{ company_name }}</h1>
+    </div>
+    <div style="background:#fff;padding:30px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+        <div style="font-size:16px;color:#374151;line-height:1.6;white-space:pre-wrap;">{{ body }}</div>
+        <div style="margin-top:30px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
+            Sent via {{ company_name }} Recruitment Portal
+        </div>
+    </div>
+</body>
+</html>
+        """
+        html = Template(template).render(body=body, company_name=company_name)
+        
+        await email_service.send_email(
+            recipient=recipient_email,
+            subject=subject,
+            body=body,
+            html=html
+        )
+
     
     @staticmethod
     def _application_confirmation_template(

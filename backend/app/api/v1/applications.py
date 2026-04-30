@@ -29,6 +29,7 @@ from app.schemas import (
     MessageResponse,
 )
 from app.services.applications_service import application_service
+from app.services.notification_service import NotificationService
 from app.models.job_platform import JobPlatformPosting
 from sqlalchemy import select
 
@@ -113,18 +114,23 @@ async def apply_to_job(
             company_name=agency.name
         )
         
-        # 2. Alert to company (Recruiters/Admins of the agency)
-        # For simplicity, we send to the primary agency email
-        await EmailAutomationService.send_new_application_alert(
-            company_email=agency.email,
-            recruiter_name=agency.name,
-            candidate_name=candidate_name,
-            job_title=job.title,
-            match_score=int(application.match_score or 0),
-            application_id=str(application.id)
-        )
+        # 3. Notification to recruiters
+        stmt = select(User).where(User.agency_id == agency.id, User.role.in_(['agency_admin', 'recruiter']))
+        result = await db.execute(stmt)
+        agency_users = result.scalars().all()
+        
+        for user in agency_users:
+            await NotificationService.create_notification(
+                db,
+                user_id=user.id,
+                title="New Application Received",
+                message=f"{candidate_name} has applied for {job.title}.",
+                notification_type="application",
+                link=f"/applications/{application.id}"
+            )
+            
     except Exception as e:
-        print(f"Error sending automated emails: {e}")
+        print(f"Error sending automated emails/notifications: {e}")
         # We don't want to fail the application if email fails
     
     return ApplicationResponse.model_validate(application)
@@ -477,8 +483,24 @@ async def schedule_interview(
             interview_location="Dashboard / Office",
             interview_type="In-Person" # Default or logic based on data
         )
+        
+        # 3. Internal Notification to recruiters
+        stmt = select(User).where(User.agency_id == application.job.agency_id, User.role.in_(['agency_admin', 'recruiter']))
+        result = await db.execute(stmt)
+        agency_users = result.scalars().all()
+        
+        for user in agency_users:
+            await NotificationService.create_notification(
+                db,
+                user_id=user.id,
+                title="Interview Scheduled",
+                message=f"Interview set for {application.candidate.full_name} - {application.job.title} at {interview_data.interview_time.strftime('%H:%M on %d %b')}.",
+                notification_type="info",
+                link=f"/applications/{application.id}"
+            )
+            
     except Exception as e:
-        print(f"Error sending interview invitation email: {e}")
+        print(f"Error sending interview emails/notifications: {e}")
         
     return ApplicationResponse.model_validate(application)
 

@@ -19,7 +19,9 @@ from app.api.v1 import (
     feeds,
     video_screening,
     my_assessments,
-    subscription
+    subscription,
+    notifications,
+    templates
 )
 
 # Create main API router
@@ -132,8 +134,21 @@ api_router.include_router(
 # Subscriptions & Billing
 api_router.include_router(
     subscription.router,
-    # Prefix /api/subscriptions is defined in the router
     tags=["Subscriptions & Billing"]
+)
+
+# Notifications
+api_router.include_router(
+    notifications.router,
+    prefix="/notifications",
+    tags=["Notifications"]
+)
+
+# Email Templates
+api_router.include_router(
+    templates.router,
+    prefix="/templates",
+    tags=["Email Templates"]
 )
 
 

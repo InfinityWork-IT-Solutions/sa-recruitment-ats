@@ -60,24 +60,14 @@ from app.schemas.candidate import (
     ResumeUploadResponse,
     CandidateStatistics,
 )
-from app.schemas.application import (
-    ApplicationBase,
-    ApplicationCreate,
-    ApplicationUpdate,
-    ApplicationResponse,
-    ApplicationBrief,
-    ApplicationFilter,
-    ApplicationStatusUpdate,
-    ApplicationScreening,
-    InterviewSchedule,
-    InterviewComplete,
-    OfferMake,
-    OfferRespond,
-    ApplicationReject,
-    ApplicationWithdraw,
-    ApplicationPipeline,
-    ApplicationPipelineStage,
     ApplicationStatistics,
+)
+from app.schemas.notification import (
+    NotificationBase,
+    NotificationCreate,
+    NotificationUpdate,
+    NotificationResponse,
+    NotificationListResponse,
 )
 
 __all__ = [
@@ -152,4 +142,10 @@ __all__ = [
     "ApplicationPipeline",
     "ApplicationPipelineStage",
     "ApplicationStatistics",
+    # Notification
+    "NotificationBase",
+    "NotificationCreate",
+    "NotificationUpdate",
+    "NotificationResponse",
+    "NotificationListResponse",
 ]

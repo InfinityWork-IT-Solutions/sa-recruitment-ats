@@ -12,8 +12,10 @@ import {
     Clock,
     DollarSign,
     MessageSquare,
-    Award
+    Award,
+    Mail
 } from 'lucide-react';
+import EmailCandidateModal from '@/components/EmailCandidateModal';
 import { format } from 'date-fns';
 import { ApplicationStatus } from '@/types/api';
 
@@ -43,6 +45,7 @@ export default function ApplicationDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [activeModal, setActiveModal] = useState<ActionModal>(null);
+    const [emailModalOpen, setEmailModalOpen] = useState(false);
 
     // Form states
     const [screenData, setScreenData] = useState({ passed: true, score: 0, notes: '' });
@@ -150,6 +153,13 @@ export default function ApplicationDetailPage() {
                     <div className="card">
                         <h3 className="font-semibold text-gray-900 mb-4">Actions</h3>
                         <div className="space-y-2">
+                            <button
+                                onClick={() => setEmailModalOpen(true)}
+                                className="w-full bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100 flex items-center justify-center space-x-2 border border-blue-200 transition-colors"
+                            >
+                                <Mail className="w-4 h-4" />
+                                <span className="font-bold">Email Candidate</span>
+                            </button>
                             {canScreen && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'screen' })}
@@ -520,7 +530,7 @@ export default function ApplicationDetailPage() {
                             </label>
                             <select
                                 value={rejectData.reason}
-                                onChange={(e) => setRejectData({ ...rejectData, reason: e.target.value })}
+                                onChange={(e) => setRejectData({ ...rejectData, reason: e.target.value as any })}
                                 className="input"
                             >
                                 <option value="">Select reason...</option>
@@ -548,6 +558,13 @@ export default function ApplicationDetailPage() {
                     </div>
                 </Modal>
             )}
+
+            <EmailCandidateModal 
+                isOpen={emailModalOpen}
+                onClose={() => setEmailModalOpen(false)}
+                candidateId={application.candidate_id}
+                candidateName={application.candidate_name || "Candidate"}
+            />
         </div>
     );
 }

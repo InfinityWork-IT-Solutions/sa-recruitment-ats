@@ -37,9 +37,9 @@ from app.models import (
     RecruiterSubscription,
     SubscriptionPlan,
     PaymentTransaction,
-    Invoice,
     User
 )
+from app.services.notification_service import NotificationService
 
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
@@ -360,6 +360,23 @@ async def change_subscription_plan(
         paid_date=datetime.utcnow()
     )
     db.add(invoice)
+    
+    # 3. Trigger notification
+    # We need the user_id from the current session or agency admin
+    stmt = select(User).where(User.agency_id == request.agency_id)
+    result = await db.execute(stmt)
+    admin_user = result.scalars().first()
+    
+    if admin_user:
+        await NotificationService.create_notification(
+            db,
+            user_id=admin_user.id,
+            title="Subscription Upgraded",
+            message=f"Success! Your agency has been moved to the {new_plan.display_name} plan.",
+            notification_type="billing",
+            link="/settings/billing"
+        )
+    
     await db.commit()
     
     return {

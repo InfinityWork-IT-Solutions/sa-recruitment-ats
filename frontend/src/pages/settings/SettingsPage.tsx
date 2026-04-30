@@ -4,13 +4,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
-import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera } from 'lucide-react';
+import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera, Mail } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 import UsageDashboard from '@/components/UsageDashboard';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, TrendingUp, Users as UsersIcon } from 'lucide-react';
 import { ImageCropperModal } from '@/components/common/ImageCropperModal';
+import TemplateManager from '@/components/TemplateManager';
 
 // Profile update schema
 const profileSchema = z.object({
@@ -36,7 +37,7 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 export default function SettingsPage() {
     const { user, refreshUser } = useAuthStore();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics' | 'billing'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics' | 'billing' | 'templates'>('profile');
     const [isUpdating, setIsUpdating] = useState(false);
     
     // Avatar upload states
@@ -196,6 +197,18 @@ export default function SettingsPage() {
                             <Bell className="w-5 h-5" />
                             <span className="font-medium">Notifications</span>
                         </button>
+                        {['agency_admin', 'recruiter'].includes(user?.role || '') && (
+                            <button
+                                onClick={() => setActiveTab('templates')}
+                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'templates'
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                            >
+                                <Mail className="w-5 h-5" />
+                                <span className="font-medium">Email Templates</span>
+                            </button>
+                        )}
                         {['agency_admin', 'super_admin'].includes(user?.role || '') && (
                             <button
                                 onClick={() => navigate('/settings/billing')}
@@ -428,6 +441,13 @@ export default function SettingsPage() {
                     {activeTab === 'billing' && (
                         <div className="space-y-6">
                             <UsageDashboard />
+                        </div>
+                    )}
+
+                    {/* Templates Tab */}
+                    {activeTab === 'templates' && (
+                        <div className="card">
+                            <TemplateManager />
                         </div>
                     )}
 

@@ -17,6 +17,7 @@ import {
     CreditCard,
 } from 'lucide-react';
 import { useState } from 'react';
+import NotificationCenter from '@/components/NotificationCenter';
 
 const getNavigation = (role?: string) => {
     if (role === 'candidate') {
@@ -193,6 +194,11 @@ export default function DashboardLayout() {
                     </button>
 
                     <div className="flex-1" />
+                    
+                    {/* Notifications */}
+                    <div className="mr-4">
+                        <NotificationCenter />
+                    </div>
 
                     {/* User badge (role) & Profile Link */}
                     <div className="flex items-center space-x-4">

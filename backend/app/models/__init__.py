@@ -39,6 +39,7 @@ from app.models.subscription import (
     FeatureUsage,
     PayFastWebhook
 )
+from app.models.notification import Notification
 
 __all__ = [
     "Agency",
@@ -90,4 +91,5 @@ __all__ = [
     "RecruiterSeat",
     "FeatureUsage",
     "PayFastWebhook",
+    "Notification",
 ]
