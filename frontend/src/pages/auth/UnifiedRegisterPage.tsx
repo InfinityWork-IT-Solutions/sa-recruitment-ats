@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,7 +22,8 @@ const createRegisterSchema = (userType: string) => {
     return z.object({
       ...baseSchema,
       city: z.string().min(1, 'City is required'),
-      province: z.string().min(1, 'Province is required'),
+      province: z.string().min(1, 'State/Province is required'),
+      country: z.string().min(1, 'Country is required'),
       current_job_title: z.string().optional(),
       years_of_experience: z.string().optional(),
       consent_to_contact: z.boolean().refine((val) => val === true, {
@@ -41,8 +42,9 @@ const createRegisterSchema = (userType: string) => {
       company_industry: z.string().optional(),
       company_website: z.string().url('Invalid website URL').optional().or(z.literal('')),
       city: z.string().min(1, 'City is required'),
-      province: z.string().min(1, 'Province is required'),
-      subscription_plan: z.enum(['lite', 'standard', 'premium']),
+      province: z.string().min(1, 'State/Province is required'),
+      country: z.string().min(1, 'Country is required'),
+      subscription_plan: z.enum(['starter', 'professional', 'enterprise']),
       accept_terms: z.boolean().refine((val) => val === true, {
         message: 'You must accept the terms and conditions',
       }),
@@ -58,7 +60,9 @@ const createRegisterSchema = (userType: string) => {
     agency_name: z.string().min(1, 'Agency name is required'),
     agency_website: z.string().url('Invalid website URL').optional().or(z.literal('')),
     city: z.string().min(1, 'City is required'),
-    province: z.string().min(1, 'Province is required'),
+    province: z.string().min(1, 'State/Province is required'),
+    country: z.string().min(1, 'Country is required'),
+    subscription_plan: z.enum(['starter', 'professional', 'enterprise']),
     accept_terms: z.boolean().refine((val) => val === true, {
       message: 'You must accept the terms and conditions',
     }),
@@ -71,10 +75,12 @@ const createRegisterSchema = (userType: string) => {
 export default function UnifiedRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [userType, setUserType] = useState<'candidate' | 'company' | 'recruiter'>('candidate');
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const urlType = searchParams.get('type') as 'candidate' | 'company' | 'recruiter' | null;
   const urlPlan = searchParams.get('plan');
+  
+  const [userType, setUserType] = useState<'candidate' | 'company' | 'recruiter'>(urlType || 'candidate');
+  const navigate = useNavigate();
   const { register: registerUser } = useAuthStore();
 
   const {
@@ -83,13 +89,26 @@ export default function UnifiedRegisterPage() {
     watch,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<any>({
     resolver: zodResolver(createRegisterSchema(userType)),
     defaultValues: {
-      user_type: 'candidate',
-      subscription_plan: urlPlan || 'standard',
+      user_type: userType,
+      subscription_plan: urlPlan || 'professional',
     },
   });
+
+  // Effect to handle URL parameter changes
+  useEffect(() => {
+    if (urlType && ['candidate', 'company', 'recruiter'].includes(urlType)) {
+      setUserType(urlType);
+      setValue('user_type', urlType);
+      reset({ 
+        user_type: urlType,
+        subscription_plan: urlPlan || 'professional' 
+      });
+    }
+  }, [urlType, urlPlan, reset, setValue]);
 
   const selectedUserType = watch('user_type') as 'candidate' | 'company' | 'recruiter';
   const selectedPlan = watch('subscription_plan');
@@ -113,7 +132,7 @@ export default function UnifiedRegisterPage() {
       } else if (data.user_type === 'company') {
         navigate('/client-dashboard');
       } else {
-        navigate('/registration-pending');
+        navigate('/dashboard');
       }
     } catch (error: any) {
       console.error('Registration failed:', error);
@@ -150,10 +169,7 @@ export default function UnifiedRegisterPage() {
   const currentUserType = userTypes.find((t) => t.value === selectedUserType);
   const colors = colorClasses[currentUserType?.color as keyof typeof colorClasses] || colorClasses.green;
 
-  const saProvinces = [
-    'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
-    'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
-  ];
+  // Removed saProvinces array since we now use a global text input
 
   return (
     <div className="max-w-3xl w-full mx-auto">
@@ -172,52 +188,55 @@ export default function UnifiedRegisterPage() {
 
       <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-10 border border-gray-100 mx-4 sm:mx-0">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* User Type Selector */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-4">I am a...</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {userTypes.map((type) => {
-                const Icon = type.icon;
-                const isSelected = selectedUserType === type.value;
-                const typeColors = colorClasses[type.color as keyof typeof colorClasses];
-                
-                return (
-                  <label
-                    key={type.value}
-                    className={`relative cursor-pointer rounded-xl p-4 transition-all duration-200 ${
-                      isSelected ? `${typeColors.bgLight} ring-2 ${typeColors.border} shadow-sm` : 'bg-gray-50 border border-gray-200 hover:bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value={type.value}
-                      {...register('user_type')}
-                      onChange={(e) => handleUserTypeChange(e.target.value as any)}
-                      className="sr-only"
-                    />
-                    <div className="flex flex-col items-center space-y-2">
-                      <Icon className={`w-8 h-8 ${isSelected ? typeColors.text : 'text-gray-400'}`} />
-                      <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
-                        {type.label}
-                      </span>
-                    </div>
-                  </label>
-                );
-              })}
+          {/* User Type Selector - Only show if not specified in URL */}
+          {urlType ? (
+            <input type="hidden" {...register('user_type')} />
+          ) : (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">I am a...</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {userTypes.map((type) => {
+                  const Icon = type.icon;
+                  const isSelected = selectedUserType === type.value;
+                  const typeColors = colorClasses[type.color as keyof typeof colorClasses];
+                  
+                  return (
+                    <label
+                      key={type.value}
+                      className={`relative cursor-pointer rounded-xl p-4 transition-all duration-200 ${
+                        isSelected ? `${typeColors.bgLight} ring-2 ${typeColors.border} shadow-sm` : 'bg-gray-50 border border-gray-200 hover:bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={type.value}
+                        {...register('user_type')}
+                        onChange={(e) => handleUserTypeChange(e.target.value as any)}
+                        className="sr-only"
+                      />
+                      <div className="flex flex-col items-center space-y-2">
+                        <Icon className={`w-8 h-8 ${isSelected ? typeColors.text : 'text-gray-400'}`} />
+                        <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {type.label}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="border-t border-gray-100 my-8"></div>
             </div>
-          </div>
+          )}
 
-          <div className="border-t border-gray-100 my-8"></div>
-
-            {/* Company-specific: Plan Selection */}
-            {selectedUserType === 'company' && (
+            {/* Company & Recruiter: Plan Selection */}
+            {(selectedUserType === 'company' || selectedUserType === 'recruiter') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">Choose Your Plan</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { id: 'lite', name: 'Lite', price: 'R725/mo', seats: '2 seats' },
-                    { id: 'standard', name: 'Standard', price: 'R925/mo', seats: '5 seats', popular: true },
-                    { id: 'premium', name: 'Premium', price: 'R1,150/mo', seats: '10 seats' },
+                    { id: 'starter', name: 'Starter', price: 'R2,030/mo', seats: '2 seats' },
+                    { id: 'professional', name: 'Professional', price: 'R4,199/mo', seats: '5 seats', popular: true },
+                    { id: 'enterprise', name: 'Enterprise', price: 'Custom', seats: '10+ seats' },
                   ].map((plan) => (
                     <label
                       key={plan.id}
@@ -287,19 +306,21 @@ export default function UnifiedRegisterPage() {
             </div>
 
             {/* Location */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
-                <input {...register('city')} type="text" className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring}`} placeholder="Cape Town" />
+                <input {...register('city')} type="text" className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring}`} placeholder="e.g. Cape Town" />
                 {errors.city && <p className="mt-1 text-sm text-red-600">{(errors.city as any).message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Province *</label>
-                <select {...register('province')} className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring}`}>
-                  <option value="">Select Province</option>
-                  {saProvinces.map((prov) => <option key={prov} value={prov}>{prov}</option>)}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">State / Province *</label>
+                <input {...register('province')} type="text" className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring}`} placeholder="e.g. Western Cape" />
                 {errors.province && <p className="mt-1 text-sm text-red-600">{(errors.province as any).message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Country *</label>
+                <input {...register('country')} type="text" className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring}`} placeholder="e.g. South Africa" />
+                {errors.country && <p className="mt-1 text-sm text-red-600">{(errors.country as any).message}</p>}
               </div>
             </div>
 
@@ -373,7 +394,12 @@ export default function UnifiedRegisterPage() {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className={`${colors.text} hover:underline font-semibold`}>Sign in here</Link>
+            <Link 
+              to={`/login?type=${selectedUserType}`} 
+              className={`${colors.text} hover:underline font-semibold`}
+            >
+              Sign in here
+            </Link>
           </div>
         </div>
       </div>

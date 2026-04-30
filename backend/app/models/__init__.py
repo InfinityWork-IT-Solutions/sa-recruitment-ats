@@ -30,6 +30,15 @@ from app.models.automation import (
     AIDecision,
     AIDecisionAuditLog
 )
+from app.models.subscription import (
+    SubscriptionPlan,
+    RecruiterSubscription,
+    PaymentTransaction,
+    Invoice,
+    RecruiterSeat,
+    FeatureUsage,
+    PayFastWebhook
+)
 
 __all__ = [
     "Agency",
@@ -74,4 +83,11 @@ __all__ = [
     "AIProviderConfig",
     "AIDecision",
     "AIDecisionAuditLog",
+    "SubscriptionPlan",
+    "RecruiterSubscription",
+    "PaymentTransaction",
+    "Invoice",
+    "RecruiterSeat",
+    "FeatureUsage",
+    "PayFastWebhook",
 ]

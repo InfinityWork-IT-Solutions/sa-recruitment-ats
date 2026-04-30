@@ -1,15 +1,16 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
-import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard } from 'lucide-react';
+import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 import UsageDashboard from '@/components/UsageDashboard';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, TrendingUp, Users as UsersIcon } from 'lucide-react';
+import { ImageCropperModal } from '@/components/common/ImageCropperModal';
 
 // Profile update schema
 const profileSchema = z.object({
@@ -34,13 +35,20 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuthStore();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics' | 'billing'>('profile');
     const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Avatar upload states
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [cropperModalOpen, setCropperModalOpen] = useState(false);
+    const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
 
     const {
         register: registerProfile,
         handleSubmit: handleSubmitProfile,
         formState: { errors: profileErrors },
+        setValue: setProfileValue,
     } = useForm<ProfileFormData>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
@@ -50,6 +58,16 @@ export default function SettingsPage() {
             avatar_url: user?.avatar_url || '',
         },
     });
+
+    // Update form values if user changes
+    useEffect(() => {
+        if (user) {
+            setProfileValue('first_name', user.first_name);
+            setProfileValue('last_name', user.last_name);
+            setProfileValue('email', user.email);
+            setProfileValue('avatar_url', user.avatar_url || '');
+        }
+    }, [user, setProfileValue]);
 
     const {
         register: registerPassword,
@@ -72,10 +90,15 @@ export default function SettingsPage() {
     const onUpdateProfile = async (data: ProfileFormData) => {
         setIsUpdating(true);
         try {
-            await apiClient.put('/auth/me', data);
+            // Only send valid fields for UserUpdate
+            const updateData = {
+                first_name: data.first_name,
+                last_name: data.last_name,
+                avatar_url: data.avatar_url,
+            };
+            await apiClient.put('/auth/me', updateData);
             toast.success('Profile updated successfully!');
-            // Reload user data in store
-            useAuthStore.getState().refreshUser();
+            await refreshUser();
         } catch (error) {
             toast.error('Failed to update profile');
         } finally {
@@ -96,6 +119,38 @@ export default function SettingsPage() {
             toast.error('Failed to change password');
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImageSrc(reader.result as string);
+                setCropperModalOpen(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setCropperModalOpen(false);
+        setSelectedImageSrc(null);
+
+        const file = new File([croppedBlob], `avatar_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await apiClient.post('/auth/upload-avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success("Profile picture updated!");
+            await refreshUser();
+            setProfileValue('avatar_url', response.data.avatar_url);
+        } catch (err) {
+            toast.error("Failed to upload image");
         }
     };
 
@@ -143,7 +198,7 @@ export default function SettingsPage() {
                         </button>
                         {['agency_admin', 'super_admin'].includes(user?.role || '') && (
                             <button
-                                onClick={() => setActiveTab('billing')}
+                                onClick={() => navigate('/settings/billing')}
                                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'billing'
                                         ? 'bg-blue-50 text-blue-600'
                                         : 'text-gray-700 hover:bg-gray-50'
@@ -185,13 +240,6 @@ export default function SettingsPage() {
                                     {user?.role.replace(/_/g, ' ').toUpperCase()}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 group hover:border-blue-200 transition-all">
-                                <span className="font-medium text-gray-700">Managed Clients:</span>{' '}
-                                <Link to="/clients" className="text-blue-600 font-black flex items-center group-hover:scale-105 transition-transform">
-                                    {user?.managed_clients_count || 0}
-                                    <ArrowRight className="w-3 h-3 ml-1" />
-                                </Link>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -204,9 +252,9 @@ export default function SettingsPage() {
                             <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Information</h2>
                             
                             {/* Profile Picture Section */}
-                            <div className="flex items-center space-x-6 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <div className="relative group">
-                                    <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden shadow-md ring-4 ring-white">
+                            <div className="flex items-center space-x-6 mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                    <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-white relative">
                                         {user?.avatar_url ? (
                                             <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
@@ -214,17 +262,27 @@ export default function SettingsPage() {
                                                 {user?.first_name[0]}{user?.last_name[0]}
                                             </span>
                                         )}
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Camera className="w-8 h-8 text-white" />
+                                        </div>
                                     </div>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                    />
                                 </div>
-                                <div className="flex-1 space-y-2">
-                                    <label className="block text-sm font-semibold text-gray-900">Profile Picture URL</label>
+                                <div className="flex-1 space-y-3">
+                                    <label className="block text-sm font-semibold text-gray-900 uppercase tracking-wider text-[10px]">Identity Image</label>
                                     <input
                                         {...registerProfile('avatar_url')}
                                         type="text"
-                                        className="input text-sm"
-                                        placeholder="https://example.com/your-photo.jpg"
+                                        className="input text-sm bg-white"
+                                        placeholder="Or paste a link directly..."
                                     />
-                                    <p className="text-xs text-gray-500">Provide a link to your photo (JPEG, PNG) for identity recognition.</p>
+                                    <p className="text-[10px] text-gray-400 font-bold">CLICK THE CIRCLE TO UPLOAD A NEW PHOTO</p>
                                 </div>
                             </div>
 
@@ -272,12 +330,11 @@ export default function SettingsPage() {
                                     <input
                                         {...registerProfile('email')}
                                         type="email"
-                                        className="input"
+                                        className="input bg-gray-50"
+                                        disabled
                                         placeholder="john@example.com"
                                     />
-                                    {profileErrors.email && (
-                                        <p className="mt-1 text-sm text-red-600">{profileErrors.email.message}</p>
-                                    )}
+                                    <p className="text-[10px] text-gray-400 mt-1">Email is managed by your administrator.</p>
                                 </div>
 
                                 <div className="flex justify-end pt-4 border-t border-gray-200">
@@ -364,37 +421,6 @@ export default function SettingsPage() {
                                     </div>
                                 </form>
                             </div>
-
-                            {/* Two-Factor Authentication */}
-                            <div className="card">
-                                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                                    Two-Factor Authentication
-                                </h2>
-                                <p className="text-gray-600 mb-4">
-                                    Add an extra layer of security to your account
-                                </p>
-                                <button className="btn-secondary">Enable 2FA</button>
-                            </div>
-
-                            {/* Danger Zone */}
-                            <div className="card border-red-200 bg-red-50">
-                                <h2 className="text-xl font-semibold text-red-700 mb-2">
-                                    Danger Zone
-                                </h2>
-                                <p className="text-red-600 mb-4 text-sm">
-                                    Once you delete your account, there is no going back. Please be certain.
-                                </p>
-                                <button 
-                                    onClick={() => {
-                                        if(window.confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
-                                            toast.error('Account deletion requested. Please contact support to finalize.');
-                                        }
-                                    }}
-                                    className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
-                                >
-                                    Delete Account
-                                </button>
-                            </div>
                         </div>
                     )}
 
@@ -402,98 +428,6 @@ export default function SettingsPage() {
                     {activeTab === 'billing' && (
                         <div className="space-y-6">
                             <UsageDashboard />
-                        </div>
-                    )}
-
-                    {/* Notifications Tab */}
-                    {activeTab === 'notifications' && (
-                        <div className="card">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                                Notification Preferences
-                            </h2>
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-900 mb-3">Email Notifications</h3>
-                                    <div className="space-y-3">
-                                        <label className="flex items-center space-x-3">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                defaultChecked
-                                            />
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-900">
-                                                    New Applications
-                                                </span>
-                                                <p className="text-xs text-gray-500">
-                                                    Receive notifications when candidates apply to your jobs
-                                                </p>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex items-center space-x-3">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                defaultChecked
-                                            />
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-900">
-                                                    Interview Reminders
-                                                </span>
-                                                <p className="text-xs text-gray-500">
-                                                    Get reminded about upcoming interviews
-                                                </p>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex items-center space-x-3">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                            />
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-900">
-                                                    Weekly Reports
-                                                </span>
-                                                <p className="text-xs text-gray-500">
-                                                    Receive weekly summary of your recruitment activity
-                                                </p>
-                                            </div>
-                                        </label>
-
-                                        <label className="flex items-center space-x-3">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                defaultChecked
-                                            />
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-900">
-                                                    Marketing Emails
-                                                </span>
-                                                <p className="text-xs text-gray-500">
-                                                    Receive updates about new features and tips
-                                                </p>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div className="pt-6 border-t border-gray-200">
-                                    <h3 className="text-sm font-medium text-gray-900 mb-3">
-                                        Browser Notifications
-                                    </h3>
-                                    <button className="btn-secondary">Enable Browser Notifications</button>
-                                </div>
-
-                                <div className="flex justify-end pt-4 border-t border-gray-200">
-                                    <button className="btn-primary flex items-center space-x-2">
-                                        <Save className="w-4 h-4" />
-                                        <span>Save Preferences</span>
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -550,6 +484,20 @@ export default function SettingsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Cropper Modal */}
+            {selectedImageSrc && (
+                <ImageCropperModal
+                    isOpen={cropperModalOpen}
+                    onClose={() => {
+                        setCropperModalOpen(false);
+                        setSelectedImageSrc(null);
+                    }}
+                    imageSrc={selectedImageSrc}
+                    onCropComplete={handleCropComplete}
+                    aspectRatio={1}
+                />
+            )}
         </div>
     );
 }

@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Building, CreditCard, Bell, Save, Edit,
-    User, Shield, Globe, MapPin, Mail, Check
+    User, Shield, Globe, MapPin, Mail, Check, Camera
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
 import UsageDashboard from '@/components/UsageDashboard';
+import { ImageCropperModal } from '@/components/common/ImageCropperModal';
 
 interface CompanyProfile {
     company_name: string;
@@ -19,9 +21,13 @@ interface CompanyProfile {
 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuthStore();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'company' | 'profile' | 'billing' | 'notifications'>('profile');
     const [saving, setSaving] = useState(false);
     const [editingUser, setEditingUser] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [cropperModalOpen, setCropperModalOpen] = useState(false);
+    const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
 
     const [userData, setUserData] = useState({
         first_name: user?.first_name || '',
@@ -31,13 +37,15 @@ export default function SettingsPage() {
     });
 
     const [companyData, setCompanyData] = useState<CompanyProfile>({
-        company_name: 'TechCorp',
-        website: 'https://techcorp.com',
-        industry: 'technology',
-        company_size: '51-200',
-        location: 'London, United Kingdom',
-        description: 'Leading technology company focused on innovation and excellence.',
+        company_name: '',
+        website: '',
+        industry: '',
+        company_size: '',
+        location: '',
+        description: '',
     });
+
+    const [editingCompany, setEditingCompany] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -47,13 +55,38 @@ export default function SettingsPage() {
                 email: user.email,
                 avatar_url: user.avatar_url || '',
             });
+            fetchCompanyProfile();
         }
     }, [user]);
+
+    const fetchCompanyProfile = async () => {
+        try {
+            const response = await apiClient.get('/client-companies/me/profile');
+            if (response.data) {
+                setCompanyData({
+                    company_name: response.data.name,
+                    website: response.data.website || '',
+                    industry: response.data.industry || '',
+                    company_size: response.data.company_size || '',
+                    location: response.data.city ? `${response.data.city}, ${response.data.country || 'South Africa'}` : '',
+                    description: response.data.description || '',
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching company profile:', error);
+        }
+    };
 
     const handleSaveUser = async () => {
         setSaving(true);
         try {
-            await apiClient.put('/auth/me', userData);
+            // Only send valid fields for UserUpdate
+            const updateData = {
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                avatar_url: userData.avatar_url,
+            };
+            await apiClient.put('/auth/me', updateData);
             toast.success('Identity updated successfully!');
             await refreshUser();
             setEditingUser(false);
@@ -61,6 +94,60 @@ export default function SettingsPage() {
             toast.error('Failed to update identity');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSaveCompany = async () => {
+        setSaving(true);
+        try {
+            const updateData = {
+                name: companyData.company_name,
+                website: companyData.website,
+                industry: companyData.industry,
+                company_size: companyData.company_size,
+                description: companyData.description,
+                city: companyData.location?.split(',')[0].trim() || ''
+            };
+            await apiClient.put('/client-companies/me/profile', updateData);
+            toast.success('Company branding updated!');
+            setEditingCompany(false);
+            fetchCompanyProfile();
+        } catch (error) {
+            toast.error('Failed to update company branding');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImageSrc(reader.result as string);
+                setCropperModalOpen(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setCropperModalOpen(false);
+        setSelectedImageSrc(null);
+
+        const file = new File([croppedBlob], `avatar_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await apiClient.post('/auth/upload-avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success("Profile picture updated!");
+            await refreshUser();
+            setUserData(prev => ({ ...prev, avatar_url: response.data.avatar_url }));
+        } catch (err) {
+            toast.error("Failed to upload image");
         }
     };
 
@@ -114,7 +201,7 @@ export default function SettingsPage() {
                             </button>
                            
                             <button
-                                onClick={() => setActiveTab('billing')}
+                                onClick={() => navigate('/company/settings/billing')}
                                 className={`w-full flex items-center space-x-3 px-6 py-4 rounded-2xl font-black transition-all ${activeTab === 'billing'
                                         ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20'
                                         : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
@@ -154,14 +241,29 @@ export default function SettingsPage() {
                                      </div>
                                      <div className="px-10 pb-10">
                                          <div className="relative -mt-20 mb-10 flex items-end space-x-8">
-                                             <div className="w-40 h-40 rounded-[35px] bg-white p-1 shadow-2xl overflow-hidden ring-[12px] ring-white">
-                                                  {user?.avatar_url ? (
-                                                      <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover rounded-[28px]" />
-                                                  ) : (
-                                                      <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-5xl font-black">
-                                                          {user?.first_name[0]}{user?.last_name[0]}
-                                                      </div>
-                                                  )}
+                                             <div className="relative group w-40 h-40">
+                                                 <div className="w-40 h-40 rounded-[35px] bg-white p-1 shadow-2xl overflow-hidden ring-[12px] ring-white">
+                                                      {user?.avatar_url ? (
+                                                          <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover rounded-[28px]" />
+                                                      ) : (
+                                                          <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-5xl font-black">
+                                                              {user?.first_name[0]}{user?.last_name[0]}
+                                                          </div>
+                                                      )}
+                                                 </div>
+                                                 <button 
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="absolute inset-0 bg-black/40 rounded-[35px] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white"
+                                                 >
+                                                     <Camera className="w-10 h-10" />
+                                                 </button>
+                                                 <input 
+                                                    type="file" 
+                                                    ref={fileInputRef} 
+                                                    className="hidden" 
+                                                    accept="image/*"
+                                                    onChange={handleImageUpload}
+                                                 />
                                              </div>
                                              <div className="pb-4">
                                                   <h2 className="text-3xl font-black text-gray-900 tracking-tighter">{user?.first_name} {user?.last_name}</h2>
@@ -219,7 +321,7 @@ export default function SettingsPage() {
                                                       placeholder="https://images.unsplash.com/your-profile-photo"
                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
                                                   />
-                                                  <p className="text-[10px] text-gray-400 font-bold ml-1">Provide a high-quality photo URL for team recognition.</p>
+                                                  <p className="text-[10px] text-gray-400 font-bold ml-1">Or click the photo above to upload directly.</p>
                                               </div>
                                          </div>
                                      </div>
@@ -228,69 +330,106 @@ export default function SettingsPage() {
                          )}
 
                          {activeTab === 'company' && (
-                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10">
-                                 <div className="mb-10">
-                                     <h3 className="text-xl font-black text-gray-900 tracking-tight">Company Branding</h3>
-                                     <p className="text-gray-400 text-sm font-bold">Manage public listing and candidate-facing info</p>
-                                 </div>
-                                 
-                                 <div className="space-y-8">
-                                      <div className="space-y-2">
-                                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Name</label>
-                                          <input 
-                                              type="text" 
-                                              value={companyData.company_name}
-                                              disabled={true}
-                                              className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-400 cursor-not-allowed"
-                                          />
-                                      </div>
-                                      <div className="space-y-2">
-                                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Branding Website</label>
-                                          <div className="relative">
-                                              <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                                              <input 
-                                                  type="text" 
-                                                  value={companyData.website}
-                                                  disabled={true}
-                                                  className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-400 cursor-not-allowed"
-                                              />
-                                          </div>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-8">
-                                          <div className="space-y-2">
-                                              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Primary Location</label>
-                                              <div className="relative">
-                                                  <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                                                  <input 
-                                                      type="text" 
-                                                      value={companyData.location}
-                                                      disabled={true}
-                                                      className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-400 cursor-not-allowed"
-                                                  />
-                                              </div>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Operational Context</label>
-                                              <input 
-                                                  type="text" 
-                                                  value={companyData.industry}
-                                                  disabled={true}
-                                                  className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-400 cursor-not-allowed"
-                                              />
-                                          </div>
-                                      </div>
-                                 </div>
-
-                                 <div className="mt-12 p-8 bg-blue-50/50 rounded-3xl border border-blue-100 flex items-center space-x-6">
-                                      <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-                                          <Mail className="w-8 h-8 text-white" />
-                                      </div>
+                              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10">
+                                  <div className="flex items-center justify-between mb-10 pb-6 border-b border-gray-50">
                                       <div>
-                                          <h4 className="font-black text-sm uppercase tracking-widest text-blue-900 mb-1">Centralized Governance</h4>
-                                          <p className="text-xs text-blue-700 font-bold leading-relaxed">Company branding is managed by System Administrators to ensure platform integrity. Contact support to update core branding.</p>
+                                          <h3 className="text-xl font-black text-gray-900 tracking-tight">Company Branding</h3>
+                                          <p className="text-gray-400 text-sm font-bold">Manage public listing and candidate-facing info</p>
                                       </div>
-                                 </div>
-                             </div>
+                                      {!editingCompany ? (
+                                          <button onClick={() => setEditingCompany(true)} className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">
+                                              Edit Profile
+                                          </button>
+                                      ) : (
+                                          <div className="flex space-x-3">
+                                               <button onClick={() => setEditingCompany(false)} className="px-6 py-3 bg-gray-100 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest">Cancel</button>
+                                               <button onClick={handleSaveCompany} disabled={saving} className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 disabled:opacity-50">
+                                                   {saving ? 'Syncing...' : 'Save Changes'}
+                                               </button>
+                                          </div>
+                                      )}
+                                  </div>
+                                  
+                                  <div className="space-y-8">
+                                       <div className="space-y-2">
+                                           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Name</label>
+                                           <input 
+                                               type="text" 
+                                               value={companyData.company_name}
+                                               onChange={(e) => setCompanyData({...companyData, company_name: e.target.value})}
+                                               disabled={!editingCompany}
+                                               className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                           />
+                                       </div>
+                                       <div className="space-y-2">
+                                           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Branding Website</label>
+                                           <div className="relative">
+                                               <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                                               <input 
+                                                   type="text" 
+                                                   value={companyData.website}
+                                                   onChange={(e) => setCompanyData({...companyData, website: e.target.value})}
+                                                   disabled={!editingCompany}
+                                                   className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                               />
+                                           </div>
+                                       </div>
+                                       <div className="grid grid-cols-2 gap-8">
+                                           <div className="space-y-2">
+                                               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Primary Location</label>
+                                               <div className="relative">
+                                                   <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                                                   <input 
+                                                       type="text" 
+                                                       value={companyData.location}
+                                                       onChange={(e) => setCompanyData({...companyData, location: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                   />
+                                               </div>
+                                           </div>
+                                           <div className="space-y-2">
+                                               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Operational Context</label>
+                                               <input 
+                                                   type="text" 
+                                                   value={companyData.industry}
+                                                   onChange={(e) => setCompanyData({...companyData, industry: e.target.value})}
+                                                   disabled={!editingCompany}
+                                                   className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                               />
+                                           </div>
+                                       </div>
+                                       <div className="grid grid-cols-2 gap-8">
+                                           <div className="space-y-2">
+                                               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Size</label>
+                                               <select 
+                                                   value={companyData.company_size}
+                                                   onChange={(e) => setCompanyData({...companyData, company_size: e.target.value})}
+                                                   disabled={!editingCompany}
+                                                   className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all appearance-none"
+                                               >
+                                                   <option value="">Select Size</option>
+                                                   <option value="1-10">1-10 employees</option>
+                                                   <option value="11-50">11-50 employees</option>
+                                                   <option value="51-200">51-200 employees</option>
+                                                   <option value="201-500">201-500 employees</option>
+                                                   <option value="500+">500+ employees</option>
+                                               </select>
+                                           </div>
+                                       </div>
+                                       <div className="space-y-2">
+                                           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Description</label>
+                                           <textarea 
+                                               value={companyData.description}
+                                               onChange={(e) => setCompanyData({...companyData, description: e.target.value})}
+                                               disabled={!editingCompany}
+                                               rows={4}
+                                               className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all resize-none"
+                                               placeholder="Describe your company's mission and values..."
+                                           />
+                                       </div>
+                                  </div>
+                              </div>
                          )}
 
                          {activeTab === 'billing' && (
@@ -326,6 +465,20 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Cropper Modal */}
+            {selectedImageSrc && (
+                <ImageCropperModal
+                    isOpen={cropperModalOpen}
+                    onClose={() => {
+                        setCropperModalOpen(false);
+                        setSelectedImageSrc(null);
+                    }}
+                    imageSrc={selectedImageSrc}
+                    onCropComplete={handleCropComplete}
+                    aspectRatio={1}
+                />
+            )}
         </div>
     );
 }

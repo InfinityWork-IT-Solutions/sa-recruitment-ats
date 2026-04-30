@@ -29,6 +29,7 @@ class ClientCompanyBase(BaseModel):
     address_line2: Optional[str] = Field(None, max_length=255)
     city: Optional[str] = Field(None, max_length=100)
     province: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
     postal_code: Optional[str] = Field(None, max_length=20)
 
 
@@ -71,7 +72,6 @@ class ClientCompanyResponse(ClientCompanyBase):
     
     registration_number: Optional[str] = None
     vat_number: Optional[str] = None
-    country: Optional[str] = None
     
     is_active: bool
     notes: Optional[str] = None

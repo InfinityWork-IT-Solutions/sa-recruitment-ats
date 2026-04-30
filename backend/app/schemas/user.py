@@ -94,6 +94,7 @@ class UserResponse(UserBase):
     """Schema for user in responses"""
     id: UUID
     agency_id: Optional[UUID] = None
+    candidate_id: Optional[UUID] = None
     role: UserRole
     is_active: bool
     is_verified: bool

@@ -23,7 +23,22 @@ app = FastAPI(
 async def global_exception_handler(request: Request, exc: Exception):
     with open("trace.log", "w") as f:
         f.write(traceback.format_exc())
-    return JSONResponse(status_code=500, content={"detail": str(exc), "trace": traceback.format_exc()})
+    
+    from fastapi.responses import JSONResponse
+    
+    response = JSONResponse(
+        status_code=500, 
+        content={
+            "detail": str(exc), 
+            "trace": traceback.format_exc()
+        }
+    )
+    # Add CORS headers manually to ensure the frontend can read the error
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 from fastapi.staticfiles import StaticFiles
 
@@ -34,7 +49,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://localhost:5173",
-        "https://127.0.0.1:5173"
+        "https://127.0.0.1:5173",
+        "http://10.0.0.125:5173"
     ],
     allow_credentials=True,
     allow_methods=["*"],

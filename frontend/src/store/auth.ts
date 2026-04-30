@@ -76,6 +76,8 @@ export const useAuthStore = create<AuthState>((set) => ({
                         email: data.email,
                         city: data.city,
                         province: data.province,
+                        country: data.country,
+                        subscription_tier: data.subscription_plan || 'starter',
                     },
                     user: {
                         email: data.email,
@@ -114,6 +116,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                     phone: data.phone,
                     city: data.city,
                     province: data.province,
+                    country: data.country,
                     current_job_title: data.current_job_title,
                     years_of_experience: typeof data.years_of_experience === 'string' 
                         ? parseInt(data.years_of_experience.split(/[-+]/)[0], 10) || 0 
@@ -151,6 +154,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                     website: data.company_website,
                     city: data.city,
                     province: data.province,
+                    country: data.country,
                     subscription_plan: data.subscription_plan
                 }
             };

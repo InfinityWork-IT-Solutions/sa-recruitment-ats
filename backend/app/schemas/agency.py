@@ -21,7 +21,7 @@ class AgencyBase(BaseModel):
 # Schema for creating an agency (registration)
 class AgencyCreate(AgencyBase):
     """Schema for creating a new agency"""
-    subscription_tier: SubscriptionTier = Field(SubscriptionTier.standard, description="Subscription tier")
+    subscription_tier: SubscriptionTier = Field(SubscriptionTier.professional, description="Subscription tier")
     
     # Optional company details
     registration_number: Optional[str] = Field(None, max_length=100)
@@ -32,6 +32,7 @@ class AgencyCreate(AgencyBase):
     address_line2: Optional[str] = Field(None, max_length=255)
     city: Optional[str] = Field(None, max_length=100)
     province: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
     postal_code: Optional[str] = Field(None, max_length=20)
     
     model_config = ConfigDict(json_schema_extra={
@@ -40,7 +41,7 @@ class AgencyCreate(AgencyBase):
             "email": "contact@capetownrecruiting.co.za",
             "phone": "+27 21 123 4567",
             "website": "https://capetownrecruiting.co.za",
-            "subscription_tier": "standard",
+            "subscription_tier": "professional",
             "city": "Cape Town",
             "province": "Western Cape"
         }

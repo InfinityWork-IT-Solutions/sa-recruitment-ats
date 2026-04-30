@@ -35,13 +35,18 @@ export default function CompanyProfile() {
     }
   });
 
-  const [companyLogo, setCompanyLogo] = useState<string | null>(companyData?.logo_url || null);
-  const [tempDescription, setTempDescription] = useState(companyData?.description || "");
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [tempDescription, setTempDescription] = useState("");
 
+  // Sync state with data, but don't overwrite if we have a local optimistic update
   useEffect(() => {
     if (companyData) {
-      setCompanyLogo(companyData.logo_url || null);
-      if(!isEditingDescription) setTempDescription(companyData.description || "");
+      if (!companyLogo || !companyLogo.startsWith('blob:')) {
+        setCompanyLogo(companyData.logo_url || null);
+      }
+      if (!isEditingDescription) {
+        setTempDescription(companyData.description || "");
+      }
     }
   }, [companyData, isEditingDescription]);
 

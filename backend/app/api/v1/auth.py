@@ -1,7 +1,9 @@
 """
 Authentication API endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
+import os
+import shutil
 from typing import Optional, Union
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -163,6 +165,51 @@ async def register_company(
     )
 
 
+@router.post("/register/recruiter", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register_recruiter(
+    registration: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Register a new recruiter/agency
+    Used by the recruiter subscription flow
+    """
+    data = await registration.json()
+    
+    # Map to RegisterRequest format
+    from app.schemas import RegisterRequest, AgencyCreate, UserCreate
+    from app.models import UserRole
+    
+    reg_request = RegisterRequest(
+        agency=AgencyCreate(
+            name=data.get('agency_name'),
+            email=data.get('email'),
+            city=data.get('city'),
+            province=data.get('province'),
+            country=data.get('country', 'South Africa'),
+            primary_contact_name=f"{data.get('first_name')} {data.get('last_name')}"
+        ),
+        user=UserCreate(
+            email=data.get('email'),
+            password=data.get('password'),
+            first_name=data.get('first_name'),
+            last_name=data.get('last_name'),
+            phone=data.get('phone'),
+            role=UserRole.agency_admin
+        )
+    )
+    
+    agency, user = await auth_service.register_agency_and_user(db, reg_request)
+    tokens = auth_service.create_tokens(user)
+    
+    return RegisterResponse(
+        message="Recruiter registration successful!",
+        user_id=user.id,
+        agency_id=agency.id,
+        tokens=TokenResponse(**tokens)
+    )
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(
     credentials: LoginRequest,
@@ -195,8 +242,8 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Eagerly load agency relationship
-    await db.refresh(user, ["agency"])
+    # Eagerly load relationships
+    await db.refresh(user, ["agency", "candidate"])
     
     # Create tokens
     tokens = auth_service.create_tokens(user)
@@ -278,8 +325,8 @@ async def get_current_user_info(
     """
     Get current authenticated user information
     """
-    # Eagerly load agency relationship
-    await db.refresh(current_user, ["agency"])
+    # Eagerly load relationships
+    await db.refresh(current_user, ["agency", "candidate"])
     
     return UserResponse.model_validate(current_user)
 
@@ -302,6 +349,40 @@ async def update_profile(
     await db.refresh(current_user)
     
     return UserResponse.model_validate(current_user)
+
+
+
+@router.post("/upload-avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Upload user avatar picture
+    """
+    # Create directory if not exists
+    os.makedirs("uploads/avatars", exist_ok=True)
+    
+    # Generate filename
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"avatar_{current_user.id}{ext}"
+    filepath = f"uploads/avatars/{filename}"
+    
+    # Save file
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Update user record
+    # Prefix with /static to match the mount point in main.py
+    avatar_url = f"http://localhost:8000/static/{filepath}"
+    current_user.avatar_url = avatar_url
+    
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return {"avatar_url": avatar_url}
 
 
 @router.post("/logout", response_model=MessageResponse)

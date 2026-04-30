@@ -13,7 +13,7 @@ from sqlalchemy import select, func
 from datetime import datetime, timedelta
 from app.models.client_company import CompanyProfileView
 from app.models.job import JobView, Job
-from app.models.application import Application
+from app.models.application import Application, ApplicationStatus
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
@@ -114,10 +114,36 @@ async def get_my_client_company(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get my client company details"""
+    """Get my client company details - Auto-creates if missing for clients"""
     company = await client_company_service.get_client_company_by_user_id(db, current_user.id)
+    
+    if not company and current_user.role == UserRole.client:
+        # Auto-create profile if missing for a client user
+        from app.schemas.client_company import ClientCompanyCreate
+        from app.models.agency import Agency
+        
+        # Get agency name for default company name
+        stmt = select(Agency).where(Agency.id == current_user.agency_id)
+        result = await db.execute(stmt)
+        agency = result.scalar_one_or_none()
+        
+        company_data = ClientCompanyCreate(
+            name=agency.name if agency else f"{current_user.first_name}'s Company",
+            contact_email=current_user.email,
+            contact_name=f"{current_user.first_name} {current_user.last_name}"
+        )
+        company = await client_company_service.create_client_company(
+            db, company_data, current_user.agency_id
+        )
+        # Link to user
+        company.user_id = current_user.id
+        db.add(company)
+        await db.commit()
+        await db.refresh(company)
+        
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+        
     return ClientCompanyResponse.model_validate(company)
 
 @router.put("/me/profile", response_model=ClientCompanyResponse)
@@ -278,6 +304,7 @@ async def upload_company_logo(
     }
 
 @router.get("/profile-analytics/views")
+@router.get("/profile-analytics/view")
 async def get_company_analytics(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
@@ -340,10 +367,13 @@ async def get_company_analytics(
         result = await db.execute(stmt_apps)
         total_applications = result.scalar() or 0
         
-        # Scheduled Interviews
+        # Scheduled Interviews (Include both scheduled and completed for this metric)
         stmt_interview = select(func.count(Application.id)).where(
             Application.job_id.in_(job_ids),
-            Application.status == "interview"
+            Application.status.in_([
+                ApplicationStatus.interview_scheduled,
+                ApplicationStatus.interviewed
+            ])
         )
         result = await db.execute(stmt_interview)
         scheduled_interviews = result.scalar() or 0

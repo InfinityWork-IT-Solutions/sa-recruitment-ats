@@ -23,6 +23,8 @@ const clientCompanySchema = z.object({
     city: z.string().optional(),
     province: z.string().optional(),
     country: z.string().optional(),
+    company_size: z.string().optional(),
+    description: z.string().optional(),
 });
 
 type ClientCompanyFormData = z.infer<typeof clientCompanySchema>;
@@ -69,6 +71,8 @@ export default function ClientCompaniesPage() {
             city: company.city || '',
             province: company.province || '',
             country: company.country || 'South Africa',
+            company_size: company.company_size || '',
+            description: company.description || '',
         });
         setShowModal(true);
     };
@@ -303,6 +307,35 @@ export default function ClientCompaniesPage() {
                                         {errors.website && (
                                             <p className="mt-1 text-sm text-red-600">{errors.website.message}</p>
                                         )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Company Size
+                                        </label>
+                                        <select 
+                                            {...register('company_size')}
+                                            className="input"
+                                        >
+                                            <option value="">Select Size</option>
+                                            <option value="1-10">1-10 employees</option>
+                                            <option value="11-50">11-50 employees</option>
+                                            <option value="51-200">51-200 employees</option>
+                                            <option value="201-500">201-500 employees</option>
+                                            <option value="500+">500+ employees</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Description
+                                        </label>
+                                        <textarea
+                                            {...register('description')}
+                                            rows={3}
+                                            className="input"
+                                            placeholder="Company mission and values..."
+                                        />
                                     </div>
                                 </div>
                             </div>

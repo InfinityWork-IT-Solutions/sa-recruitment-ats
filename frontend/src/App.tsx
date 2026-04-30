@@ -21,6 +21,12 @@ import PublicJobDetailPage from './pages/PublicJobDetailPage';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import TermsOfService from './pages/legal/TermsOfService';
 
+// Recruiter Subscription & Registration
+import PricingPage from './pages/recruiter/PricingPage';
+import RecruiterRegistration from './pages/recruiter/RecruiterRegistration';
+import BillingDashboard from './pages/recruiter/BillingDashboard';
+import SubscriptionSettings from './pages/recruiter/SubscriptionSettings';
+
 // Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CandidateDashboard from './pages/dashboard/CandidateDashboard';
@@ -35,6 +41,7 @@ import CreateJobPage from './pages/jobs/CreateJobPage';
 import CandidatesPage from './pages/candidates/CandidatesPage';
 import CandidateDetailPage from './pages/candidates/CandidateDetailPage';
 import CreateCandidatePage from './pages/candidates/CreateCandidatesPage';
+import MyAssessments from './pages/candidates/MyAssessments';
 
 // Applications
 import ApplicationsPage from './pages/applications/ApplicationsPage';
@@ -126,8 +133,9 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/jobs" element={<PublicJobsPage />} />
-          <Route path="/jobs/:jobId" element={<PublicJobDetailPage />} />
+          <Route path="/job-board" element={<PublicJobsPage />} />
+          <Route path="/job-board/:jobId" element={<PublicJobDetailPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
 
           {/* Video Screening Routes */}
           <Route path="/video-screening/:access_token" element={<VideoScreeningLanding />} />
@@ -138,12 +146,13 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<UnifiedLoginPage />} />
             <Route path="/register" element={<UnifiedRegisterPage />} />
+            <Route path="/register/recruiter" element={<RecruiterRegistration />} />
           </Route>
 
           {/* Recruiter Dashboard (Existing) */}
           <Route
             element={
-              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin', 'client']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -162,6 +171,7 @@ function App() {
             <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
             <Route path="/recruiter/video-screenings" element={<RecruiterVideoReviewDashboard />} />
             <Route path="/recruiter/video-screening/:screening_id" element={<VideoScreeningDetailView />} />
+            <Route path="/recruiter/billing" element={<SubscriptionSettings />} />
           </Route>
 
           {/* Candidate Portal */}
@@ -176,6 +186,8 @@ function App() {
             <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/jobs" element={<JobsPage />} />
             <Route path="/candidate/applications" element={<ApplicationsPage />} />
+            <Route path="/candidate/assessments" element={<MyAssessments />} />
+            <Route path="/candidate-dashboard" element={<Navigate to="/candidate/assessments" replace />} />
           </Route>
 
           {/* Company Portal */}
@@ -194,7 +206,7 @@ function App() {
             <Route path="/company/team" element={<ClientTeamPage />} />
             <Route path="/company/settings" element={<ClientSettingsPage />} />
             <Route path="/company/settings/integrations" element={<ClientIntegrationsSettingsPage />} />
-            <Route path="/company/settings/billing" element={<ClientSettingsPage />} />
+            <Route path="/company/settings/billing" element={<SubscriptionSettings />} />
             <Route path="/company/analytics" element={<AnalyticsPage />} />
             <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
             {/* Legacy redirect */}
@@ -223,6 +235,7 @@ function App() {
             }
           >
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/billing" element={<SubscriptionSettings />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
           </Route>

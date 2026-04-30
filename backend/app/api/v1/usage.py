@@ -41,9 +41,9 @@ async def get_current_usage(
     usage = await get_or_create_usage_tracking(agency_id, db)
     
     # Defaults if limits not set in DB
-    def_cv = 50 if plan_name == 'lite' else 500
-    def_match = 500 if plan_name == 'lite' else 5000
-    def_search = 200 if plan_name == 'lite' else 2000
+    def_cv = 100 if plan_name == 'starter' else 1000
+    def_match = 1000 if plan_name == 'starter' else 10000
+    def_search = 500 if plan_name == 'starter' else 5000
     
     cv_limit = plan_limits.cv_parses_per_month if plan_limits else def_cv
     match_limit = plan_limits.ai_match_calculations_per_month if plan_limits else def_match

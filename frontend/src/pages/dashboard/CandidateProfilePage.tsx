@@ -78,16 +78,15 @@ export default function CandidateProfilePage() {
         // Upload to backend
         try {
             const formData = new FormData();
-            formData.append('photo', file);
+            formData.append('file', file);
             
-            // Assuming apiClient handles FormData correctly
-            await apiClient.post('/candidates/upload-photo', formData, {
+            const response = await apiClient.post('/auth/upload-avatar', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
             toast.success('Profile photo uploaded!');
-            // Refresh auth store to get updated avatar URL globally
-            useAuthStore.getState().refreshUser();
+            await useAuthStore.getState().refreshUser();
+            setAvatarUrl(response.data.avatar_url);
         } catch (error) {
             toast.error('Failed to upload photo');
             console.error('Upload error:', error);

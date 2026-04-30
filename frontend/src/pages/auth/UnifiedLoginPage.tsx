@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,19 +17,30 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function UnifiedLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const urlType = searchParams.get('type') as 'candidate' | 'company' | 'recruiter' | null;
 
   const {
     register,
     handleSubmit,
     watch,
     setError,
+    reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      user_type: 'candidate',
+      user_type: (urlType as any) || 'candidate',
     },
   });
+
+  // Effect to handle URL parameter changes
+  useEffect(() => {
+    if (urlType && ['candidate', 'company', 'recruiter'].includes(urlType)) {
+      setValue('user_type', urlType as any);
+    }
+  }, [urlType, setValue]);
 
   const selectedUserType = watch('user_type');
 
@@ -135,46 +146,51 @@ export default function UnifiedLoginPage() {
             </div>
           )}
 
-          {/* User Type Selector */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-4">
-              I am a...
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {userTypes.map((type) => {
-                const Icon = type.icon;
-                const isSelected = selectedUserType === type.value;
-                const typeColors = colorClasses[type.color as keyof typeof colorClasses];
-                
-                return (
-                  <label
-                    key={type.value}
-                    className={`relative cursor-pointer rounded-xl p-4 transition-all duration-200 ${
-                      isSelected
-                        ? `${typeColors.bgLight} ring-2 ${typeColors.border} shadow-md`
-                        : 'bg-gray-50 border border-gray-200 hover:bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value={type.value}
-                      {...register('user_type')}
-                      className="sr-only"
-                    />
-                    <div className="flex flex-col items-center space-y-2">
-                      <Icon className={`w-8 h-8 ${isSelected ? typeColors.text : 'text-gray-400'}`} />
-                      <span className={`text-xs font-bold uppercase tracking-wider text-center ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
-                        {type.label}
-                      </span>
-                    </div>
-                  </label>
-                );
-              })}
+          {/* User Type Selector - Only show if not specified in URL */}
+          {urlType ? (
+            <input type="hidden" {...register('user_type')} />
+          ) : (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-4">
+                I am a...
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {userTypes.map((type) => {
+                  const Icon = type.icon;
+                  const isSelected = selectedUserType === type.value;
+                  const typeColors = colorClasses[type.color as keyof typeof colorClasses];
+                  
+                  return (
+                    <label
+                      key={type.value}
+                      className={`relative cursor-pointer rounded-xl p-4 transition-all duration-200 ${
+                        isSelected
+                          ? `${typeColors.bgLight} ring-2 ${typeColors.border} shadow-md`
+                          : 'bg-gray-50 border border-gray-200 hover:bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={type.value}
+                        {...register('user_type')}
+                        className="sr-only"
+                      />
+                      <div className="flex flex-col items-center space-y-2">
+                        <Icon className={`w-8 h-8 ${isSelected ? typeColors.text : 'text-gray-400'}`} />
+                        <span className={`text-xs font-bold uppercase tracking-wider text-center ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {type.label}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {errors.user_type && (
+                <p className="mt-1 text-sm text-red-600">{errors.user_type.message}</p>
+              )}
+              <div className="border-t border-gray-100 my-8"></div>
             </div>
-            {errors.user_type && (
-              <p className="mt-1 text-sm text-red-600">{errors.user_type.message}</p>
-            )}
-          </div>
+          )}
 
             {/* Email */}
             <div>
@@ -251,7 +267,10 @@ export default function UnifiedLoginPage() {
           {/* Register Link */}
           <div className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/register" className={`${colors.text} hover:underline font-semibold`}>
+            <Link 
+              to={`/register?type=${selectedUserType}`} 
+              className={`${colors.text} hover:underline font-semibold`}
+            >
               Sign up here
             </Link>
           </div>

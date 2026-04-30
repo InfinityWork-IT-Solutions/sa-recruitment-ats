@@ -71,13 +71,14 @@ class LoginResponse(BaseModel):
 class RegisterRequest(BaseModel):
     """Registration request with agency and user"""
     agency: AgencyCreate = Field(..., description="Agency details")
+    user: UserCreate = Field(..., description="Admin user details")
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "agency": {
                 "name": "Cape Town Recruiting",
                 "email": "contact@capetownrecruiting.co.za",
                 "phone": "+27 21 123 4567",
-                "subscription_tier": "standard",
+                "subscription_tier": "professional",
                 "city": "Cape Town",
                 "province": "Western Cape"
             },
@@ -111,7 +112,7 @@ class UnifiedRegisterRequest(BaseModel):
     email: EmailStr
     password: str
     jobId: Optional[UUID] = None
-    plan: Optional[str] = 'lite'  # lite, standard, premium
+    plan: Optional[str] = 'starter'  # starter, professional, enterprise
     
     # Candidate fields
     firstName: Optional[str] = None

@@ -97,7 +97,7 @@ export default function JobDetailPage() {
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Job not found</h3>
                     <p className="text-gray-600 mb-6">This job posting may have been removed or closed.</p>
                     <button
-                        onClick={() => navigate('/jobs')}
+                        onClick={() => navigate('/job-board')}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
                     >
                         Back to Jobs
@@ -116,7 +116,7 @@ export default function JobDetailPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <button
-                            onClick={() => navigate('/jobs')}
+                            onClick={() => navigate('/job-board')}
                             className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />

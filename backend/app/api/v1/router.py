@@ -17,7 +17,9 @@ from app.api.v1 import (
     automation,
     decision_queue,
     feeds,
-    video_screening
+    video_screening,
+    my_assessments,
+    subscription
 )
 
 # Create main API router
@@ -118,6 +120,20 @@ api_router.include_router(
     video_screening.router,
     prefix="/video-screening",
     tags=["Video Screening"]
+)
+
+# My Assessments (Candidate Portal)
+api_router.include_router(
+    my_assessments.router,
+    prefix="/candidates",
+    tags=["Candidates - Portal"]
+)
+
+# Subscriptions & Billing
+api_router.include_router(
+    subscription.router,
+    # Prefix /api/subscriptions is defined in the router
+    tags=["Subscriptions & Billing"]
 )
 
 

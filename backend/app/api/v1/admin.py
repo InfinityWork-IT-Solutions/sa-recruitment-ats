@@ -50,12 +50,12 @@ async def get_admin_dashboard(
     
     monthly_revenue = 0
     prices = {
-        SubscriptionTier.lite: 725,
-        SubscriptionTier.standard: 925,
-        SubscriptionTier.premium: 1150,
+        SubscriptionTier.starter: 1015,
+        SubscriptionTier.professional: 840,
+        SubscriptionTier.enterprise: 0,
     }
     for agency in active_agencies:
-        monthly_revenue += prices.get(agency.subscription_tier, 925) * agency.max_users
+        monthly_revenue += prices.get(agency.subscription_tier, 840) * (agency.max_users or 1)
     
     # Recent activity mockup (In real system, query Activity model)
     recent_activity = [

@@ -25,6 +25,15 @@ export default function VideoRecordingPage() {
 
   useEffect(() => {
     fetchQuestions();
+
+    // Prevent leaving the page once screening starts
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Are you sure you want to exit? Your progress will be lost and you may not be able to restart.';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [access_token]);
 
   const fetchQuestions = async () => {

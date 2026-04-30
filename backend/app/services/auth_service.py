@@ -37,7 +37,7 @@ class AuthService:
                 email="system@recruitpro.co.za",
                 phone="0000000000",
                 is_active=True,
-                subscription_tier="premium"
+                subscription_tier="enterprise"
             )
             db.add(agency)
             await db.flush()
@@ -101,11 +101,11 @@ class AuthService:
 
             # Map plan string to SubscriptionTier enum
             tier_map = {
-                'lite': SubscriptionTier.lite,
-                'standard': SubscriptionTier.standard,
-                'premium': SubscriptionTier.premium
+                'starter': SubscriptionTier.starter,
+                'professional': SubscriptionTier.professional,
+                'enterprise': SubscriptionTier.enterprise
             }
-            selected_tier = tier_map.get(registration.plan.lower(), SubscriptionTier.standard) if registration.plan else SubscriptionTier.standard
+            selected_tier = tier_map.get(registration.plan.lower(), SubscriptionTier.professional) if registration.plan else SubscriptionTier.professional
             
             reg = RegisterRequest(
                 agency=AgencyCreate(
@@ -167,7 +167,7 @@ class AuthService:
         await db.flush()  # Get agency.id
         
         # Create first user (must be agency admin)
-        user_data = registration.user.model_dump(exclude={'password', 'role'})
+        user_data = registration.user.model_dump(exclude={'password', 'role', 'agency_id'})
         user = User(
             **user_data,
             agency_id=agency.id,

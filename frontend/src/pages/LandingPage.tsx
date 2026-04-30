@@ -31,6 +31,7 @@ export default function LandingPage() {
                             <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Features</a>
                             <a href="#benefits" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Benefits</a>
                             <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Pricing</a>
+                            <a href="/job-board" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">View Jobs</a>
                             <a href="#about" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">About</a>
                         </nav>
 
@@ -67,6 +68,7 @@ export default function LandingPage() {
                             <a href="#features" className="block text-gray-600 hover:text-blue-600 font-medium py-2">Features</a>
                             <a href="#benefits" className="block text-gray-600 hover:text-blue-600 font-medium py-2">Benefits</a>
                             <a href="#pricing" className="block text-gray-600 hover:text-blue-600 font-medium py-2">Pricing</a>
+                            <a href="/job-board" className="block text-gray-600 hover:text-blue-600 font-medium py-2">View Jobs</a>
                             <a href="#about" className="block text-gray-600 hover:text-blue-600 font-medium py-2">About</a>
                             <div className="pt-3 border-t border-gray-200 space-y-3 mt-4">
                                 <a href="/login" className="block w-full text-center text-gray-600 hover:text-blue-600 font-medium py-2">
@@ -124,7 +126,7 @@ export default function LandingPage() {
                     </ul>
                     
                     <a 
-                      href="/jobs" 
+                      href="/job-board" 
                       className="block w-full text-center py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg mb-4"
                     >
                       Browse Available Jobs
@@ -252,10 +254,10 @@ export default function LandingPage() {
                       <ArrowRight className="ml-2 w-5 h-5 text-blue-600" />
                     </a>
                     <a 
-                      href="#pricing" 
+                      href="/job-board" 
                       className="w-full sm:w-auto px-10 py-4 bg-transparent border-2 border-white/80 hover:border-white hover:bg-white/10 text-white rounded-xl font-bold text-lg transition-all backdrop-blur-sm shadow-sm"
                     >
-                      View Pricing
+                      View Jobs
                     </a>
                   </div>
                   
@@ -534,7 +536,7 @@ export default function LandingPage() {
                     </ul>
                     
                     <a 
-                      href="/register" 
+                      href="/register?type=company&plan=starter" 
                       className="block w-full text-center py-4 bg-gray-50 border border-gray-200 text-gray-700 rounded-xl font-bold group-hover:bg-gray-100 transition-colors"
                     >
                       Start Free Trial
@@ -589,7 +591,7 @@ export default function LandingPage() {
                     </ul>
                     
                     <a 
-                      href="/register" 
+                      href="/register?type=company&plan=professional" 
                       className="block w-full text-center py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/50 transition-colors"
                     >
                       Start Free Trial
@@ -796,7 +798,7 @@ export default function LandingPage() {
                             <h3 className="text-white font-bold mb-6 tracking-wide uppercase text-sm">Product Platform</h3>
                             <ul className="space-y-4">
                                 <li><a href="#features" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Deep Features</a></li>
-                                <li><a href="#pricing" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Pricing Tier Matrix</a></li>
+                                <li><a href="/jobs" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Browse Available Jobs</a></li>
                                 <li><a href="#demo" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Live Demo Sandbox</a></li>
                                 <li><a href="/api" className="hover:text-blue-400 font-medium transition-colors text-gray-400">Advanced Developer API</a></li>
                             </ul>

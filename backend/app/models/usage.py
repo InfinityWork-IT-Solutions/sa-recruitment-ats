@@ -12,7 +12,7 @@ class SubscriptionPlanLimits(Base):
     __tablename__ = "subscription_plan_limits"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    plan_name = Column(String(50), unique=True, nullable=False, index=True) # lite, standard, premium, enterprise
+    plan_name = Column(String(50), unique=True, nullable=False, index=True) # starter, professional, enterprise
     
     # Limits (per month)
     cv_parses_per_month = Column(Integer, default=50)

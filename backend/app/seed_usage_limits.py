@@ -9,22 +9,22 @@ async def seed_limits():
     async with AsyncSessionLocal() as db:
         plans = [
             {
-                "plan_name": "lite",
-                "cv_parses_per_month": 50,
-                "ai_match_calculations_per_month": 500,
-                "ai_search_queries_per_month": 200,
+                "plan_name": "starter",
+                "cv_parses_per_month": 100,
+                "ai_match_calculations_per_month": 1000,
+                "ai_search_queries_per_month": 500,
             },
             {
-                "plan_name": "standard",
-                "cv_parses_per_month": 250,
-                "ai_match_calculations_per_month": 2000,
-                "ai_search_queries_per_month": 1000,
-            },
-            {
-                "plan_name": "premium",
+                "plan_name": "professional",
                 "cv_parses_per_month": 1000,
                 "ai_match_calculations_per_month": 10000,
                 "ai_search_queries_per_month": 5000,
+            },
+            {
+                "plan_name": "enterprise",
+                "cv_parses_per_month": 10000,
+                "ai_match_calculations_per_month": 100000,
+                "ai_search_queries_per_month": 50000,
             }
         ]
         

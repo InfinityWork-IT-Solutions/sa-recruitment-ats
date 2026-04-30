@@ -21,6 +21,7 @@ class CandidateBase(BaseModel):
     # Location
     city: Optional[str] = Field(None, max_length=100)
     province: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
     is_willing_to_relocate: bool = Field(False)
     
     # Professional
@@ -147,7 +148,6 @@ class CandidateResponse(CandidateBase):
     user_id: Optional[UUID] = None
     added_by: Optional[UUID] = None
     
-    country: str
     salary_currency: str
     
     status: CandidateStatus

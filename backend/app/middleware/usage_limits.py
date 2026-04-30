@@ -88,7 +88,7 @@ async def check_usage_limit(
         raise HTTPException(404, "Agency not found")
     
     # Map SubscriptionTier to plan name used in limits table
-    # This project uses lowercase enum names: lite, standard, premium
+    # This project uses lowercase enum names: starter, professional, enterprise
     plan_name = agency.subscription_tier.value
     
     result = await db.execute(
@@ -101,7 +101,7 @@ async def check_usage_limit(
     if not plan_limits:
         # Fallback: assign defaults if table not populated
         logger.warning(f"Plan limits not configured for {plan_name}. Using defaults.")
-        limit = 50 if plan_name == 'lite' else 500
+        limit = 100 if plan_name == 'starter' else 1000
     else:
         # Check limit based on usage type
         if usage_type == 'cv_parse':

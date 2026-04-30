@@ -141,6 +141,9 @@ class VideoScreeningResult(Base):
     interview_invitation_sent = Column(Boolean, default=False)
     interview_invitation_sent_at = Column(DateTime)
     
+    share_score_with_candidate = Column(Boolean, default=False)
+    candidate_feedback = Column(TEXT)
+    
     completed_at = Column(DateTime, default=datetime.utcnow)
     
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -2,6 +2,7 @@
 User model for authentication and authorization
 """
 from datetime import datetime
+from typing import Optional, List
 from sqlalchemy import Boolean, Column, DateTime, String, ForeignKey, Enum, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -79,6 +80,14 @@ class User(Base):
         """Get user's full name"""
         return f"{self.first_name} {self.last_name}"
     
+    @property
+    def candidate_id(self) -> Optional[uuid.UUID]:
+        """Get associated candidate ID safely"""
+        try:
+            return self.candidate.id if self.candidate else None
+        except Exception:
+            return None
+
     def is_super_admin(self) -> bool:
         """Check if user is super admin"""
         return self.role == UserRole.super_admin

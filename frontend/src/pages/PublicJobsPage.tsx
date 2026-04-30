@@ -181,7 +181,7 @@ export default function PublicJobsPage() {
                             <div
                                 key={job.id}
                                 className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all border border-gray-100 p-6 cursor-pointer group"
-                                onClick={() => navigate(`/jobs/${job.id}`)}
+                                onClick={() => navigate(`/job-board/${job.id}`)}
                             >
                                 {/* Job Header */}
                                 <div className="flex items-start justify-between mb-4">
