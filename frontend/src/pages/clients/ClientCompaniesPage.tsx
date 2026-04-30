@@ -11,6 +11,7 @@ import {
 import { Plus, Search, Building2, Edit, Trash2, X, Save, Mail, Phone, Globe, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ClientCompany } from '@/types/api';
+import SendEmailModal from '@/components/SendEmailModal';
 
 const clientCompanySchema = z.object({
     name: z.string().min(1, 'Company name is required'),
@@ -34,6 +35,10 @@ export default function ClientCompaniesPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingCompany, setEditingCompany] = useState<ClientCompany | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [emailModal, setEmailModal] = useState<{ isOpen: boolean; company: ClientCompany | null }>({
+        isOpen: false,
+        company: null
+    });
 
     const { data, isLoading } = useClientCompanies({ search, limit: 50 });
     const createCompany = useCreateClientCompany();
@@ -198,9 +203,12 @@ export default function ClientCompaniesPage() {
                                 {company.contact_email && (
                                     <div className="flex items-center space-x-2 text-gray-600">
                                         <Mail className="w-4 h-4" />
-                                        <a href={`mailto:${company.contact_email}`} className="hover:text-blue-600">
+                                        <button 
+                                            onClick={() => setEmailModal({ isOpen: true, company })}
+                                            className="hover:text-blue-600 text-left font-medium"
+                                        >
                                             {company.contact_email}
-                                        </a>
+                                        </button>
                                     </div>
                                 )}
                                 {company.contact_phone && (
@@ -499,6 +507,17 @@ export default function ClientCompaniesPage() {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Email Modal */}
+            {emailModal.company && (
+                <SendEmailModal
+                    isOpen={emailModal.isOpen}
+                    onClose={() => setEmailModal({ isOpen: false, company: null })}
+                    recipientId={emailModal.company.id}
+                    recipientName={emailModal.company.contact_person || emailModal.company.name}
+                    recipientEmail={emailModal.company.contact_email || ''}
+                    recipientType="client"
+                />
             )}
         </div>
     );

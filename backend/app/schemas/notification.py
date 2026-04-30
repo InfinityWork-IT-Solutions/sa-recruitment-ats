@@ -9,7 +9,7 @@ class NotificationBase(BaseModel):
     message: str
     type: str = "info"  # info, success, warning, error, application, billing
     link: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    meta_data: Optional[Dict[str, Any]] = None
 
 class NotificationCreate(NotificationBase):
     user_id: UUID

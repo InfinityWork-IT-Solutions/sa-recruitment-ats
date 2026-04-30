@@ -41,7 +41,8 @@ const getNavigation = (role?: string) => {
             { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
             { name: 'Video Reviews', href: '/recruiter/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
-            { name: 'Settings', href: '/company/settings', icon: Settings },
+            { name: 'Billing', href: '/settings/billing', icon: CreditCard },
+            { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
 

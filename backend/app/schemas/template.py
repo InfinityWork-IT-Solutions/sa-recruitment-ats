@@ -24,6 +24,7 @@ class MessageTemplateUpdate(BaseModel):
 
 class MessageTemplateResponse(MessageTemplateBase):
     id: UUID
+    agency_id: UUID
     company_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime

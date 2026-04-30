@@ -372,7 +372,8 @@ class MessageTemplate(Base):
     __tablename__ = "message_templates"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id = Column(UUID(as_uuid=True), ForeignKey("client_companies.id", ondelete="CASCADE"))
+    agency_id = Column(UUID(as_uuid=True), ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("client_companies.id", ondelete="CASCADE"), nullable=True)
     
     name = Column(String(200), nullable=False)
     template_type = Column(String(100), nullable=False)

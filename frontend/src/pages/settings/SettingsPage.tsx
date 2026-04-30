@@ -197,7 +197,7 @@ export default function SettingsPage() {
                             <Bell className="w-5 h-5" />
                             <span className="font-medium">Notifications</span>
                         </button>
-                        {['agency_admin', 'recruiter'].includes(user?.role || '') && (
+                        {['agency_admin', 'recruiter', 'client'].includes(user?.role || '') && (
                             <button
                                 onClick={() => setActiveTab('templates')}
                                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'templates'
@@ -209,9 +209,9 @@ export default function SettingsPage() {
                                 <span className="font-medium">Email Templates</span>
                             </button>
                         )}
-                        {['agency_admin', 'super_admin'].includes(user?.role || '') && (
+                        {['agency_admin', 'super_admin', 'client'].includes(user?.role || '') && (
                             <button
-                                onClick={() => navigate('/settings/billing')}
+                                onClick={() => setActiveTab('billing')}
                                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'billing'
                                         ? 'bg-blue-50 text-blue-600'
                                         : 'text-gray-700 hover:bg-gray-50'

@@ -681,3 +681,7 @@ Proprietary - © 2026 InfinityWork IT Solutions (Pty) Ltd
 cd backend
 .\venv\Scripts\Activate.ps1
 python -m uvicorn app.main:app --reload --port 8000
+
+
+## List of all tables
+ psql -U recruitpro_user -d recruitpro_sa -c "\dt"

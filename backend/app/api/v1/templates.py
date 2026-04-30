@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user
@@ -20,9 +20,24 @@ async def get_my_templates(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all templates for the current company/agency"""
-    stmt = select(MessageTemplate).where(
-        MessageTemplate.company_id == current_user.agency_id
-    )
+    from app.models.user import UserRole
+    
+    if current_user.role == UserRole.client:
+        # Clients see templates for their specific company
+        await db.refresh(current_user, ["client_company"])
+        company_id = current_user.client_company.id if current_user.client_company else None
+        if not company_id:
+            return []
+        stmt = select(MessageTemplate).where(
+            MessageTemplate.company_id == company_id
+        )
+    else:
+        # Recruiters see agency-wide templates
+        stmt = select(MessageTemplate).where(
+            MessageTemplate.agency_id == current_user.agency_id,
+            MessageTemplate.company_id == None
+        )
+        
     result = await db.execute(stmt)
     return result.scalars().all()
 
@@ -33,9 +48,18 @@ async def create_template(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new template"""
+    from app.models.user import UserRole
+    
+    company_id = None
+    if current_user.role == UserRole.client:
+        await db.refresh(current_user, ["client_company"])
+        if current_user.client_company:
+            company_id = current_user.client_company.id
+
     template = MessageTemplate(
-        **template_data.model_dump(exclude={"company_id"}),
-        company_id=current_user.agency_id,
+        **template_data.model_dump(exclude={"company_id", "agency_id"}),
+        agency_id=current_user.agency_id,
+        company_id=company_id,
         created_by=current_user.id
     )
     db.add(template)
@@ -51,7 +75,7 @@ async def preview_template(
 ):
     """Preview a template with variables merged"""
     template = await db.get(MessageTemplate, request.template_id)
-    if not template or template.company_id != current_user.agency_id:
+    if not template or template.agency_id != current_user.agency_id:
         raise HTTPException(status_code=404, detail="Template not found")
         
     subject = TemplateService.render_template(template.subject or "", request.variables)
@@ -77,7 +101,7 @@ async def send_to_candidate(
         raise HTTPException(status_code=404, detail="Candidate not found")
         
     template = await db.get(MessageTemplate, template_id)
-    if not template or template.company_id != current_user.agency_id:
+    if not template or template.agency_id != current_user.agency_id:
         raise HTTPException(status_code=404, detail="Template not found")
         
     # Use custom content if provided, otherwise render template
@@ -102,8 +126,50 @@ async def seed_templates(
     db: AsyncSession = Depends(get_db)
 ):
     """Seed default professional templates for the user's company"""
+    from app.models.user import UserRole
+    
     if not current_user.agency_id:
         raise HTTPException(status_code=400, detail="User not associated with an agency")
-        
-    await TemplateService.seed_default_templates(db, current_user.agency_id, current_user.id)
+    
+    company_id = None
+    if current_user.role == UserRole.client:
+        await db.refresh(current_user, ["client_company"])
+        if current_user.client_company:
+            company_id = current_user.client_company.id
+
+    await TemplateService.seed_default_templates(db, current_user.agency_id, current_user.id, company_id)
     return {"message": "Default templates seeded successfully"}
+
+@router.put("/{template_id}", response_model=MessageTemplateResponse)
+async def update_template(
+    template_id: UUID,
+    template_data: MessageTemplateUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing template"""
+    template = await db.get(MessageTemplate, template_id)
+    if not template or template.agency_id != current_user.agency_id:
+        raise HTTPException(status_code=404, detail="Template not found")
+        
+    for field, value in template_data.model_dump(exclude_unset=True).items():
+        setattr(template, field, value)
+        
+    await db.commit()
+    await db.refresh(template)
+    return template
+
+@router.delete("/{template_id}")
+async def delete_template(
+    template_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a template"""
+    template = await db.get(MessageTemplate, template_id)
+    if not template or template.agency_id != current_user.agency_id:
+        raise HTTPException(status_code=404, detail="Template not found")
+        
+    await db.delete(template)
+    await db.commit()
+    return {"message": "Template deleted successfully"}

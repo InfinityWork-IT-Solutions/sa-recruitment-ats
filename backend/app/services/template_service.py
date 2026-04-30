@@ -20,11 +20,17 @@ class TemplateService:
         return re.sub(r'\{\{(.*?)\}\}', replace, template_body)
 
     @staticmethod
-    async def get_template_by_type(db: AsyncSession, company_id: UUID, template_type: str) -> Optional[MessageTemplate]:
+    async def get_template_by_type(
+        db: AsyncSession, 
+        agency_id: UUID, 
+        template_type: str, 
+        company_id: Optional[UUID] = None
+    ) -> Optional[MessageTemplate]:
         """
-        Get the default template of a specific type for a company.
+        Get the default template of a specific type for a company/agency.
         """
         stmt = select(MessageTemplate).where(
+            MessageTemplate.agency_id == agency_id,
             MessageTemplate.company_id == company_id,
             MessageTemplate.template_type == template_type,
             MessageTemplate.is_active == True
@@ -34,9 +40,9 @@ class TemplateService:
         return result.scalars().first()
 
     @staticmethod
-    async def seed_default_templates(db: AsyncSession, company_id: UUID, user_id: UUID):
+    async def seed_default_templates(db: AsyncSession, agency_id: UUID, user_id: UUID, company_id: Optional[UUID] = None):
         """
-        Seed professional default templates for a new company.
+        Seed professional default templates for a new company/agency.
         """
         defaults = [
             {
@@ -62,12 +68,14 @@ class TemplateService:
         for d in defaults:
             # Check if exists
             stmt = select(MessageTemplate).where(
+                MessageTemplate.agency_id == agency_id,
                 MessageTemplate.company_id == company_id,
                 MessageTemplate.template_type == d["type"]
             )
             existing = await db.execute(stmt)
             if not existing.scalars().first():
                 template = MessageTemplate(
+                    agency_id=agency_id,
                     company_id=company_id,
                     name=d["name"],
                     template_type=d["type"],

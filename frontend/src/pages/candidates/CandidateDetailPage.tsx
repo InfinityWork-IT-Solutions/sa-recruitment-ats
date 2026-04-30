@@ -19,6 +19,7 @@ import {
 import { format } from 'date-fns';
 import { useState, useRef } from 'react';
 import { ApplicationStatus } from '@/types/api';
+import SendEmailModal from '@/components/SendEmailModal';
 
 const statusColors: Record<ApplicationStatus, string> = {
     applied: 'badge-gray',
@@ -39,6 +40,7 @@ export default function CandidateDetailPage() {
     const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
 
     const { data: candidate, isLoading } = useCandidate(id!);
     const { data: applicationsData } = useApplications({ candidate_id: id });
@@ -137,9 +139,13 @@ export default function CandidateDetailPage() {
                         <div className="space-y-3">
                             <div className="flex items-center space-x-3 text-sm">
                                 <Mail className="w-4 h-4 text-gray-400" />
-                                <a href={`mailto:${candidate.email}`} className="text-blue-600 hover:underline">
+                                <button 
+                                    onClick={() => setShowEmailModal(true)}
+                                    className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                                >
                                     {candidate.email}
-                                </a>
+                                    <span className="text-[10px] bg-blue-50 px-1.5 py-0.5 rounded uppercase font-bold">Template</span>
+                                </button>
                             </div>
                             {candidate.phone && (
                                 <div className="flex items-center space-x-3 text-sm">
@@ -381,6 +387,15 @@ export default function CandidateDetailPage() {
                     </div>
                 </div>
             )}
+            {/* Modals */}
+            <SendEmailModal
+                isOpen={showEmailModal}
+                onClose={() => setShowEmailModal(false)}
+                recipientId={candidate.id}
+                recipientName={candidate.full_name}
+                recipientEmail={candidate.email}
+                recipientType="candidate"
+            />
         </div>
     );
 }

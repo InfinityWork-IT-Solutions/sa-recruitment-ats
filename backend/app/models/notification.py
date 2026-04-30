@@ -21,7 +21,7 @@ class Notification(Base):
     link = Column(String)  # Optional URL to navigate to when clicked
     
     # Metadata for additional context (e.g., application_id, invoice_id)
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     read_at = Column(DateTime, nullable=True)

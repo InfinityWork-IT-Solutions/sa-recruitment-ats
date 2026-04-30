@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Edit2, Plus, Save, Trash2, Wand2, Check, RefreshCw } from 'lucide-react';
 import apiClient from '@/lib/api-client';
+import { toast } from 'react-hot-toast';
 
 interface Template {
   id: string;
@@ -49,13 +50,49 @@ export default function TemplateManager() {
 
   const handleSave = async (template: Template) => {
     try {
-      // In a real app, you'd call a PUT endpoint here
-      // For now, let's just simulate the save
-      alert('Template saved successfully!');
+      setIsLoading(true);
+      if (template.id.startsWith('new-')) {
+        await apiClient.post('/templates', template);
+      } else {
+        await apiClient.put(`/templates/${template.id}`, template);
+      }
+      toast.success('Template saved successfully!');
       setEditingTemplate(null);
+      await fetchTemplates();
     } catch (error) {
       console.error('Failed to save template:', error);
+      toast.error('Failed to save template');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    try {
+      setIsLoading(true);
+      await apiClient.delete(`/templates/${id}`);
+      toast.success('Template deleted successfully');
+      await fetchTemplates();
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      toast.error('Failed to delete template');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNew = () => {
+    const newTemplate: Template = {
+      id: `new-${Date.now()}`,
+      name: 'New Template',
+      template_type: 'custom',
+      subject: '',
+      body_template: '',
+      is_default: false
+    };
+    setTemplates([newTemplate, ...templates]);
+    setEditingTemplate(newTemplate);
   };
 
   return (
@@ -74,14 +111,17 @@ export default function TemplateManager() {
             {isSeeding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
             Generate Defaults
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+          <button 
+            onClick={handleNew}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+          >
             <Plus className="w-4 h-4" />
             New Template
           </button>
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading && !templates.length ? (
         <div className="py-12 text-center">
           <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500">Loading your templates...</p>
@@ -122,7 +162,10 @@ export default function TemplateManager() {
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                  <button 
+                    onClick={() => handleDelete(template.id)}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -131,10 +174,20 @@ export default function TemplateManager() {
               {editingTemplate?.id === template.id ? (
                 <div className="mt-4 space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Template Name</label>
+                    <input
+                      type="text"
+                      value={editingTemplate.name}
+                      onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subject Line</label>
                     <input
                       type="text"
-                      defaultValue={template.subject}
+                      value={editingTemplate.subject}
+                      onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
                       className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
@@ -142,19 +195,25 @@ export default function TemplateManager() {
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email Body (Use {"{{variable}}"} for tags)</label>
                     <textarea
                       rows={6}
-                      defaultValue={template.body_template}
+                      value={editingTemplate.body_template}
+                      onChange={(e) => setEditingTemplate({...editingTemplate, body_template: e.target.value})}
                       className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                     />
                   </div>
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => setEditingTemplate(null)}
+                      onClick={() => {
+                        setEditingTemplate(null);
+                        if (template.id.startsWith('new-')) {
+                          setTemplates(templates.filter(t => t.id !== template.id));
+                        }
+                      }}
                       className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={() => handleSave(template)}
+                      onClick={() => handleSave(editingTemplate)}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                     >
                       <Save className="w-4 h-4" />

@@ -28,7 +28,7 @@ class NotificationService:
             message=message,
             type=notification_type,
             link=link,
-            metadata=metadata
+            meta_data=metadata
         )
         db.add(notification)
         await db.commit()
