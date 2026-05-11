@@ -25,7 +25,6 @@ export default function UnifiedLoginPage() {
     handleSubmit,
     watch,
     setError,
-    reset,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
@@ -47,241 +46,158 @@ export default function UnifiedLoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await login(data.email, data.password, data.user_type);
-      // Auth store will redirect based on actual user role from backend
     } catch (error: any) {
       console.error('Login failed:', error);
       setError('root', { 
         type: 'manual', 
-        message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials and user type.' 
+        message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials.' 
       });
     }
   };
 
-  // User type options with icons and colors
   const userTypes = [
-    {
-      value: 'candidate',
-      label: 'Job Seeker',
-      icon: User,
-      color: 'green',
-      description: 'Find your next opportunity',
-    },
-    {
-      value: 'company',
-      label: 'Company',
-      icon: Building2,
-      color: 'blue',
-      description: 'Hire top talent',
-    },
-    {
-      value: 'recruiter',
-      label: 'Recruiter',
-      icon: Users,
-      color: 'purple',
-      description: 'Manage your agency',
-    },
+    { value: 'candidate', label: 'Job Seeker', icon: User, color: 'emerald' },
+    { value: 'company', label: 'Company', icon: Building2, color: 'blue' },
+    { value: 'recruiter', label: 'Recruiter', icon: Users, color: 'purple' },
   ];
 
   const currentUserType = userTypes.find((t) => t.value === selectedUserType);
-  const colorClasses = {
-    green: {
-      bg: 'bg-green-600',
-      hover: 'hover:bg-green-700',
-      ring: 'focus:ring-green-500',
-      text: 'text-green-600',
-      bgLight: 'bg-green-100',
-      border: 'border-green-600',
-    },
-    blue: {
-      bg: 'bg-blue-600',
-      hover: 'hover:bg-blue-700',
-      ring: 'focus:ring-blue-500',
-      text: 'text-blue-600',
-      bgLight: 'bg-blue-100',
-      border: 'border-blue-600',
-    },
-    purple: {
-      bg: 'bg-purple-600',
-      hover: 'hover:bg-purple-700',
-      ring: 'focus:ring-purple-500',
-      text: 'text-purple-600',
-      bgLight: 'bg-purple-100',
-      border: 'border-purple-600',
-    },
-  };
-
-  const colors = colorClasses[currentUserType?.color as keyof typeof colorClasses] || colorClasses.green;
+  const colors = {
+    emerald: 'bg-emerald-500',
+    blue: 'bg-blue-600',
+    purple: 'bg-purple-600'
+  }[currentUserType?.color as 'emerald' | 'blue' | 'purple'] || 'bg-blue-600';
 
   return (
-    <div className="max-w-xl w-full mx-auto">
-      {/* Back to Home moved to top fixed if needed, or just kept here */}
+    <div className="max-w-xl w-full mx-auto px-4 sm:px-0">
       <Link
         to="/"
-        className="fixed top-4 left-4 flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors z-50"
+        className="fixed top-8 left-8 flex items-center space-x-2 text-white/60 hover:text-white transition-colors z-50 group"
       >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="hidden sm:inline">Back to Home</span>
+        <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center group-hover:bg-white/20 transition-all border border-white/10">
+          <ArrowLeft className="w-5 h-5" />
+        </div>
+        <span className="hidden sm:inline font-bold tracking-widest text-xs uppercase">Back to Home</span>
       </Link>
 
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className={`inline-flex items-center justify-center w-16 h-16 ${colors.bg} rounded-2xl mb-4 shadow-lg`}>
-          {currentUserType && <currentUserType.icon className="w-8 h-8 text-white" />}
+      <div className="text-center mb-10">
+        <div className={`inline-flex items-center justify-center w-20 h-20 ${colors} rounded-3xl mb-6 shadow-2xl shadow-blue-500/20`}>
+          {currentUserType && <currentUserType.icon className="w-10 h-10 text-white" />}
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome to RecruitPro SA
+        <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
+          Welcome Back
         </h1>
-        <p className="text-gray-600">
-          Sign in to your account
+        <p className="text-slate-400 font-medium">
+          Secure access to your recruitment portal
         </p>
       </div>
 
-      {/* Login Card */}
-      <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-10 border border-gray-100 mx-4 sm:mx-0">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Glass Login Card */}
+      <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl p-8 sm:p-12 border border-white/20 relative overflow-hidden">
+        {/* Decorative subtle light */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 relative z-10">
           
           {errors.root && (
-            <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm border border-red-200 font-medium">
+            <div className="bg-red-500/20 text-red-200 p-4 rounded-2xl text-sm border border-red-500/30 font-medium backdrop-blur-md">
               {errors.root.message}
             </div>
           )}
 
-          {/* User Type Selector - Only show if not specified in URL */}
-          {urlType ? (
-            <input type="hidden" {...register('user_type')} />
-          ) : (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
-                I am a...
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {userTypes.map((type) => {
-                  const Icon = type.icon;
-                  const isSelected = selectedUserType === type.value;
-                  const typeColors = colorClasses[type.color as keyof typeof colorClasses];
-                  
-                  return (
-                    <label
-                      key={type.value}
-                      className={`relative cursor-pointer rounded-xl p-4 transition-all duration-200 ${
-                        isSelected
-                          ? `${typeColors.bgLight} ring-2 ${typeColors.border} shadow-md`
-                          : 'bg-gray-50 border border-gray-200 hover:bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value={type.value}
-                        {...register('user_type')}
-                        className="sr-only"
-                      />
-                      <div className="flex flex-col items-center space-y-2">
-                        <Icon className={`w-8 h-8 ${isSelected ? typeColors.text : 'text-gray-400'}`} />
-                        <span className={`text-xs font-bold uppercase tracking-wider text-center ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
-                          {type.label}
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-              {errors.user_type && (
-                <p className="mt-1 text-sm text-red-600">{errors.user_type.message}</p>
-              )}
-              <div className="border-t border-gray-100 my-8"></div>
+          {/* User Type Selector */}
+          {!urlType && (
+            <div className="grid grid-cols-3 gap-4">
+              {userTypes.map((type) => {
+                const isSelected = selectedUserType === type.value;
+                return (
+                  <label
+                    key={type.value}
+                    className={`cursor-pointer rounded-2xl p-4 transition-all duration-300 border flex flex-col items-center gap-2 ${
+                      isSelected
+                        ? 'bg-white/20 border-white/50 shadow-lg'
+                        : 'bg-white/5 border-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <input type="radio" value={type.value} {...register('user_type')} className="sr-only" />
+                    <type.icon className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-white/40'}`} />
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-white' : 'text-white/40'}`}>
+                      {type.label}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           )}
 
-            {/* Email */}
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">
                 Email Address
               </label>
               <input
                 {...register('email')}
                 type="email"
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring} focus:border-transparent transition-all`}
-                placeholder="you@example.com"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all backdrop-blur-md placeholder:text-white/20"
+                placeholder="name@example.com"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="mt-2 text-xs text-red-400 font-bold ml-1">{errors.email.message}</p>}
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">
                 Password
               </label>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 ${colors.ring} focus:border-transparent transition-all pr-12`}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all backdrop-blur-md placeholder:text-white/20 pr-16"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="mt-2 text-xs text-red-400 font-bold ml-1">{errors.password.message}</p>}
             </div>
+          </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className={`w-4 h-4 ${colors.text} border-gray-300 rounded focus:ring-2 ${colors.ring}`}
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <Link
-                to="/forgot-password"
-                className={`text-sm ${colors.text} hover:underline font-medium`}
-              >
-                Forgot password?
-              </Link>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full ${colors.bg} ${colors.hover} text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          {/* Register Link */}
-          <div className="mt-6 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link 
-              to={`/register?type=${selectedUserType}`} 
-              className={`${colors.text} hover:underline font-semibold`}
-            >
-              Sign up here
+          <div className="flex items-center justify-between px-1">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input type="checkbox" className="w-5 h-5 bg-white/5 border-white/20 rounded-lg focus:ring-blue-500/50 text-blue-600" />
+              <span className="text-sm text-white/60 group-hover:text-white transition-colors">Keep me signed in</span>
+            </label>
+            <Link to="/forgot-password" size="sm" className="text-sm text-blue-400 hover:text-blue-300 font-bold">
+              Forgot?
             </Link>
           </div>
-        </div>
 
-        {/* Description */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            {currentUserType?.description}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`w-full py-5 rounded-2xl font-black text-lg uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-900/50 ${
+              isSubmitting ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 active:scale-[0.98]'
+            } text-white`}
+          >
+            {isSubmitting ? 'Verifying...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-10 text-center relative z-10">
+          <p className="text-white/40 font-medium">
+            Don't have an account?{' '}
+            <Link to={`/register?type=${selectedUserType}`} className="text-white hover:text-blue-400 font-black underline underline-offset-4 decoration-2 decoration-blue-500/30">
+              Join the beta
+            </Link>
           </p>
         </div>
       </div>
-    );
+    </div>
+  );
 }

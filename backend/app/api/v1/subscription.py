@@ -37,7 +37,8 @@ from app.models import (
     RecruiterSubscription,
     SubscriptionPlan,
     PaymentTransaction,
-    User
+    User,
+    Invoice
 )
 from app.services.notification_service import NotificationService
 
@@ -325,7 +326,6 @@ async def change_subscription_plan(
         await db.refresh(subscription)
     
     # For testing purposes: Create an invoice immediately so the user can test the download feature
-    from app.models.subscription import Invoice, PaymentTransaction
     import random
     
     # 1. Create a mock transaction
