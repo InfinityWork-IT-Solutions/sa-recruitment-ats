@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, ArrowLeft, Users, Building2, User } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Users, Building2, User, Shield } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
 const loginSchema = z.object({
@@ -19,6 +19,7 @@ export default function UnifiedLoginPage() {
   const { login } = useAuthStore();
   const [searchParams] = useSearchParams();
   const urlType = searchParams.get('type') as 'candidate' | 'company' | null;
+  const isAdminRoute = window.location.pathname === '/login/admin';
 
   const {
     register,
@@ -30,16 +31,18 @@ export default function UnifiedLoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      user_type: (urlType as any) || 'candidate',
+      user_type: isAdminRoute ? 'company' : ((urlType as any) || 'candidate'),
     },
   });
 
   // Effect to handle URL parameter changes
   useEffect(() => {
-    if (urlType && ['candidate', 'company'].includes(urlType)) {
+    if (isAdminRoute) {
+      setValue('user_type', 'company');
+    } else if (urlType && ['candidate', 'company'].includes(urlType)) {
       setValue('user_type', urlType as any);
     }
-  }, [urlType, setValue]);
+  }, [urlType, setValue, isAdminRoute]);
 
   const selectedUserType = watch('user_type');
 
@@ -60,11 +63,15 @@ export default function UnifiedLoginPage() {
     { value: 'company', label: 'Company', icon: Building2, color: 'blue' },
   ];
 
-  const currentUserType = userTypes.find((t) => t.value === selectedUserType);
+  const currentUserType = isAdminRoute 
+    ? { value: 'company', label: 'Super Admin', icon: Shield, color: 'indigo' } 
+    : userTypes.find((t) => t.value === selectedUserType);
+    
   const colors = {
     emerald: 'bg-emerald-500',
-    blue: 'bg-blue-600'
-  }[currentUserType?.color as 'emerald' | 'blue'] || 'bg-blue-600';
+    blue: 'bg-blue-600',
+    indigo: 'bg-indigo-600 bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-indigo-500/30'
+  }[currentUserType?.color as 'emerald' | 'blue' | 'indigo'] || 'bg-blue-600';
 
   return (
     <div className="max-w-xl w-full mx-auto px-4 sm:px-0">
@@ -80,14 +87,14 @@ export default function UnifiedLoginPage() {
 
       {/* Header */}
       <div className="text-center mb-10">
-        <div className={`inline-flex items-center justify-center w-20 h-20 ${colors} rounded-3xl mb-6 shadow-2xl shadow-blue-500/20`}>
+        <div className={`inline-flex items-center justify-center w-20 h-20 ${colors} rounded-3xl mb-6 shadow-2xl`}>
           {currentUserType && <currentUserType.icon className="w-10 h-10 text-white" />}
         </div>
         <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
-          Welcome Back
+          {isAdminRoute ? 'Admin Portal' : 'Welcome Back'}
         </h1>
         <p className="text-slate-400 font-medium">
-          Secure access to your recruitment portal
+          {isAdminRoute ? 'Secure console for platform administration' : 'Secure access to your recruitment portal'}
         </p>
       </div>
 
@@ -105,7 +112,7 @@ export default function UnifiedLoginPage() {
           )}
 
           {/* User Type Selector */}
-          {!urlType && (
+          {!urlType && !isAdminRoute && (
             <div className="grid grid-cols-3 gap-4">
               {userTypes.map((type) => {
                 const isSelected = selectedUserType === type.value;
@@ -187,14 +194,16 @@ export default function UnifiedLoginPage() {
           </button>
         </form>
 
-        <div className="mt-10 text-center relative z-10">
-          <p className="text-white/40 font-medium">
-            Don't have an account?{' '}
-            <Link to={`/register?type=${selectedUserType}`} className="text-white hover:text-blue-400 font-black underline underline-offset-4 decoration-2 decoration-blue-500/30">
-              Join the beta
-            </Link>
-          </p>
-        </div>
+        {!isAdminRoute && (
+          <div className="mt-10 text-center relative z-10">
+            <p className="text-white/40 font-medium">
+              Don't have an account?{' '}
+              <Link to={`/register?type=${selectedUserType}`} className="text-white hover:text-blue-400 font-black underline underline-offset-4 decoration-2 decoration-blue-500/30">
+                Join the beta
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

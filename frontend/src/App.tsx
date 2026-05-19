@@ -137,6 +137,7 @@ function App() {
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<UnifiedLoginPage />} />
+            <Route path="/login/admin" element={<UnifiedLoginPage />} />
             <Route path="/register" element={<UnifiedRegisterPage />} />
           </Route>
 
