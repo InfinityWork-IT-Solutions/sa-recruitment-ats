@@ -152,7 +152,7 @@ function App() {
           {/* Recruiter Dashboard (Existing) */}
           <Route
             element={
-              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin', 'client']}>
+              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -163,14 +163,9 @@ function App() {
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/candidates" element={<CandidatesPage />} />
             <Route path="/candidates/create" element={<CreateCandidatePage />} />
-            <Route path="/candidates/:id" element={<CandidateDetailPage />} />
             <Route path="/applications" element={<ApplicationsPage />} />
-            <Route path="/applications/:id" element={<ApplicationDetailPage />} />
             <Route path="/clients" element={<ClientCompaniesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
-            <Route path="/recruiter/video-screenings" element={<RecruiterVideoReviewDashboard />} />
-            <Route path="/recruiter/video-screening/:screening_id" element={<VideoScreeningDetailView />} />
             <Route path="/recruiter/billing" element={<SubscriptionSettings />} />
           </Route>
 
@@ -203,12 +198,13 @@ function App() {
             <Route path="/company/profile" element={<CompanyProfile />} />
             <Route path="/company/jobs" element={<ClientJobsPage />} />
             <Route path="/company/candidates" element={<ClientCandidatesPage />} />
+            <Route path="/company/applications" element={<ApplicationsPage />} />
+            <Route path="/company/applications/:id" element={<ApplicationDetailPage />} />
             <Route path="/company/team" element={<ClientTeamPage />} />
             <Route path="/company/settings" element={<ClientSettingsPage />} />
             <Route path="/company/settings/integrations" element={<ClientIntegrationsSettingsPage />} />
             <Route path="/company/settings/billing" element={<SubscriptionSettings />} />
             <Route path="/company/analytics" element={<AnalyticsPage />} />
-            <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
             {/* Legacy redirect */}
             <Route path="/client-dashboard" element={<Navigate to="/company/dashboard" replace />} />
           </Route>
@@ -237,7 +233,12 @@ function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/billing" element={<SubscriptionSettings />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
+            <Route path="/candidates/:id" element={<CandidateDetailPage />} />
+            <Route path="/applications/:id" element={<ApplicationDetailPage />} />
             <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
+            <Route path="/recruiter/video-screenings" element={<RecruiterVideoReviewDashboard />} />
+            <Route path="/recruiter/video-screening/:screening_id" element={<VideoScreeningDetailView />} />
+            <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
           </Route>
 
           {/* Catch all - dynamic redirect based on role */}

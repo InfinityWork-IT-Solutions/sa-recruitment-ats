@@ -18,6 +18,7 @@ import {
 import EmailCandidateModal from '@/components/EmailCandidateModal';
 import { format } from 'date-fns';
 import { ApplicationStatus } from '@/types/api';
+import { useAuthStore } from '@/store/auth';
 
 const statusColors: Record<ApplicationStatus, string> = {
     applied: 'bg-gray-100 text-gray-800',
@@ -61,6 +62,7 @@ export default function ApplicationDetailPage() {
     const offerMutation = useMakeOffer();
     const hireMutation = useHireCandidate();
     const rejectMutation = useRejectApplication();
+    const { user } = useAuthStore();
 
     const handleScreen = async () => {
         if (id) {
@@ -131,7 +133,7 @@ export default function ApplicationDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Link to="/applications" className="text-gray-600 hover:text-gray-900">
+                    <Link to={user?.role === 'client' ? '/company/applications' : '/applications'} className="text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                     <div>
@@ -160,7 +162,7 @@ export default function ApplicationDetailPage() {
                                 <Mail className="w-4 h-4" />
                                 <span className="font-bold">Email Candidate</span>
                             </button>
-                            {canScreen && (
+                            {user?.role !== 'client' && canScreen && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'screen' })}
                                     className="w-full btn-primary flex items-center justify-center space-x-2"
@@ -169,7 +171,7 @@ export default function ApplicationDetailPage() {
                                     <span>Screen Application</span>
                                 </button>
                             )}
-                            {canScheduleInterview && (
+                            {user?.role !== 'client' && canScheduleInterview && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'interview' })}
                                     className="w-full btn-primary flex items-center justify-center space-x-2"
@@ -178,7 +180,7 @@ export default function ApplicationDetailPage() {
                                     <span>Schedule Interview</span>
                                 </button>
                             )}
-                            {canCompleteInterview && (
+                            {user?.role !== 'client' && canCompleteInterview && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'complete_interview' })}
                                     className="w-full btn-primary flex items-center justify-center space-x-2"
@@ -187,7 +189,7 @@ export default function ApplicationDetailPage() {
                                     <span>Complete Interview</span>
                                 </button>
                             )}
-                            {canMakeOffer && (
+                            {user?.role !== 'client' && canMakeOffer && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'offer' })}
                                     className="w-full btn-primary flex items-center justify-center space-x-2"
@@ -196,7 +198,7 @@ export default function ApplicationDetailPage() {
                                     <span>Make Offer</span>
                                 </button>
                             )}
-                            {canHire && (
+                            {user?.role !== 'client' && canHire && (
                                 <button
                                     onClick={handleHire}
                                     className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
@@ -205,7 +207,7 @@ export default function ApplicationDetailPage() {
                                     <span>Hire Candidate</span>
                                 </button>
                             )}
-                            {canReject && (
+                            {user?.role !== 'client' && canReject && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'reject' })}
                                     className="w-full btn-danger flex items-center justify-center space-x-2"

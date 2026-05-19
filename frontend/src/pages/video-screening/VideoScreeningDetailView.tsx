@@ -296,6 +296,7 @@ import {
   AlertCircle, Download, Share2
 } from 'lucide-react';
 import AIReportCard from './AIReportCard';
+import apiClient from '@/lib/api-client';
 
 interface VideoResponse {
   question_id: string;
@@ -353,9 +354,8 @@ export default function VideoScreeningDetailView() {
 
   const fetchScreeningDetail = async () => {
     try {
-      const response = await fetch(`/api/v1/video-screening/${screening_id}`);
-      const data = await response.json();
-      setScreening(data);
+      const response = await apiClient.get(`/video-screening/${screening_id}`);
+      setScreening(response.data);
     } catch (err) {
       console.error('Failed to fetch screening:', err);
     } finally {
@@ -385,9 +385,7 @@ export default function VideoScreeningDetailView() {
     if (!confirm('Invite this candidate to interview?')) return;
 
     try {
-      await fetch(`/api/v1/video-screening/${screening_id}/approve`, {
-        method: 'POST'
-      });
+      await apiClient.post(`/video-screening/${screening_id}/approve`);
       alert('✅ Candidate approved! Interview invitation will be sent.');
       navigate('/recruiter/video-screenings');
     } catch (err) {
@@ -399,11 +397,7 @@ export default function VideoScreeningDetailView() {
     const reason = prompt('Rejection reason (optional):');
     
     try {
-      await fetch(`/api/v1/video-screening/${screening_id}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason })
-      });
+      await apiClient.post(`/video-screening/${screening_id}/reject`, { reason });
       alert('Candidate rejected. Notification email sent.');
       navigate('/recruiter/video-screenings');
     } catch (err) {

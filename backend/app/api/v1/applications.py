@@ -198,10 +198,30 @@ async def list_applications(
     )
     
     agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    
+    client_company_id = None
+    if current_user.role == UserRole.client:
+        from app.models.client_company import ClientCompany
+        company_result = await db.execute(
+            select(ClientCompany).where(ClientCompany.user_id == current_user.id)
+        )
+        company = company_result.scalar_one_or_none()
+        if company:
+            client_company_id = company.id
+        else:
+            return {
+                "applications": [],
+                "total": 0,
+                "skip": skip,
+                "limit": limit,
+                "has_more": False
+            }
+
     applications, total = await application_service.list_applications(
         db,
         agency_id,
-        filters
+        filters,
+        client_company_id=client_company_id
     )
     
     return {
@@ -294,6 +314,19 @@ async def get_application(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Application not found"
         )
+        
+    # Check client role access restriction
+    if current_user.role == UserRole.client:
+        from app.models.client_company import ClientCompany
+        company_result = await db.execute(
+            select(ClientCompany).where(ClientCompany.user_id == current_user.id)
+        )
+        company = company_result.scalar_one_or_none()
+        if not company or application.client_company_id != company.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to view this application"
+            )
     
     return ApplicationResponse.model_validate(application)
 

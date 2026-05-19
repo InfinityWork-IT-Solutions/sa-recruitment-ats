@@ -14,12 +14,14 @@ import {
     Edit,
     Linkedin,
     GraduationCap,
-    DollarSign
+    DollarSign,
+    Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useRef } from 'react';
 import { ApplicationStatus } from '@/types/api';
 import SendEmailModal from '@/components/SendEmailModal';
+import { useAuthStore } from '@/store/auth';
 
 const statusColors: Record<ApplicationStatus, string> = {
     applied: 'badge-gray',
@@ -46,6 +48,7 @@ export default function CandidateDetailPage() {
     const { data: applicationsData } = useApplications({ candidate_id: id });
     const uploadResume = useUploadResume();
     const deleteCandidate = useDeleteCandidate();
+    const { user } = useAuthStore();
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -82,7 +85,7 @@ export default function CandidateDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Link to="/candidates" className="text-gray-600 hover:text-gray-900">
+                    <Link to={user?.role === 'client' ? '/company/candidates' : '/candidates'} className="text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                     <div>
@@ -94,19 +97,21 @@ export default function CandidateDetailPage() {
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <button className="btn-secondary flex items-center space-x-2">
-                        <Edit className="w-4 h-4" />
-                        <span>Edit</span>
-                    </button>
-                    <button
-                        onClick={() => setShowDeleteConfirm(true)}
-                        className="btn-danger flex items-center space-x-2"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Delete</span>
-                    </button>
-                </div>
+                {user?.role !== 'client' && user?.role !== 'candidate' && (
+                    <div className="flex items-center space-x-3">
+                        <button className="btn-secondary flex items-center space-x-2">
+                            <Edit className="w-4 h-4" />
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="btn-danger flex items-center space-x-2"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -195,30 +200,51 @@ export default function CandidateDetailPage() {
                                         <p className="text-xs text-gray-500">Uploaded resume</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="btn-secondary w-full flex items-center justify-center space-x-2"
-                                >
-                                    <Upload className="w-4 h-4" />
-                                    <span>Replace Resume</span>
-                                </button>
+                                {candidate.resume_url && (
+                                    <a
+                                        href={candidate.resume_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100 flex items-center justify-center space-x-2 border border-blue-200 transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span className="font-bold">Download CV</span>
+                                    </a>
+                                )}
+                                {user?.role !== 'client' && user?.role !== 'candidate' && (
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="btn-secondary w-full flex items-center justify-center space-x-2"
+                                    >
+                                        <Upload className="w-4 h-4" />
+                                        <span>Replace Resume</span>
+                                    </button>
+                                )}
                             </div>
                         ) : (
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="btn-primary w-full flex items-center justify-center space-x-2"
-                            >
-                                <Upload className="w-4 h-4" />
-                                <span>Upload Resume</span>
-                            </button>
+                            user?.role !== 'client' && user?.role !== 'candidate' ? (
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="btn-primary w-full flex items-center justify-center space-x-2"
+                                >
+                                    <Upload className="w-4 h-4" />
+                                    <span>Upload Resume</span>
+                                </button>
+                            ) : (
+                                <div className="text-center py-4 text-gray-500 text-sm">
+                                    No resume uploaded yet
+                                </div>
+                            )
                         )}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".pdf,.doc,.docx"
-                            className="hidden"
-                            onChange={handleFileSelect}
-                        />
+                        {user?.role !== 'client' && user?.role !== 'candidate' && (
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                className="hidden"
+                                onChange={handleFileSelect}
+                            />
+                        )}
                     </div>
 
                     {/* Stats */}

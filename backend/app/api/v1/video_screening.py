@@ -176,7 +176,7 @@ async def list_screenings(
     stmt = (
         select(
             VideoScreeningInvitation.id,
-            Candidate.name.label("candidate_name"),
+            func.concat(Candidate.first_name, ' ', Candidate.last_name).label("candidate_name"),
             Candidate.email.label("candidate_email"),
             Job.title.label("job_title"),
             VideoScreeningInvitation.completed_at.label("submitted_at"),
@@ -282,10 +282,10 @@ async def get_screening_detail(
     return {
         "id": str(invitation.id),
         "candidate": {
-            "name": candidate.name,
+            "name": candidate.full_name,
             "email": candidate.email,
             "phone": candidate.phone or "+27 00 000 0000",
-            "location": candidate.location or "South Africa",
+            "location": candidate.city or "South Africa",
             "profile_url": f"/candidates/{candidate.id}"
         },
         "job_title": job.title,

@@ -282,6 +282,15 @@ export default function UnifiedRegisterPage() {
             </button>
           </div>
         </form>
+
+        <div className="mt-10 text-center relative z-10">
+          <p className="text-white/40 font-medium">
+            Already have an account?{' '}
+            <Link to={`/login?type=${selectedUserType}`} className="text-white hover:text-blue-400 font-black underline underline-offset-4 decoration-2 decoration-blue-500/30">
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

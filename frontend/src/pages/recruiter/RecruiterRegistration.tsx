@@ -31,8 +31,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, AlertCircle, Loader } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Check, AlertCircle, Loader, Users } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 
 interface Plan {
@@ -231,21 +231,18 @@ export default function RecruiterRegistration() {
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Create Your Account
-            </h1>
-            <p className="text-gray-600">
-              Start your 14-day free trial - no credit card required
-            </p>
+      <div className="max-w-3xl w-full mx-auto px-4 sm:px-0">
+        {/* Header */}
+        <div className="text-center mb-10 mt-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-600 rounded-3xl mb-6 shadow-2xl">
+            <Users className="w-10 h-10 text-white" />
           </div>
+          <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Create Agency Account</h1>
+          <p className="text-slate-400 font-medium tracking-wide">Start your 14-day free trial</p>
+        </div>
 
-          {/* Form Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
+        {/* Form Card */}
+        <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl p-8 sm:p-12 border border-white/20 mb-12">
             
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
@@ -257,8 +254,8 @@ export default function RecruiterRegistration() {
             <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
               
               {/* Agency Name */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div className="mb-8">
+                <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">
                   Agency Name *
                 </label>
                 <input
@@ -266,164 +263,149 @@ export default function RecruiterRegistration() {
                   name="agency_name"
                   value={formData.agency_name}
                   onChange={handleChange}
-                  placeholder="Your Recruitment Agency"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Elite Talent Agency"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all backdrop-blur-md"
                   required
                 />
               </div>
 
               {/* Name */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    First Name *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">First Name *</label>
                   <input
                     type="text"
                     name="first_name"
                     value={formData.first_name}
                     onChange={handleChange}
                     placeholder="John"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Last Name *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Last Name *</label>
                   <input
                     type="text"
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleChange}
                     placeholder="Doe"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                     required
                   />
                 </div>
               </div>
 
               {/* Email & Phone */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Email *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Email *</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Phone *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Phone *</label>
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="+27 12 345 6789"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                     required
                   />
                 </div>
               </div>
 
               {/* Location */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    City *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">City *</label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
                     placeholder="Cape Town"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Province *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Province *</label>
                   <input
                     type="text"
                     name="province"
                     value={formData.province}
                     onChange={handleChange}
                     placeholder="Western Cape"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Country *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Country *</label>
                   <input
                     type="text"
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
                     disabled
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white/40 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               {/* Password */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Password *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Password *</label>
                   <input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Min 8 characters"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Confirm Password *
-                  </label>
+                  <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">Confirm *</label>
                   <input
                     type="password"
                     name="confirm_password"
                     value={formData.confirm_password}
                     onChange={handleChange}
                     placeholder="Re-enter password"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
                     required
                   />
                 </div>
               </div>
 
               {/* Terms */}
-              <div className="mb-6">
-                <label className="flex items-start">
-                  <input
-                    type="checkbox"
-                    name="accept_terms"
-                    checked={formData.accept_terms}
-                    onChange={handleChange}
-                    className="mt-1 mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    required
-                  />
-                  <span className="text-sm text-gray-700">
-                    I accept the <a href="/terms" className="text-blue-600 hover:underline">Terms & Conditions</a> and <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a> *
+              <div className="mb-10 bg-white/5 rounded-2xl p-6 border border-white/10">
+                <label className="flex items-start space-x-4 cursor-pointer group">
+                  <div className="relative flex items-center justify-center mt-1">
+                    <input
+                      type="checkbox"
+                      name="accept_terms"
+                      checked={formData.accept_terms}
+                      onChange={handleChange}
+                      className="w-6 h-6 rounded-lg bg-white/5 border-white/20 checked:bg-blue-600 transition-all appearance-none cursor-pointer"
+                      required
+                    />
+                    <Check className="absolute w-4 h-4 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
+                  </div>
+                  <span className="text-sm text-white/60 group-hover:text-white transition-colors leading-relaxed">
+                    I accept the <a href="/terms" className="text-blue-400 hover:underline">Terms & Conditions</a> and <a href="/privacy" className="text-blue-400 hover:underline">Privacy Policy</a> *
                   </span>
                 </label>
               </div>
@@ -431,19 +413,23 @@ export default function RecruiterRegistration() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
+                className="w-full py-5 bg-blue-600 text-white rounded-2xl hover:bg-blue-500 font-black text-lg uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-900/50"
               >
                 Continue to Plan Selection →
               </button>
             </form>
 
             {/* Sign In Link */}
-            <p className="text-center mt-6 text-sm text-gray-600">
-              Already have an account? <a href="/login" className="text-blue-600 hover:underline font-semibold">Sign in</a>
-            </p>
+            <div className="mt-10 text-center">
+              <p className="text-white/40 font-medium">
+                Already have an account?{' '}
+                <Link to="/login?type=recruiter" className="text-white hover:text-blue-400 font-black underline underline-offset-4 decoration-2 decoration-blue-500/30">
+                  Sign in
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
     );
   }
 
@@ -453,19 +439,13 @@ export default function RecruiterRegistration() {
 
   if (step === 2) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Choose Your Plan
-            </h1>
-            <p className="text-gray-600">
-              14-day free trial starts today. Payment after trial ends.
-            </p>
+      <div className="max-w-3xl w-full mx-auto px-4 sm:px-0">
+          <div className="text-center mb-10 mt-12">
+            <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Choose Your Plan</h1>
+            <p className="text-slate-400 font-medium tracking-wide">14-day free trial starts today</p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl p-8 sm:p-12 border border-white/20 mb-12">
             
             {/* Plan Cards (simplified for registration) */}
             <div className="space-y-4 mb-8">
@@ -473,26 +453,26 @@ export default function RecruiterRegistration() {
                 <div
                   key={plan.id}
                   onClick={() => setSelectedPlanId(plan.id)}
-                  className={`p-6 border-2 rounded-xl cursor-pointer transition-all ${
+                  className={`p-6 border-2 rounded-2xl cursor-pointer transition-all ${
                     selectedPlanId === plan.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'bg-blue-600 border-blue-400 shadow-xl shadow-blue-900/40'
+                      : 'bg-white/5 border-white/10 hover:border-white/30'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${
                         selectedPlanId === plan.id
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
+                          ? 'border-white bg-white'
+                          : 'border-white/20'
                       }`}>
                         {selectedPlanId === plan.id && (
-                          <Check className="w-4 h-4 text-white" />
+                          <Check className="w-4 h-4 text-blue-600" />
                         )}
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg">{plan.display_name}</h3>
-                        <p className="text-sm text-gray-600">
+                        <h3 className="font-black text-lg text-white uppercase tracking-tight">{plan.display_name}</h3>
+                        <p className={`text-sm ${selectedPlanId === plan.id ? 'text-blue-100' : 'text-slate-400'} font-medium`}>
                           R{(billingCycle === 'annual' ? plan.price_annual / 12 : plan.price_monthly).toLocaleString()}/month
                         </p>
                       </div>
@@ -502,24 +482,23 @@ export default function RecruiterRegistration() {
               ))}
             </div>
 
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mt-10">
               <button
                 onClick={() => setStep(1)}
-                className="px-6 py-3 text-gray-700 hover:text-gray-900"
+                className="px-8 py-3 text-white/60 hover:text-white font-bold uppercase tracking-widest text-xs transition-colors"
               >
                 ← Back
               </button>
               <button
                 onClick={handleNext}
                 disabled={loading}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
+                className="px-10 py-5 bg-blue-600 text-white rounded-2xl font-black text-lg uppercase tracking-[0.2em] hover:bg-blue-500 disabled:opacity-50 shadow-xl shadow-blue-900/50"
               >
                 {loading ? 'Processing...' : 'Complete Registration →'}
               </button>
             </div>
           </div>
         </div>
-      </div>
     );
   }
 
@@ -528,16 +507,16 @@ export default function RecruiterRegistration() {
   // ========================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md text-center">
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl p-12 max-w-md w-full text-center border border-white/20">
         <div className="mb-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-green-600" />
+          <div className="w-20 h-20 bg-green-500/20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <Check className="w-10 h-10 text-green-500" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-black text-white mb-2 tracking-tight">
             Account Created!
           </h2>
-          <p className="text-gray-600">
+          <p className="text-slate-400 font-medium tracking-wide">
             Redirecting to secure payment setup...
           </p>
         </div>

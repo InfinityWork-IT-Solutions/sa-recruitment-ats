@@ -148,7 +148,7 @@ class CandidateResponse(CandidateBase):
     user_id: Optional[UUID] = None
     added_by: Optional[UUID] = None
     
-    salary_currency: str
+    salary_currency: Optional[str] = None
     
     status: CandidateStatus
     education_details: Optional[List[Dict[str, Any]]] = None

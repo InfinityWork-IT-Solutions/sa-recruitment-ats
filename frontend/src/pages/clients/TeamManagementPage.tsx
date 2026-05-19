@@ -46,10 +46,15 @@ export default function TeamManagementPage() {
 
   const fetchTeamData = async () => {
     try {
-      const response = await apiClient.get('/team/members');
-      const data = response.data;
-      setMembers(data.members || mockMembers);
-      setSeats(data.seats || mockSeats);
+      // Temporary bypass: backend endpoint /team/members does not exist yet.
+      // const response = await apiClient.get('/team/members');
+      // const data = response.data;
+      // setMembers(data.members || mockMembers);
+      // setSeats(data.seats || mockSeats);
+      
+      // Use mock data directly to avoid 404 errors
+      setMembers(mockMembers);
+      setSeats(mockSeats);
     } catch (error) {
       console.error('Error fetching team data:', error);
       setMembers(mockMembers);

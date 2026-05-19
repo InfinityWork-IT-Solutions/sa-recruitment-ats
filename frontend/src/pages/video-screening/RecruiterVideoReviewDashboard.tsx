@@ -222,6 +222,7 @@ import {
   Video, User, Calendar, CheckCircle, XCircle, Clock, 
   TrendingUp, Filter, Search, Eye
 } from 'lucide-react';
+import apiClient from '@/lib/api-client';
 
 interface VideoScreening {
   id: string;
@@ -252,9 +253,8 @@ export default function RecruiterVideoReviewDashboard() {
   const fetchScreenings = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/v1/video-screening/list?status=${filter}`);
-      const data = await response.json();
-      setScreenings(data.screenings || []);
+      const response = await apiClient.get(`/video-screening/list?status=${filter}`);
+      setScreenings(response.data.screenings || []);
     } catch (err) {
       console.error('Failed to fetch screenings:', err);
     } finally {

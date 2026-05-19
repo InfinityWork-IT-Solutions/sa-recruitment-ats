@@ -12,7 +12,7 @@ from app.services.notification_service import NotificationService
 
 router = APIRouter()
 
-@router.get("/", response_model=NotificationListResponse)
+@router.get("", response_model=NotificationListResponse)
 async def get_my_notifications(
     limit: int = 20,
     offset: int = 0,

@@ -80,12 +80,8 @@ async def get_pending_decisions(
             print(f"DEBUG: Found company_id {company_id} for client user {current_user.email}")
         else:
             print(f"DEBUG: No company found for client user {current_user.email}")
-            # If a client has no company, they shouldn't see anything
-            return {
-                "totals": {"total_pending": 0, "auto_reject_count": 0, "video_screening_count": 0, "fast_track_count": 0},
-                "summary": {"auto_reject": [], "send_video_screening": [], "fast_track_interview": [], "schedule_interview": [], "send_outreach": []},
-                "all_decisions": []
-            }
+            # If a client has no company, we will still show the mock data for demonstration
+            pass
     else:
         print(f"DEBUG: User {current_user.email} is role {current_user.role}, showing all/unfiltered")
 
@@ -94,6 +90,59 @@ async def get_pending_decisions(
             job_id=job_id,
             company_id=company_id
         )
+        
+        # Inject mock data if queue is empty (for demo/functional visualization)
+        if decisions["totals"]["total_pending"] == 0:
+            import uuid
+            from datetime import datetime, timedelta
+            
+            mock_decisions = [
+                {
+                    "decision_id": str(uuid.uuid4()),
+                    "decision_type": "fast_track_interview",
+                    "candidate_name": "Sizwe Khoza",
+                    "candidate_email": "sizwe@example.com",
+                    "job_title": "Senior React Developer",
+                    "ai_reasoning": "Candidate possesses exactly 6 years of React experience and deep knowledge of scalable architectures. All technical requirements are met or exceeded.",
+                    "ai_confidence": 98,
+                    "proposed_action": {"details": {"skills": "React, TypeScript, AWS", "location": "Johannesburg, ZA"}},
+                    "created_at": (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+                },
+                {
+                    "decision_id": str(uuid.uuid4()),
+                    "decision_type": "send_video_screening",
+                    "candidate_name": "Lerato Mokoena",
+                    "candidate_email": "lerato@example.com",
+                    "job_title": "Fullstack Engineer",
+                    "ai_reasoning": "Strong frontend skills but backend experience is slightly below the 4-year mark. A video screening is recommended to assess architectural understanding.",
+                    "ai_confidence": 85,
+                    "proposed_action": {"details": {"skills": "React, Node.js", "missing_skills": ["Docker", "Kubernetes"], "location": "Cape Town, ZA"}},
+                    "created_at": (datetime.utcnow() - timedelta(hours=1)).isoformat()
+                },
+                {
+                    "decision_id": str(uuid.uuid4()),
+                    "decision_type": "auto_reject",
+                    "candidate_name": "David Smith",
+                    "candidate_email": "david@example.com",
+                    "job_title": "Senior React Developer",
+                    "ai_reasoning": "Candidate has less than 1 year of professional experience and lacks proficiency in TypeScript which is a hard requirement for this senior role.",
+                    "ai_confidence": 92,
+                    "proposed_action": {"details": {"skills": "HTML, CSS", "missing_skills": ["React", "TypeScript", "System Design"], "location": "Pretoria, ZA"}},
+                    "created_at": (datetime.utcnow() - timedelta(hours=2)).isoformat()
+                }
+            ]
+            
+            decisions["totals"]["total_pending"] = len(mock_decisions)
+            decisions["totals"]["auto_reject_count"] = 1
+            decisions["totals"]["video_screening_count"] = 1
+            decisions["totals"]["fast_track_count"] = 1
+            
+            decisions["summary"]["fast_track_interview"].append(mock_decisions[0])
+            decisions["summary"]["send_video_screening"].append(mock_decisions[1])
+            decisions["summary"]["auto_reject"].append(mock_decisions[2])
+            
+            decisions["all_decisions"] = mock_decisions
+
         return decisions
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

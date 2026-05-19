@@ -10,6 +10,7 @@ import { apiClient } from '../../lib/api-client';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth';
 import { ImageCropperModal } from '../../components/common/ImageCropperModal';
+import { Link } from 'react-router-dom';
 
 export default function CompanyProfile() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -529,7 +530,7 @@ export default function CompanyProfile() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-800">
                   <strong>Team Seats:</strong> {company.subscription.seatsUsed} of {company.subscription.seats} seats used.
-                  <a href="#" className="underline ml-2">Upgrade to add more seats</a>
+                  <Link to="/company/settings/billing" className="underline ml-2">Upgrade to add more seats</Link>
                 </p>
               </div>
 

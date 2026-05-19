@@ -33,11 +33,12 @@ const getNavigation = (role?: string) => {
     
     if (role === 'client') {
         return [
-            { name: 'Profile', href: '/company/profile', icon: Building2 },
             { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
+            { name: 'Company Profile', href: '/company/profile', icon: Building2 },
             { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
             { name: 'Candidates', href: '/company/candidates', icon: Users },
-            { name: 'Team', href: '/company/team', icon: Users },
+            { name: 'Applications', href: '/company/applications', icon: FileText },
+            { name: 'Team', href: '/company/team', icon: User },
             { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
             { name: 'Video Reviews', href: '/recruiter/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },

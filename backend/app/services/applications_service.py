@@ -112,7 +112,8 @@ class ApplicationService:
     async def list_applications(
         db: AsyncSession,
         agency_id: UUID,
-        filters: ApplicationFilter
+        filters: ApplicationFilter,
+        client_company_id: Optional[UUID] = None
     ) -> Tuple[List[Application], int]:
         """
         List applications with filters
@@ -127,6 +128,9 @@ class ApplicationService:
         )
         if agency_id:
             query = query.where(Application.agency_id == agency_id)
+            
+        if client_company_id:
+            query = query.where(Application.client_company_id == client_company_id)
         
         # Apply filters
         if filters.job_id:

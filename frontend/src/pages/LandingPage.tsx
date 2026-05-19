@@ -148,12 +148,20 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link 
-                to="/register?type=company" 
-                className="w-full py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 font-black transition shadow-lg shadow-blue-900/50 text-center uppercase tracking-widest text-sm"
-              >
-                Register Company
-              </Link>
+              <div className="flex flex-col gap-3">
+                <Link 
+                  to="/register?type=company" 
+                  className="w-full py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 font-black transition shadow-lg shadow-blue-900/50 text-center uppercase tracking-widest text-xs"
+                >
+                  Register Company
+                </Link>
+                <Link 
+                  to="/login?type=company" 
+                  className="text-white/40 hover:text-white text-xs font-bold transition-colors text-center"
+                >
+                  Already have an account? Log in
+                </Link>
+              </div>
             </div>
 
             {/* Recruiters Card */}
@@ -180,12 +188,20 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link 
-                to="/register?type=recruiter" 
-                className="w-full py-4 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 font-black transition shadow-lg shadow-purple-900/50 text-center uppercase tracking-widest text-sm"
-              >
-                Join as Recruiter
-              </Link>
+              <div className="flex flex-col gap-3">
+                <Link 
+                  to="/register/recruiter" 
+                  className="w-full py-4 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 font-black transition shadow-lg shadow-purple-900/50 text-center uppercase tracking-widest text-xs"
+                >
+                  Register Agency
+                </Link>
+                <Link 
+                  to="/login?type=recruiter" 
+                  className="text-white/40 hover:text-white text-xs font-bold transition-colors text-center"
+                >
+                  Agency Login
+                </Link>
+              </div>
               <div className="mt-6 text-center">
                 <p className="text-[10px] font-black text-purple-500 uppercase tracking-[0.2em]">
                   The Pro Choice
@@ -410,7 +426,11 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link to="/register" className="w-full py-4 border border-white/20 text-white rounded-xl hover:bg-white/10 transition-all font-bold">
+              <Link 
+                to="/register/recruiter" 
+                state={{ selectedPlan: 'starter', billingCycle }}
+                className="w-full py-4 border border-white/20 text-white rounded-xl hover:bg-white/10 transition-all font-bold text-center"
+              >
                 Start Trial
               </Link>
             </div>
@@ -438,7 +458,11 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link to="/register" className="w-full py-4 bg-white text-blue-600 rounded-xl font-bold shadow-xl">
+              <Link 
+                to="/register/recruiter" 
+                state={{ selectedPlan: 'professional', billingCycle }}
+                className="w-full py-4 bg-white text-blue-600 rounded-xl font-bold shadow-xl text-center"
+              >
                 Start Trial
               </Link>
             </div>
