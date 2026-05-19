@@ -4,9 +4,10 @@ from sqlalchemy import select, func
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.core.security import get_current_super_admin
-from app.models import User, Agency, Job, Application, UserRole, JobStatus, Candidate
+from app.core.security import get_current_super_admin, hash_password
+from app.models import User, Agency, Job, Application, UserRole, JobStatus, Candidate, ClientCompany
 from app.models.agency import SubscriptionTier
+from app.schemas.user import UserCreate
 
 router = APIRouter()
 
@@ -321,3 +322,44 @@ async def enable_user(
 ):
     """Enable/activate a suspended user account"""
     return await activate_user(user_id, db, current_admin)
+
+@router.post("/users", status_code=status.HTTP_201_CREATED)
+async def create_system_user(
+    user_in: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """Create a new user (super admin, client, candidate) directly from the Admin console"""
+    # Check if user already exists
+    existing_user_result = await db.execute(select(User).filter(User.email == user_in.email))
+    existing_user = existing_user_result.scalars().first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+        
+    # Get system agency
+    from app.services.auth_service import auth_service
+    system_agency = await auth_service.get_or_create_system_agency(db)
+    
+    # Create user
+    user = User(
+        email=user_in.email,
+        first_name=user_in.first_name,
+        last_name=user_in.last_name,
+        phone=user_in.phone,
+        role=user_in.role,
+        hashed_password=hash_password(user_in.password),
+        is_active=True,
+        is_verified=True,
+        agency_id=system_agency.id
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    
+    return {
+        "id": str(user.id),
+        "name": user.full_name,
+        "email": user.email,
+        "role": user.role.value,
+        "created_at": user.created_at.isoformat()
+    }
