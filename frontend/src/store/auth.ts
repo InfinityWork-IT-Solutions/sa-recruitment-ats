@@ -34,8 +34,6 @@ export const useAuthStore = create<AuthState>((set) => ({
                     isValid = true;
                 } else if (expectedType === 'company' && userRole === 'client') {
                     isValid = true;
-                } else if (expectedType === 'recruiter' && ['agency_admin', 'agency_user', 'admin'].includes(userRole)) {
-                    isValid = true;
                 }
                 
                 if (!isValid) {
@@ -51,7 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             if (user.role === 'super_admin') window.location.href = '/admin/dashboard';
             else if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
             else if (user.role === 'client') window.location.href = '/client-dashboard';
-            else window.location.href = '/dashboard';
+            else window.location.href = '/admin/dashboard';
         } catch (error) {
             set({ isLoading: false });
             throw error;
@@ -64,36 +62,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             await useAuthStore.getState().registerCandidate(rest);
         } else if (role === 'company') {
             await useAuthStore.getState().registerCompany(rest);
-        } else {
-            // Default registration (e.g. recruiter/agency)
-            set({ isLoading: true });
-            try {
-                // ... implementation for agency/recruiter if needed
-                // For now, let's assume it uses the general /auth/register
-                const registerData = {
-                    agency: {
-                        name: data.agency_name || data.company_name,
-                        email: data.email,
-                        city: data.city,
-                        province: data.province,
-                        country: data.country,
-                        subscription_tier: data.subscription_plan || 'starter',
-                    },
-                    user: {
-                        email: data.email,
-                        password: data.password,
-                        first_name: data.first_name,
-                        last_name: data.last_name,
-                        phone: data.phone,
-                        role: 'agency_admin'
-                    }
-                };
-                await apiClient.post('/auth/register', registerData);
-                await useAuthStore.getState().login(data.email, data.password);
-            } catch (error) {
-                set({ isLoading: false });
-                throw error;
-            }
         }
     },
 

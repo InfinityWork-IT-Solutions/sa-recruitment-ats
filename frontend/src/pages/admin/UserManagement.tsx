@@ -83,10 +83,8 @@ export default function UserManagement() {
                 className="flex-1 md:w-48 bg-gray-50 border-none rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest text-gray-600 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
               >
                 <option value="all">Every Account</option>
-                <option value="agency_admin">Agency Admins</option>
-                <option value="recruiter">Recruiters</option>
-                <option value="candidate">Candidates</option>
-                <option value="client">Client Reps</option>
+                <option value="candidate">Candidates (Job Seekers)</option>
+                <option value="client">Companies</option>
               </select>
             </div>
           </div>

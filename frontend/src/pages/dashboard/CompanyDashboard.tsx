@@ -1,8 +1,9 @@
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 import ConfigureAIAgentModal from '@/components/modals/ConfigureAIAgentModal';
 import { useCreateJob } from '@/hooks/use-jobs';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import apiClient from '@/lib/api-client';
+import { Settings as SettingsIcon, Plus, Briefcase, Users, TrendingUp, Sparkles } from 'lucide-react';
 
 export default function ClientDashboard() {
   const [showPostJobModal, setShowPostJobModal] = useState(false);

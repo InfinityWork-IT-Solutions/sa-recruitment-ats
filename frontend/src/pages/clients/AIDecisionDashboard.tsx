@@ -58,7 +58,7 @@ export default function AIDecisionDashboard() {
         
         // Auto-select all decisions
         if (data.all_decisions && Array.isArray(data.all_decisions)) {
-          const allIds = new Set(data.all_decisions.map((d: AIDecision) => d.decision_id));
+          const allIds = new Set<string>(data.all_decisions.map((d: AIDecision) => d.decision_id));
           setSelectedDecisions(allIds);
         }
       } else {

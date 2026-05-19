@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth';
 
 const createRegisterSchema = (userType: string) => {
   const baseSchema = {
-    user_type: z.enum(['candidate', 'company', 'recruiter']),
+    user_type: z.enum(['candidate', 'company']),
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
@@ -36,8 +36,7 @@ const createRegisterSchema = (userType: string) => {
 
   return z.object({
     ...baseSchema,
-    company_name: userType === 'company' ? z.string().min(1, 'Company name is required') : z.string().optional(),
-    agency_name: userType === 'recruiter' ? z.string().min(1, 'Agency name is required') : z.string().optional(),
+    company_name: z.string().min(1, 'Company name is required'),
     city: z.string().min(1, 'City is required'),
     province: z.string().min(1, 'Province is required'),
     country: z.string().min(1, 'Country is required'),
@@ -55,10 +54,12 @@ export default function UnifiedRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [searchParams] = useSearchParams();
-  const urlType = searchParams.get('type') as 'candidate' | 'company' | 'recruiter' | null;
+  const urlType = searchParams.get('type') as 'candidate' | 'company' | null;
   const urlPlan = searchParams.get('plan');
   
-  const [userType, setUserType] = useState<'candidate' | 'company' | 'recruiter'>(urlType || 'candidate');
+  const [userType, setUserType] = useState<'candidate' | 'company'>(
+    urlType === 'company' ? 'company' : 'candidate'
+  );
   const navigate = useNavigate();
   const { register: registerUser } = useAuthStore();
 
@@ -78,7 +79,7 @@ export default function UnifiedRegisterPage() {
   });
 
   useEffect(() => {
-    if (urlType && ['candidate', 'company', 'recruiter'].includes(urlType)) {
+    if (urlType && ['candidate', 'company'].includes(urlType)) {
       setUserType(urlType);
       setValue('user_type', urlType);
       reset({ user_type: urlType, subscription_plan: urlPlan || 'professional' });
@@ -93,7 +94,6 @@ export default function UnifiedRegisterPage() {
       await registerUser({ ...data, role: data.user_type });
       if (data.user_type === 'candidate') navigate('/candidate-dashboard');
       else if (data.user_type === 'company') navigate('/client-dashboard');
-      else navigate('/dashboard');
     } catch (error: any) {
       console.error('Registration failed:', error);
     }
@@ -102,15 +102,13 @@ export default function UnifiedRegisterPage() {
   const userTypes = [
     { value: 'candidate', label: 'Job Seeker', icon: User, color: 'emerald' },
     { value: 'company', label: 'Company', icon: Building2, color: 'blue' },
-    { value: 'recruiter', label: 'Recruiter', icon: Users, color: 'purple' },
   ];
 
   const currentUserType = userTypes.find((t) => t.value === selectedUserType);
   const colors = {
     emerald: 'bg-emerald-500',
-    blue: 'bg-blue-600',
-    purple: 'bg-purple-600'
-  }[currentUserType?.color as 'emerald' | 'blue' | 'purple'] || 'bg-blue-600';
+    blue: 'bg-blue-600'
+  }[currentUserType?.color as 'emerald' | 'blue'] || 'bg-blue-600';
 
   return (
     <div className="max-w-3xl w-full mx-auto px-4 sm:px-0">
@@ -155,7 +153,7 @@ export default function UnifiedRegisterPage() {
           )}
 
           {/* Pricing Selector for Business */}
-          {(selectedUserType === 'company' || selectedUserType === 'recruiter') && (
+          {selectedUserType === 'company' && (
             <div className="space-y-4">
               <label className="text-xs font-black text-white/60 uppercase tracking-[0.2em] ml-1">Select Plan</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -184,15 +182,15 @@ export default function UnifiedRegisterPage() {
 
           <div className="space-y-8">
             {/* Conditional Business Name */}
-            {selectedUserType !== 'candidate' && (
+            {selectedUserType === 'company' && (
               <div>
                 <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">
-                  {selectedUserType === 'company' ? 'Company Name' : 'Agency Name'}
+                  Company Name
                 </label>
                 <input
-                  {...register(selectedUserType === 'company' ? 'company_name' : 'agency_name')}
+                  {...register('company_name')}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all backdrop-blur-md"
-                  placeholder={selectedUserType === 'company' ? 'Acme Corp' : 'Elite Talent Agency'}
+                  placeholder="Acme Corp"
                 />
               </div>
             )}

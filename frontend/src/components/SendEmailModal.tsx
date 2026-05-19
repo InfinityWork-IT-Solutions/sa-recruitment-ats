@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react';
 import { X, Send, Mail, Search, Eye, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
-import { MessageTemplate } from '@/types/api';
+interface MessageTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body_template: string;
+}
 
 interface SendEmailModalProps {
     isOpen: boolean;

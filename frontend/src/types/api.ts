@@ -7,6 +7,7 @@ export interface User {
     role: UserRole;
     agency_id: string | null;
     company_id?: string | null;
+    candidate_id?: string | null;
     avatar_url?: string | null;
     agency_name?: string | null;
     managed_clients_count?: number;

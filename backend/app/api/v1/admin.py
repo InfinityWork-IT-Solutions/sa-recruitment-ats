@@ -196,3 +196,128 @@ async def trigger_job_match(
     asyncio.create_task(send_daily_job_matches())
     
     return {'message': 'Job match synchronisation started in background'}
+
+@router.get("/stats")
+async def get_admin_stats(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """Get system stats for dashboard"""
+    return await get_admin_dashboard(db, current_admin)
+
+@router.get("/companies")
+async def get_admin_companies(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """List all client companies"""
+    result = await db.execute(select(ClientCompany))
+    companies = result.scalars().all()
+    return {
+        "companies": [
+            {
+                "id": str(c.id),
+                "name": c.name,
+                "industry": c.industry,
+                "website": c.website,
+                "city": c.city,
+                "country": c.country,
+                "is_active": c.is_active,
+                "contact_email": c.contact_email,
+                "created_at": c.created_at.isoformat()
+            } for c in companies
+        ]
+    }
+
+@router.get("/candidates")
+async def get_admin_candidates(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """List all candidates"""
+    result = await db.execute(select(Candidate))
+    candidates = result.scalars().all()
+    return {
+        "candidates": [
+            {
+                "id": str(c.id),
+                "name": f"{c.first_name} {c.last_name}",
+                "email": c.email,
+                "phone": c.phone,
+                "current_job_title": c.current_job_title,
+                "years_of_experience": c.years_of_experience,
+                "city": c.city,
+                "country": c.country,
+                "status": c.status.value if c.status else "active",
+                "created_at": c.created_at.isoformat()
+            } for c in candidates
+        ]
+    }
+
+@router.get("/applications")
+async def get_admin_applications(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """List all applications"""
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Application).options(
+            selectinload(Application.candidate),
+            selectinload(Application.job)
+        )
+    )
+    applications = result.scalars().all()
+    return {
+        "applications": [
+            {
+                "id": str(a.id),
+                "candidate_name": f"{a.candidate.first_name} {a.candidate.last_name}" if a.candidate else "Unknown",
+                "job_title": a.job.title if a.job else "Unknown",
+                "status": a.status.value if a.status else "pending",
+                "applied_at": a.created_at.isoformat()
+            } for a in applications
+        ]
+    }
+
+@router.get("/jobs")
+async def get_admin_jobs(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """List all jobs"""
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Job).options(selectinload(Job.client_company))
+    )
+    jobs = result.scalars().all()
+    return {
+        "jobs": [
+            {
+                "id": str(j.id),
+                "title": j.title,
+                "company_name": j.client_company.name if j.client_company else "Unknown",
+                "location": j.location,
+                "status": j.status.value if j.status else "active",
+                "created_at": j.created_at.isoformat()
+            } for j in jobs
+        ]
+    }
+
+@router.post("/users/{user_id}/disable")
+async def disable_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """Disable/suspend a user account"""
+    return await suspend_user(user_id, db, current_admin)
+
+@router.post("/users/{user_id}/enable")
+async def enable_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_super_admin)
+):
+    """Enable/activate a suspended user account"""
+    return await activate_user(user_id, db, current_admin)

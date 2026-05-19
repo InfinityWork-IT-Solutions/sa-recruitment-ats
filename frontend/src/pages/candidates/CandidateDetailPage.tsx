@@ -418,7 +418,7 @@ export default function CandidateDetailPage() {
                 isOpen={showEmailModal}
                 onClose={() => setShowEmailModal(false)}
                 recipientId={candidate.id}
-                recipientName={candidate.full_name}
+                recipientName={`${candidate.first_name} ${candidate.last_name}`}
                 recipientEmail={candidate.email}
                 recipientType="candidate"
             />

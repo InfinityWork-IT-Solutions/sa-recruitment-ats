@@ -81,8 +81,8 @@ export default function LandingPage() {
       <section className="relative pt-12 pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 relative">
           
-          {/* 3 Action Cards (Top) - DARK GLASS */}
-          <div className="grid md:grid-cols-3 gap-8 mb-24">
+          {/* 2 Action Cards (Top) - DARK GLASS */}
+          <div className="grid md:grid-cols-2 gap-8 mb-24 max-w-5xl mx-auto">
             {/* Job Seekers Card */}
             <div className="bg-white/5 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white/10 shadow-2xl hover:bg-white/10 hover:border-emerald-500/30 transition-all duration-500 group flex flex-col">
               <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl flex items-center justify-center mb-8 group-hover:rotate-6 transition-transform shadow-lg shadow-emerald-900/50">
@@ -122,7 +122,7 @@ export default function LandingPage() {
             </div>
 
             {/* Companies Card */}
-            <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] p-8 border-2 border-blue-500/20 shadow-2xl shadow-blue-500/10 hover:shadow-blue-500/30 hover:border-blue-500 transition-all duration-500 group flex flex-col relative transform md:-translate-y-6">
+            <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] p-8 border-2 border-blue-500/20 shadow-2xl shadow-blue-500/10 hover:shadow-blue-500/30 hover:border-blue-500 transition-all duration-500 group flex flex-col relative">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black px-6 py-2 rounded-full tracking-[0.2em] uppercase shadow-xl z-10">
                 Most Popular
               </div>
@@ -163,51 +163,6 @@ export default function LandingPage() {
                 </Link>
               </div>
             </div>
-
-            {/* Recruiters Card */}
-            <div className="bg-white/5 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white/10 shadow-2xl hover:bg-white/10 hover:border-purple-500/30 transition-all duration-500 group flex flex-col">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl flex items-center justify-center mb-8 group-hover:rotate-6 transition-transform shadow-lg shadow-purple-900/50">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">For Recruiters</h3>
-              <p className="text-slate-400 mb-8 font-medium leading-relaxed">
-                Manage candidates, track applications, and close positions faster with AI-powered
-                matching workflows.
-              </p>
-              <ul className="space-y-4 mb-10 flex-grow">
-                {[
-                  "Kanban management",
-                  "AI candidate matching",
-                  "Bulk automation"
-                ].map((item, i) => (
-                  <li key={i} className="flex items-center text-sm font-bold text-slate-300">
-                    <div className="w-6 h-6 bg-purple-500/10 rounded-full flex items-center justify-center mr-3 shrink-0">
-                      <Check className="w-4 h-4 text-purple-400" />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex flex-col gap-3">
-                <Link 
-                  to="/register/recruiter" 
-                  className="w-full py-4 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 font-black transition shadow-lg shadow-purple-900/50 text-center uppercase tracking-widest text-xs"
-                >
-                  Register Agency
-                </Link>
-                <Link 
-                  to="/login?type=recruiter" 
-                  className="text-white/40 hover:text-white text-xs font-bold transition-colors text-center"
-                >
-                  Agency Login
-                </Link>
-              </div>
-              <div className="mt-6 text-center">
-                <p className="text-[10px] font-black text-purple-500 uppercase tracking-[0.2em]">
-                  The Pro Choice
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* Hero Content */}
@@ -226,8 +181,7 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto font-bold leading-relaxed mb-12">
-              Whether you're a recruiter filling roles, a company seeking talent, or a job seeker
-              looking for your next opportunity — we've got you covered.
+              Whether you're a company seeking talent, or a job seeker looking for your next opportunity — we've got you covered.
             </p>
           </div>
 
@@ -267,8 +221,7 @@ export default function LandingPage() {
               Everything You Need to Hire Better
             </h2>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
-              Powerful enterprise-grade features built specifically for fast-growing
-              agencies and ambitious teams.
+              Powerful enterprise-grade features built specifically for ambitious teams.
             </p>
           </div>
 
@@ -320,8 +273,8 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-white/5 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/10 hover:border-blue-500/30 transition-all group">
               <div className="text-blue-500 font-black text-6xl mb-6 opacity-20 group-hover:opacity-100 transition-opacity">01</div>
-              <h3 className="text-2xl font-black mb-4">Built for Agencies</h3>
-              <p className="text-slate-400 font-medium leading-relaxed">Not a generic HR tool. Built specifically for the high-velocity world of recruitment agencies and headhunters.</p>
+              <h3 className="text-2xl font-black mb-4">Built for Teams</h3>
+              <p className="text-slate-400 font-medium leading-relaxed">Not a generic HR tool. Built specifically for the high-velocity world of recruitment and headhunting.</p>
             </div>
             <div className="bg-white/5 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/10 hover:border-purple-500/30 transition-all group">
               <div className="text-purple-500 font-black text-6xl mb-6 opacity-20 group-hover:opacity-100 transition-opacity">02</div>
@@ -331,7 +284,7 @@ export default function LandingPage() {
             <div className="bg-white/5 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/10 hover:border-emerald-500/30 transition-all group">
               <div className="text-emerald-500 font-black text-6xl mb-6 opacity-20 group-hover:opacity-100 transition-opacity">03</div>
               <h3 className="text-2xl font-black mb-4">SA Compliance</h3>
-              <p className="text-slate-400 font-medium leading-relaxed">Fully POPIA compliant from day one. Your data stays safe, secure, and resides within sovereign legal frameworks.</p>
+              <p className="text-slate-400 font-medium leading-relaxed">Fully POPIA compliant from day one. Your data stays safe, secure, and resides within South African frameworks.</p>
             </div>
           </div>
         </div>
@@ -427,7 +380,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <Link 
-                to="/register/recruiter" 
+                to="/register?type=company&plan=starter" 
                 state={{ selectedPlan: 'starter', billingCycle }}
                 className="w-full py-4 border border-white/20 text-white rounded-xl hover:bg-white/10 transition-all font-bold text-center"
               >
@@ -451,7 +404,7 @@ export default function LandingPage() {
                   "Manage 2,000 candidates",
                   "Advanced AI matching",
                   "Priority 24/7 support",
-                  "Custom agency branding"
+                  "Custom company branding"
                 ].map((feature, i) => (
                   <li key={i} className="flex items-center text-sm font-bold text-white">
                     <Check className="w-5 h-5 text-yellow-400 mr-3" /> {feature}
@@ -459,7 +412,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <Link 
-                to="/register/recruiter" 
+                to="/register?type=company&plan=professional" 
                 state={{ selectedPlan: 'professional', billingCycle }}
                 className="w-full py-4 bg-white text-blue-600 rounded-xl font-bold shadow-xl text-center"
               >
@@ -486,7 +439,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link to="#" className="w-full py-4 bg-white/10 border border-white/20 text-white rounded-xl font-bold">
+              <Link to="/register?type=company&plan=enterprise" className="w-full py-4 bg-white/10 border border-white/20 text-white rounded-xl font-bold">
                 Contact Sales
               </Link>
             </div>
@@ -534,7 +487,7 @@ export default function LandingPage() {
               </div>
               <p className="text-slate-400 text-sm font-medium leading-relaxed">
                 The AI-powered recruitment software platform properly engineered for agile
-                and wildly fast-growing agencies globally.
+                and wildly fast-growing companies globally.
               </p>
             </div>
 

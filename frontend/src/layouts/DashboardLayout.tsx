@@ -40,7 +40,7 @@ const getNavigation = (role?: string) => {
             { name: 'Applications', href: '/company/applications', icon: FileText },
             { name: 'Team', href: '/company/team', icon: User },
             { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
-            { name: 'Video Reviews', href: '/recruiter/video-screenings', icon: Video },
+            { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
             { name: 'Billing', href: '/settings/billing', icon: CreditCard },
             { name: 'Settings', href: '/settings', icon: Settings },
@@ -51,32 +51,13 @@ const getNavigation = (role?: string) => {
         return [
             { name: 'Admin Console', href: '/admin/dashboard', icon: LayoutDashboard },
             { name: 'System Users', href: '/admin/users', icon: Users },
-            { name: 'Recruiter View', href: '/dashboard', icon: Briefcase },
-            { name: 'Jobs', href: '/jobs', icon: Briefcase },
-            { name: 'Candidates', href: '/candidates', icon: Users },
-            { name: 'Applications', href: '/applications', icon: FileText },
-            { name: 'Clients', href: '/clients', icon: Building2 },
-            { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-            { name: 'Video Reviews', href: '/recruiter/video-screenings', icon: Video },
+            { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
-            { name: 'Billing', href: '/settings/billing', icon: CreditCard },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
     
-    // Default recruiter navigation
-    return [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Jobs', href: '/jobs', icon: Briefcase },
-        { name: 'Candidates', href: '/candidates', icon: Users },
-        { name: 'Applications', href: '/applications', icon: FileText },
-        { name: 'Clients', href: '/clients', icon: Building2 },
-        { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-        { name: 'Video Reviews', href: '/recruiter/video-screenings', icon: Video },
-        { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
-        { name: 'Billing', href: '/settings/billing', icon: CreditCard },
-        { name: 'Settings', href: '/settings', icon: Settings },
-    ];
+    return [];
 };
 
 export default function DashboardLayout() {
@@ -112,7 +93,7 @@ export default function DashboardLayout() {
                     {/* Logo */}
                     <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
                         <Link 
-                            to={user?.role === 'candidate' ? '/candidate-dashboard' : user?.role === 'client' ? '/client-dashboard' : '/dashboard'} 
+                            to={user?.role === 'candidate' ? '/candidate-dashboard' : user?.role === 'client' ? '/company/dashboard' : '/admin/dashboard'} 
                             className="flex items-center space-x-2"
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">

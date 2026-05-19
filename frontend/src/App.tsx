@@ -23,12 +23,9 @@ import TermsOfService from './pages/legal/TermsOfService';
 
 // Recruiter Subscription & Registration
 import PricingPage from './pages/recruiter/PricingPage';
-import RecruiterRegistration from './pages/recruiter/RecruiterRegistration';
-import BillingDashboard from './pages/recruiter/BillingDashboard';
 import SubscriptionSettings from './pages/recruiter/SubscriptionSettings';
 
 // Dashboard Pages
-import DashboardPage from './pages/dashboard/DashboardPage';
 import CandidateDashboard from './pages/dashboard/CandidateDashboard';
 import CandidateProfilePage from './pages/dashboard/CandidateProfilePage';
 
@@ -38,18 +35,13 @@ import JobDetailPage from './pages/jobs/JobDetailPage';
 import CreateJobPage from './pages/jobs/CreateJobPage';
 
 // Candidates
-import CandidatesPage from './pages/candidates/CandidatesPage';
 import CandidateDetailPage from './pages/candidates/CandidateDetailPage';
-import CreateCandidatePage from './pages/candidates/CreateCandidatesPage';
 import MyAssessments from './pages/candidates/MyAssessments';
 
 // Applications
 import ApplicationsPage from './pages/applications/ApplicationsPage';
 import ApplicationDetailPage from './pages/applications/ApplicationDetailPage';
 import KanbanBoardPage from './pages/applications/KanbanBoardPage';
-
-// Clients
-import ClientCompaniesPage from './pages/clients/ClientCompaniesPage';
 
 // Analytics
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
@@ -146,27 +138,6 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<UnifiedLoginPage />} />
             <Route path="/register" element={<UnifiedRegisterPage />} />
-            <Route path="/register/recruiter" element={<RecruiterRegistration />} />
-          </Route>
-
-          {/* Recruiter Dashboard (Existing) */}
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin']}>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/jobs" element={<JobsPage />} />
-            <Route path="/jobs/create" element={<CreateJobPage />} />
-            <Route path="/jobs/:id" element={<JobDetailPage />} />
-            <Route path="/candidates" element={<CandidatesPage />} />
-            <Route path="/candidates/create" element={<CreateCandidatePage />} />
-            <Route path="/applications" element={<ApplicationsPage />} />
-            <Route path="/clients" element={<ClientCompaniesPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/recruiter/billing" element={<SubscriptionSettings />} />
           </Route>
 
           {/* Candidate Portal */}
@@ -225,7 +196,7 @@ function App() {
           {/* Shared Routes (Accessible by all roles) */}
           <Route
             element={
-              <ProtectedRoute allowedRoles={['agency_admin', 'recruiter', 'super_admin', 'candidate', 'client']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'candidate', 'client']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -236,8 +207,8 @@ function App() {
             <Route path="/candidates/:id" element={<CandidateDetailPage />} />
             <Route path="/applications/:id" element={<ApplicationDetailPage />} />
             <Route path="/jobs/:jobId/kanban" element={<KanbanBoardPage />} />
-            <Route path="/recruiter/video-screenings" element={<RecruiterVideoReviewDashboard />} />
-            <Route path="/recruiter/video-screening/:screening_id" element={<VideoScreeningDetailView />} />
+            <Route path="/company/video-screenings" element={<RecruiterVideoReviewDashboard />} />
+            <Route path="/company/video-screening/:screening_id" element={<VideoScreeningDetailView />} />
             <Route path="/automation/decisions" element={<AIDecisionDashboard />} />
           </Route>
 

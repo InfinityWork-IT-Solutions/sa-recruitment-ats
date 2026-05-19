@@ -86,8 +86,8 @@ export default function JobDetailPage() {
         defaultValues: job ? {
             title: job.title,
             employment_type: job.employment_type,
-            location_city: job.location_city,
-            location_province: job.location_province,
+            location_city: job.city || '',
+            location_province: job.province || '',
             description: job.description,
             requirements: job.requirements || '',
             responsibilities: job.responsibilities || '',
@@ -172,8 +172,8 @@ export default function JobDetailPage() {
                                     reset({
                                         title: job.title,
                                         employment_type: job.employment_type,
-                                        location_city: job.location_city,
-                                        location_province: job.location_province,
+                                        location_city: job.city || '',
+                                        location_province: job.province || '',
                                         description: job.description,
                                         requirements: job.requirements || '',
                                         responsibilities: job.responsibilities || '',
@@ -456,7 +456,7 @@ export default function JobDetailPage() {
                                             <MapPin className="w-4 h-4" />
                                             <span className="text-sm font-medium">Location</span>
                                         </div>
-                                        <p className="text-gray-900">{job.location_city}, {job.location_province}</p>
+                                        <p className="text-gray-900">{job.city}, {job.province}</p>
                                     </div>
                                     {(job.salary_min || job.salary_max) && (
                                         <div>

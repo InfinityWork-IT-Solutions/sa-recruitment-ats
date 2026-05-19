@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/auth';
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
-  user_type: z.enum(['candidate', 'company', 'recruiter']),
+  user_type: z.enum(['candidate', 'company']),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -18,7 +18,7 @@ export default function UnifiedLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthStore();
   const [searchParams] = useSearchParams();
-  const urlType = searchParams.get('type') as 'candidate' | 'company' | 'recruiter' | null;
+  const urlType = searchParams.get('type') as 'candidate' | 'company' | null;
 
   const {
     register,
@@ -36,7 +36,7 @@ export default function UnifiedLoginPage() {
 
   // Effect to handle URL parameter changes
   useEffect(() => {
-    if (urlType && ['candidate', 'company', 'recruiter'].includes(urlType)) {
+    if (urlType && ['candidate', 'company'].includes(urlType)) {
       setValue('user_type', urlType as any);
     }
   }, [urlType, setValue]);
@@ -49,8 +49,8 @@ export default function UnifiedLoginPage() {
     } catch (error: any) {
       console.error('Login failed:', error);
       setError('root', { 
-        type: 'manual', 
-        message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials.' 
+         type: 'manual', 
+         message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials.' 
       });
     }
   };
@@ -58,15 +58,13 @@ export default function UnifiedLoginPage() {
   const userTypes = [
     { value: 'candidate', label: 'Job Seeker', icon: User, color: 'emerald' },
     { value: 'company', label: 'Company', icon: Building2, color: 'blue' },
-    { value: 'recruiter', label: 'Recruiter', icon: Users, color: 'purple' },
   ];
 
   const currentUserType = userTypes.find((t) => t.value === selectedUserType);
   const colors = {
     emerald: 'bg-emerald-500',
-    blue: 'bg-blue-600',
-    purple: 'bg-purple-600'
-  }[currentUserType?.color as 'emerald' | 'blue' | 'purple'] || 'bg-blue-600';
+    blue: 'bg-blue-600'
+  }[currentUserType?.color as 'emerald' | 'blue'] || 'bg-blue-600';
 
   return (
     <div className="max-w-xl w-full mx-auto px-4 sm:px-0">
@@ -173,7 +171,7 @@ export default function UnifiedLoginPage() {
               <input type="checkbox" className="w-5 h-5 bg-white/5 border-white/20 rounded-lg focus:ring-blue-500/50 text-blue-600" />
               <span className="text-sm text-white/60 group-hover:text-white transition-colors">Keep me signed in</span>
             </label>
-            <Link to="/forgot-password" size="sm" className="text-sm text-blue-400 hover:text-blue-300 font-bold">
+            <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 font-bold">
               Forgot?
             </Link>
           </div>

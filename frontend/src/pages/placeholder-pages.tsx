@@ -3,12 +3,9 @@
 
 export { default as JobDetailPage } from './jobs/JobDetailPage';
 export { default as CreateJobPage } from './jobs/CreateJobPage';
-export { default as CandidatesPage } from './candidates/CandidatesPage';
 export { default as CandidateDetailPage } from './candidates/CandidateDetailPage';
-export { default as CreateCandidatePage } from './candidates/CreateCandidatesPage';
 export { default as ApplicationsPage } from './applications/ApplicationsPage';
 export { default as ApplicationDetailPage } from './applications/ApplicationDetailPage';
-export { default as ClientCompaniesPage } from './clients/ClientCompaniesPage';
 export { default as AnalyticsPage } from './analytics/AnalyticsPage';
 export { default as SettingsPage } from './settings/SettingsPage';
 
