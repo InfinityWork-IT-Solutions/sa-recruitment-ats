@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users, Briefcase, DollarSign, TrendingUp,
-  Building, UserCheck, CheckCircle
+  Building, UserCheck, CheckCircle, ArrowUpRight, ArrowDownRight, Eye
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { apiClient } from '../../lib/api-client';
@@ -19,6 +20,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -61,6 +63,9 @@ export default function AdminDashboard() {
     { name: 'Jun', revenue: 68000 },
     { name: 'Jul', revenue: 85000 },
   ];
+
+  const inactiveUsers = Math.max(0, (stats?.totalUsers ?? 0) - ((stats?.totalCandidates ?? 0) + (stats?.totalAgencies ?? 0)));
+  const closedJobs = Math.max(0, (stats?.totalJobs ?? 0) - (stats?.activeJobs ?? 0));
   
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 lg:p-8">
@@ -68,7 +73,7 @@ export default function AdminDashboard() {
       <div className="mb-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Admin Terminal</h1>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Admin Dashboard</h1>
             <p className="text-gray-500 mt-1">Platform-wide oversight and orchestrator</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -77,6 +82,7 @@ export default function AdminDashboard() {
                 const res = await apiClient.post('/admin/trigger-job-match');
                 if (res.status === 200) alert('Matching engine synchronising...');
               }}
+              title="Automatically run the matching engine to pair active candidates with relevant job opportunities"
               className="bg-blue-50 text-blue-600 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-100 transition-all active:scale-95 shadow-sm border border-blue-200/50"
             >
               Synchronize Active Talent
@@ -92,91 +98,218 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {/* Total Users */}
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 relative overflow-hidden">
+        <div 
+          onClick={() => navigate('/admin/users')}
+          className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 p-6 border border-gray-100 cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center justify-between mb-6 relative">
-            <div className="w-12 h-12 bg-blue-100/50 rounded-xl flex items-center justify-center text-blue-600">
-              <Users className="w-6 h-6" />
+          <div>
+            <div className="flex items-center justify-between mb-4 relative">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-blue-100/50 rounded-xl flex items-center justify-center text-blue-600">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-gray-900 text-sm font-black uppercase tracking-wider">Total Users</span>
+              </div>
+              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 group-hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-0.5">
+                View <Eye className="w-3 h-3" />
+              </span>
             </div>
-            <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2.5 py-1 rounded-full">+12%</span>
+
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-black text-gray-900 tracking-tighter">
+                {stats?.totalUsers ?? 0}
+              </span>
+              <span className="text-emerald-600 text-xs font-bold flex items-center gap-0.5">
+                <ArrowUpRight className="w-3.5 h-3.5" /> +12%
+                <span className="text-gray-400 font-medium text-[9px] lowercase tracking-normal ml-0.5">from last month</span>
+              </span>
+            </div>
           </div>
-          <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest">Global Network</h3>
-          <p className="text-3xl font-black text-gray-900 mt-1 tracking-tighter">
-            {stats?.totalUsers.toLocaleString()}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-4 text-[9px] font-bold uppercase tracking-widest text-gray-400">
-            <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-              <Building className="w-2.5 h-2.5" /> <span>{stats?.totalAgencies} Agency Groups</span>
+
+          <div className="border-t border-gray-100 pt-4 mt-4 space-y-1.5 text-xs text-gray-500 font-medium relative">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                {stats?.totalCandidates ?? 0} Candidates
+              </span>
             </div>
-            <div className="flex items-center gap-1 text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-              <UserCheck className="w-2.5 h-2.5" /> <span>{stats?.totalCandidates} Total Talent</span>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-blue-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                {stats?.totalAgencies ?? 0} Companies
+              </span>
             </div>
-            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-              <CheckCircle className="w-2.5 h-2.5" /> <span>{stats?.talentConsent} Subscribed</span>
+            <div className="flex items-center justify-between">
+              <span className={`flex items-center gap-1.5 ${inactiveUsers > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${inactiveUsers > 0 ? 'bg-red-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                {inactiveUsers} Inactive
+              </span>
             </div>
           </div>
         </div>
         
         {/* Active Jobs */}
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 relative overflow-hidden">
+        <div 
+          onClick={() => navigate('/job-board')}
+          className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-purple-200 transition-all duration-300 p-6 border border-gray-100 cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50/50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center justify-between mb-6 relative">
-            <div className="w-12 h-12 bg-purple-100/50 rounded-xl flex items-center justify-center text-purple-600">
-              <Briefcase className="w-6 h-6" />
+          <div>
+            <div className="flex items-center justify-between mb-4 relative">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-purple-100/50 rounded-xl flex items-center justify-center text-purple-600">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <span className="text-gray-900 text-sm font-black uppercase tracking-wider">Active Jobs</span>
+              </div>
+              <span className="text-[10px] font-bold text-purple-600 bg-purple-50 group-hover:bg-purple-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-0.5">
+                View <Eye className="w-3 h-3" />
+              </span>
             </div>
-            <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2.5 py-1 rounded-full">+8%</span>
+
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-black text-gray-900 tracking-tighter">
+                {stats?.activeJobs ?? 0}
+              </span>
+              <span className="text-emerald-600 text-xs font-bold flex items-center gap-0.5">
+                <ArrowUpRight className="w-3.5 h-3.5" /> +8%
+                <span className="text-gray-400 font-medium text-[9px] lowercase tracking-normal ml-0.5">from last month</span>
+              </span>
+            </div>
           </div>
-          <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest">Active Markets</h3>
-          <p className="text-3xl font-black text-gray-900 mt-1 tracking-tighter">
-            {stats?.activeJobs.toLocaleString()}
-          </p>
-          <p className="text-[11px] font-medium text-gray-500 mt-4">
-            Out of <span className="text-purple-600 font-bold">{stats?.totalJobs}</span> total opportunities posted
-          </p>
+
+          <div className="border-t border-gray-100 pt-4 mt-4 space-y-1.5 text-xs text-gray-500 font-medium relative">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-purple-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                {stats?.totalJobs ?? 0} Total Postings
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                {stats?.activeJobs ?? 0} Active Postings
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-gray-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                {closedJobs} Closed / Filled
+              </span>
+            </div>
+          </div>
         </div>
         
         {/* Monthly Revenue */}
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 relative overflow-hidden">
+        <div 
+          onClick={() => navigate('/settings/billing')}
+          className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 p-6 border border-gray-100 cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50/50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center justify-between mb-6 relative">
-            <div className="w-12 h-12 bg-emerald-100/50 rounded-xl flex items-center justify-center text-emerald-600">
-              <DollarSign className="w-6 h-6" />
+          <div>
+            <div className="flex items-center justify-between mb-4 relative">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-emerald-100/50 rounded-xl flex items-center justify-center text-emerald-600">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <span className="text-gray-900 text-sm font-black uppercase tracking-wider">Monthly Revenue</span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 group-hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-0.5">
+                View <Eye className="w-3 h-3" />
+              </span>
             </div>
-            <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2.5 py-1 rounded-full">+24%</span>
+
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-black text-gray-900 tracking-tighter">
+                R{(stats?.monthlyRevenue ?? 0).toLocaleString()}
+              </span>
+              <span className="text-emerald-600 text-xs font-bold flex items-center gap-0.5">
+                <ArrowUpRight className="w-3.5 h-3.5" /> +24%
+                <span className="text-gray-400 font-medium text-[9px] lowercase tracking-normal ml-0.5">from last month</span>
+              </span>
+            </div>
           </div>
-          <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest">Platform Revenue</h3>
-          <p className="text-3xl font-black text-gray-900 mt-1 tracking-tighter">
-            R{stats?.monthlyRevenue.toLocaleString()}
-          </p>
-          <div className="flex items-center gap-2 mt-4 text-[11px] font-medium text-gray-500">
-            <CheckCircle className="w-3 h-3 text-emerald-400" />
-            <span>{stats?.activeSubscriptions} active premium clients</span>
+
+          <div className="border-t border-gray-100 pt-4 mt-4 space-y-1.5 text-xs text-gray-500 font-medium relative">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                {stats?.activeSubscriptions ?? 0} Active Clients
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-blue-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                R{stats?.activeSubscriptions ? Math.round(stats.monthlyRevenue / stats.activeSubscriptions).toLocaleString() : 0} Avg / Account
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-gray-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                0 Overdue Payments
+              </span>
+            </div>
           </div>
         </div>
         
         {/* Total Applications */}
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 relative overflow-hidden">
+        <div 
+          onClick={() => navigate('/company/applications')}
+          className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-orange-200 transition-all duration-300 p-6 border border-gray-100 cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50/50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center justify-between mb-6 relative">
-            <div className="w-12 h-12 bg-orange-100/50 rounded-xl flex items-center justify-center text-orange-600">
-              <TrendingUp className="w-6 h-6" />
+          <div>
+            <div className="flex items-center justify-between mb-4 relative">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-orange-100/50 rounded-xl flex items-center justify-center text-orange-600">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <span className="text-gray-900 text-sm font-black uppercase tracking-wider">Talent Velocity</span>
+              </div>
+              <span className="text-[10px] font-bold text-orange-600 bg-orange-50 group-hover:bg-orange-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-0.5">
+                View <Eye className="w-3 h-3" />
+              </span>
             </div>
-            <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2.5 py-1 rounded-full">+31%</span>
+
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-black text-gray-900 tracking-tighter">
+                {stats?.totalApplications ?? 0}
+              </span>
+              <span className="text-emerald-600 text-xs font-bold flex items-center gap-0.5">
+                <ArrowUpRight className="w-3.5 h-3.5" /> +31%
+                <span className="text-gray-400 font-medium text-[9px] lowercase tracking-normal ml-0.5">from last month</span>
+              </span>
+            </div>
           </div>
-          <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest">Talent Velocity</h3>
-          <p className="text-3xl font-black text-gray-900 mt-1 tracking-tighter">
-            {stats?.totalApplications.toLocaleString()}
-          </p>
-          <p className="text-[11px] font-medium text-gray-500 mt-4 italic">
-            Applications processed this cycle
-          </p>
+
+          <div className="border-t border-gray-100 pt-4 mt-4 space-y-1.5 text-xs text-gray-500 font-medium relative">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-orange-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                {stats?.totalApplications ?? 0} Processed
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                85% Match Accuracy
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-gray-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                0 Bottlenecks
+              </span>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         {/* Revenue Chart */}
-        <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
+        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-black text-gray-900 tracking-tight">Revenue Projection</h3>
             <select className="bg-gray-50 border-none text-xs font-bold px-3 py-1.5 rounded-lg text-gray-600 ring-1 ring-gray-200">
@@ -184,12 +317,12 @@ export default function AdminDashboard() {
               <option>Last Year</option>
             </select>
           </div>
-          <div className="h-72 w-full">
+          <div className="h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15}/>
                     <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
@@ -213,47 +346,58 @@ export default function AdminDashboard() {
         </div>
         
         {/* User Distribution */}
-        <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
-          <h3 className="text-lg font-black text-gray-900 mb-8 tracking-tight">Global Distribution</h3>
-          <div className="space-y-8">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Agencies</span>
+        <div className="lg:col-span-1 bg-white rounded-3xl shadow-sm p-8 border border-gray-100 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-black text-gray-900 mb-8 tracking-tight">Global Distribution</h3>
+            <div className="space-y-8">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Agencies</span>
+                  </div>
+                  <span className="text-xs font-black text-gray-900 bg-blue-50 px-2 py-0.5 rounded shadow-sm">{stats?.totalAgencies}</span>
                 </div>
-                <span className="text-xs font-black text-gray-900 bg-blue-50 px-2 py-0.5 rounded shadow-sm">{stats?.totalAgencies}</span>
+                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-600 to-blue-400 h-2.5 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.3)] transition-all duration-1000" style={{ width: '75%' }}></div>
+                </div>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-400 h-2.5 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.3)] transition-all duration-1000" style={{ width: '75%' }}></div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 bg-purple-600 rounded-full"></div>
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Candidates</span>
+                  </div>
+                  <span className="text-xs font-black text-gray-900 bg-purple-50 px-2 py-0.5 rounded shadow-sm">{stats?.totalCandidates}</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                  <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-2.5 rounded-full shadow-[0_0_8px_rgba(147,51,234,0.3)] transition-all duration-1000" style={{ width: '92%' }}></div>
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full"></div>
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Active Seats</span>
+                  </div>
+                  <span className="text-xs font-black text-gray-900 bg-emerald-50 px-2 py-0.5 rounded shadow-sm">{stats?.activeSubscriptions}</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-2.5 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.3)] transition-all duration-1000" style={{ width: '68%' }}></div>
+                </div>
               </div>
             </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 bg-purple-600 rounded-full"></div>
-                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Candidates</span>
-                </div>
-                <span className="text-xs font-black text-gray-900 bg-purple-50 px-2 py-0.5 rounded shadow-sm">{stats?.totalCandidates}</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-2.5 rounded-full shadow-[0_0_8px_rgba(147,51,234,0.3)] transition-all duration-1000" style={{ width: '92%' }}></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full"></div>
-                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Active Seats</span>
-                </div>
-                <span className="text-xs font-black text-gray-900 bg-emerald-50 px-2 py-0.5 rounded shadow-sm">{stats?.activeSubscriptions}</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-2.5 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.3)] transition-all duration-1000" style={{ width: '68%' }}></div>
-              </div>
-            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+            <button 
+              onClick={() => navigate('/admin/users')}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all flex items-center gap-1.5"
+            >
+              View All <span className="text-sm font-black">→</span>
+            </button>
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@
  * WHEN IT'S USED:
  * ---------------
  * - After recruiter clicks "Review" on dashboard
- * - URL: /recruiter/video-screening/{screening_id}
+ * - URL: /company/video-screening/{screening_id}
  * - This is where hiring decisions are made
  * 
  * PAGE LAYOUT:
@@ -387,7 +387,7 @@ export default function VideoScreeningDetailView() {
     try {
       await apiClient.post(`/video-screening/${screening_id}/approve`);
       alert('✅ Candidate approved! Interview invitation will be sent.');
-      navigate('/recruiter/video-screenings');
+      navigate('/company/video-screenings');
     } catch (err) {
       alert('Failed to approve candidate');
     }
@@ -399,7 +399,7 @@ export default function VideoScreeningDetailView() {
     try {
       await apiClient.post(`/video-screening/${screening_id}/reject`, { reason });
       alert('Candidate rejected. Notification email sent.');
-      navigate('/recruiter/video-screenings');
+      navigate('/company/video-screenings');
     } catch (err) {
       alert('Failed to reject candidate');
     }
@@ -423,7 +423,7 @@ export default function VideoScreeningDetailView() {
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Screening Not Found</h2>
           <button
-            onClick={() => navigate('/recruiter/video-screenings')}
+            onClick={() => navigate('/company/video-screenings')}
             className="text-blue-600 hover:underline"
           >
             ← Back to Dashboard
@@ -443,7 +443,7 @@ export default function VideoScreeningDetailView() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/recruiter/video-screenings')}
+              onClick={() => navigate('/company/video-screenings')}
               className="text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-6 h-6" />

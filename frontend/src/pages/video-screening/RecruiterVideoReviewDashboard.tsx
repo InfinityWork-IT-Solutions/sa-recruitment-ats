@@ -18,7 +18,7 @@
  * 
  * WHEN IT'S USED:
  * ---------------
- * - URL: /recruiter/video-screenings
+ * - URL: /company/video-screenings
  * - Accessed from main recruiter navigation menu
  * - First stop after candidate submits video screening
  * 
@@ -93,9 +93,9 @@
  * Reviewed - Shows reviewed, approved, rejected
  * 
  * Filter state managed in URL query param:
- * - /recruiter/video-screenings?status=all
- * - /recruiter/video-screenings?status=pending
- * - /recruiter/video-screenings?status=reviewed
+ * - /company/video-screenings?status=all
+ * - /company/video-screenings?status=pending
+ * - /company/video-screenings?status=reviewed
  * 
  * SEARCHING:
  * ----------
@@ -444,7 +444,7 @@ export default function RecruiterVideoReviewDashboard() {
             {filteredScreenings.map((screening) => (
               <div
                 key={screening.id}
-                onClick={() => navigate(`/recruiter/video-screening/${screening.id}`)}
+                onClick={() => navigate(`/company/video-screening/${screening.id}`)}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between">
