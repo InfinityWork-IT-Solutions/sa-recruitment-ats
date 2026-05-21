@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
-import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera, Mail } from 'lucide-react';
+import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera, Mail, Briefcase, Star, Calendar, DollarSign, Info, SmartphoneNfc, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
+import { QRCodeSVG } from 'qrcode.react';
 import UsageDashboard from '@/components/UsageDashboard';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, TrendingUp, Users as UsersIcon } from 'lucide-react';
 import { ImageCropperModal } from '@/components/common/ImageCropperModal';
 import TemplateManager from '@/components/TemplateManager';
@@ -33,6 +34,356 @@ const passwordSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
+
+// ---------------------------------------------------------------------------
+// Notification settings panel (shared by recruiter / admin / candidate)
+// ---------------------------------------------------------------------------
+
+type NotifPrefs = {
+    inapp_new_application: boolean;
+    inapp_application_status: boolean;
+    inapp_ai_match: boolean;
+    inapp_interview: boolean;
+    inapp_offer: boolean;
+    inapp_billing: boolean;
+    inapp_system: boolean;
+    email_new_application: boolean;
+    email_application_status: boolean;
+    email_ai_match: boolean;
+    email_interview: boolean;
+    email_offer: boolean;
+    email_billing: boolean;
+    email_system: boolean;
+};
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <button
+            type="button"
+            onClick={() => onChange(!checked)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-blue-600' : 'bg-gray-200'}`}
+        >
+            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+    );
+}
+
+type NotifRow = {
+    key: keyof NotifPrefs;
+    emailKey: keyof NotifPrefs;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+    roles: string[];
+};
+
+const NOTIFICATION_ROWS: NotifRow[] = [
+    {
+        key: 'inapp_new_application',
+        emailKey: 'email_new_application',
+        label: 'New Application',
+        description: 'When a candidate applies to one of your jobs',
+        icon: <Briefcase className="w-5 h-5 text-blue-500" />,
+        roles: ['agency_admin', 'recruiter', 'client'],
+    },
+    {
+        key: 'inapp_application_status',
+        emailKey: 'email_application_status',
+        label: 'Application Status Updates',
+        description: 'When your application moves to a new stage',
+        icon: <ArrowRight className="w-5 h-5 text-purple-500" />,
+        roles: ['candidate'],
+    },
+    {
+        key: 'inapp_ai_match',
+        emailKey: 'email_ai_match',
+        label: 'AI Match Alerts',
+        description: 'Top candidate matches found for your jobs / new jobs that match your skills',
+        icon: <Star className="w-5 h-5 text-yellow-500" />,
+        roles: ['agency_admin', 'recruiter', 'client', 'candidate'],
+    },
+    {
+        key: 'inapp_interview',
+        emailKey: 'email_interview',
+        label: 'Interview Scheduled',
+        description: 'When an interview is confirmed or updated',
+        icon: <Calendar className="w-5 h-5 text-green-500" />,
+        roles: ['agency_admin', 'recruiter', 'client', 'candidate'],
+    },
+    {
+        key: 'inapp_offer',
+        emailKey: 'email_offer',
+        label: 'Offer Updates',
+        description: 'When an offer is made, accepted, or declined',
+        icon: <DollarSign className="w-5 h-5 text-emerald-500" />,
+        roles: ['agency_admin', 'recruiter', 'client', 'candidate'],
+    },
+    {
+        key: 'inapp_billing',
+        emailKey: 'email_billing',
+        label: 'Billing & Subscription',
+        description: 'Invoices, plan changes and payment events',
+        icon: <CreditCard className="w-5 h-5 text-orange-500" />,
+        roles: ['agency_admin', 'client', 'super_admin'],
+    },
+    {
+        key: 'inapp_system',
+        emailKey: 'email_system',
+        label: 'System Announcements',
+        description: 'Platform updates and maintenance notices',
+        icon: <Info className="w-5 h-5 text-gray-400" />,
+        roles: ['agency_admin', 'recruiter', 'client', 'candidate', 'super_admin'],
+    },
+];
+
+function NotificationSettingsPanel({ role }: { role?: string }) {
+    const qc = useQueryClient();
+
+    const { data: prefs, isLoading } = useQuery<NotifPrefs>({
+        queryKey: ['notification-preferences'],
+        queryFn: async () => {
+            const res = await apiClient.get('/notifications/preferences');
+            return res.data;
+        },
+    });
+
+    const mutation = useMutation({
+        mutationFn: async (patch: Partial<NotifPrefs>) => {
+            const res = await apiClient.put('/notifications/preferences', patch);
+            return res.data;
+        },
+        onSuccess: (data) => {
+            qc.setQueryData(['notification-preferences'], data);
+        },
+        onError: () => toast.error('Failed to save notification preference'),
+    });
+
+    const handleToggle = (field: keyof NotifPrefs, value: boolean) => {
+        mutation.mutate({ [field]: value });
+    };
+
+    const visibleRows = NOTIFICATION_ROWS.filter((r) => !role || r.roles.includes(role));
+
+    if (isLoading || !prefs) {
+        return (
+            <div className="card flex items-center justify-center h-40">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="card">
+                <div className="flex items-center space-x-3 mb-1">
+                    <Bell className="w-5 h-5 text-blue-600" />
+                    <h2 className="text-xl font-semibold text-gray-900">Notification Preferences</h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-6">Choose which events you want to be notified about and how.</p>
+
+                {/* Column headers */}
+                <div className="grid grid-cols-[1fr_80px_80px] gap-4 mb-3 px-1">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Event</span>
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">In-App</span>
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Email</span>
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                    {visibleRows.map((row) => (
+                        <div key={row.key} className="grid grid-cols-[1fr_80px_80px] gap-4 items-center py-4 px-1">
+                            <div className="flex items-start space-x-3">
+                                <div className="mt-0.5 flex-shrink-0">{row.icon}</div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">{row.label}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{row.description}</p>
+                                </div>
+                            </div>
+                            <div className="flex justify-center">
+                                <Toggle
+                                    checked={prefs[row.key]}
+                                    onChange={(v) => handleToggle(row.key, v)}
+                                />
+                            </div>
+                            <div className="flex justify-center">
+                                <Toggle
+                                    checked={prefs[row.emailKey]}
+                                    onChange={(v) => handleToggle(row.emailKey, v)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {role === 'super_admin' && (
+                <div className="card bg-blue-50 border border-blue-100">
+                    <div className="flex items-start space-x-3">
+                        <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-semibold text-blue-900">Admin feed</p>
+                            <p className="text-sm text-blue-700">As a super admin, the notification bell shows all platform-wide activity in addition to your personal notifications.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Two-Factor Authentication card
+// ---------------------------------------------------------------------------
+
+function TwoFactorCard({ mfaEnabled, onToggle }: { mfaEnabled: boolean; onToggle: () => void }) {
+    const [step, setStep] = useState<'idle' | 'setup' | 'disable'>('idle');
+    const [otpauthUrl, setOtpauthUrl] = useState('');
+    const [secret, setSecret] = useState('');
+    const [code, setCode] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const startSetup = async () => {
+        setLoading(true);
+        try {
+            const res = await apiClient.post('/auth/mfa/setup');
+            setOtpauthUrl(res.data.otpauth_url);
+            setSecret(res.data.secret);
+            setStep('setup');
+        } catch {
+            toast.error('Failed to initialise 2FA setup');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmSetup = async () => {
+        if (code.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+        setLoading(true);
+        try {
+            await apiClient.post('/auth/mfa/verify-setup', { code });
+            toast.success('Two-factor authentication enabled');
+            setStep('idle');
+            setCode('');
+            onToggle();
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || 'Invalid code');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmDisable = async () => {
+        if (code.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+        setLoading(true);
+        try {
+            await apiClient.delete('/auth/mfa/disable', { data: { code } });
+            toast.success('Two-factor authentication disabled');
+            setStep('idle');
+            setCode('');
+            onToggle();
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || 'Invalid code');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="card">
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${mfaEnabled ? 'bg-green-100' : 'bg-gray-100'}`}>
+                        <SmartphoneNfc className={`w-5 h-5 ${mfaEnabled ? 'text-green-600' : 'text-gray-500'}`} />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-900">Two-Factor Authentication (2FA)</h3>
+                        <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
+                    </div>
+                </div>
+                <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${mfaEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {mfaEnabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    {mfaEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+            </div>
+
+            {step === 'idle' && (
+                <button
+                    onClick={mfaEnabled ? () => setStep('disable') : startSetup}
+                    disabled={loading}
+                    className={`w-full py-2.5 px-4 rounded-lg font-semibold text-sm transition-colors ${
+                        mfaEnabled
+                            ? 'border border-red-200 text-red-600 hover:bg-red-50'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                    } disabled:opacity-50`}
+                >
+                    {loading ? 'Loading...' : mfaEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+                </button>
+            )}
+
+            {step === 'setup' && (
+                <div className="space-y-5">
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+                        <p className="font-semibold mb-1">Step 1 — Scan this QR code</p>
+                        <p>Open <strong>Google Authenticator</strong>, <strong>Authy</strong>, or any TOTP app and scan the code below.</p>
+                    </div>
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="p-4 bg-white border-2 border-gray-200 rounded-xl inline-block">
+                            <QRCodeSVG value={otpauthUrl} size={180} />
+                        </div>
+                        <details className="text-xs text-gray-500 text-center">
+                            <summary className="cursor-pointer hover:text-gray-700">Can't scan? Enter key manually</summary>
+                            <p className="mt-2 font-mono bg-gray-100 px-3 py-2 rounded-lg tracking-widest select-all">{secret}</p>
+                        </details>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Step 2 — Enter the 6-digit code to confirm
+                        </label>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            value={code}
+                            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="000000"
+                            className="input text-center text-2xl font-bold tracking-[0.4em]"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => { setStep('idle'); setCode(''); }} className="flex-1 btn-secondary">Cancel</button>
+                        <button onClick={confirmSetup} disabled={loading || code.length !== 6} className="flex-1 btn-primary disabled:opacity-50">
+                            {loading ? 'Verifying...' : 'Activate 2FA'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {step === 'disable' && (
+                <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-800">
+                        Enter your current authenticator code to disable 2FA.
+                    </div>
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        className="input text-center text-2xl font-bold tracking-[0.4em]"
+                    />
+                    <div className="flex gap-2">
+                        <button onClick={() => { setStep('idle'); setCode(''); }} className="flex-1 btn-secondary">Cancel</button>
+                        <button onClick={confirmDisable} disabled={loading || code.length !== 6} className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50">
+                            {loading ? 'Disabling...' : 'Disable 2FA'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuthStore();
@@ -367,6 +718,12 @@ export default function SettingsPage() {
                     {/* Security Tab */}
                     {activeTab === 'security' && (
                         <div className="space-y-6">
+                            {/* Two-Factor Authentication */}
+                            <TwoFactorCard
+                                mfaEnabled={!!user?.mfa_enabled}
+                                onToggle={refreshUser}
+                            />
+
                             {/* Change Password */}
                             <div className="card">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Change Password</h2>
@@ -435,6 +792,11 @@ export default function SettingsPage() {
                                 </form>
                             </div>
                         </div>
+                    )}
+
+                    {/* Notifications Tab */}
+                    {activeTab === 'notifications' && (
+                        <NotificationSettingsPanel role={user?.role} />
                     )}
 
                     {/* Billing Tab */}

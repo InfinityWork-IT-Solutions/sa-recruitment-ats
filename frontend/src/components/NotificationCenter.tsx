@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, X, Check, Trash2, Info, CheckCircle, AlertTriangle, AlertCircle, Briefcase, CreditCard } from 'lucide-react';
+import { Bell, Trash2, Info, CheckCircle, AlertTriangle, AlertCircle, Briefcase, CreditCard, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth';
 
 interface Notification {
   id: string;
@@ -22,8 +22,8 @@ interface MockStatus {
 
 type MockStatusMap = Record<string, MockStatus>;
 
-// Helper to get mock notifications with dynamic created_at dates relative to current time
-const getMockNotifications = () => [
+// Admin-only mock notifications (shown only to super_admin while real data builds up)
+const getAdminMockNotifications = () => [
   {
     id: 'mock_new_company',
     title: 'New company registered',
@@ -86,49 +86,50 @@ export default function NotificationCenter() {
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'super_admin';
 
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch backend notifications
+
       let backendNotifications: Notification[] = [];
       let backendUnread = 0;
       try {
-        const response = await apiClient.get('/notifications');
+        // Super-admin sees all platform notifications; others see only their own
+        const endpoint = isAdmin ? '/notifications/admin/all' : '/notifications';
+        const response = await apiClient.get(endpoint);
         backendNotifications = response.data.notifications || [];
         backendUnread = response.data.unread_count || 0;
       } catch (err) {
         console.error('Failed to fetch backend notifications:', err);
       }
 
-      // Process mock notifications
-      const statusMap = getMockStatusMap();
-      const updatedStatusMap = { ...statusMap };
-      let mockUnreadCount = 0;
-      const visibleMocks: Notification[] = [];
+      // Only show mock notifications to super_admin (platform-level placeholders)
+      if (isAdmin) {
+        const statusMap = getMockStatusMap();
+        const updatedStatusMap = { ...statusMap };
+        let mockUnreadCount = 0;
+        const visibleMocks: Notification[] = [];
 
-      getMockNotifications().forEach(mock => {
-        if (updatedStatusMap[mock.id] === undefined) {
-          updatedStatusMap[mock.id] = { is_read: false, deleted: false };
-        }
-        const state = updatedStatusMap[mock.id];
-        if (!state.deleted) {
-          visibleMocks.push({
-            ...mock,
-            is_read: state.is_read
-          });
-          if (!state.is_read) {
-            mockUnreadCount++;
+        getAdminMockNotifications().forEach(mock => {
+          if (updatedStatusMap[mock.id] === undefined) {
+            updatedStatusMap[mock.id] = { is_read: false, deleted: false };
           }
-        }
-      });
-      saveMockStatusMap(updatedStatusMap);
+          const state = updatedStatusMap[mock.id];
+          if (!state.deleted) {
+            visibleMocks.push({ ...mock, is_read: state.is_read });
+            if (!state.is_read) mockUnreadCount++;
+          }
+        });
+        saveMockStatusMap(updatedStatusMap);
 
-      // Combine both. Mock notifications will be shown first (newest)
-      const allNotifications = [...visibleMocks, ...backendNotifications];
-      setNotifications(allNotifications);
-      setUnreadCount(mockUnreadCount + backendUnread);
+        setNotifications([...visibleMocks, ...backendNotifications]);
+        setUnreadCount(mockUnreadCount + backendUnread);
+      } else {
+        setNotifications(backendNotifications);
+        setUnreadCount(backendUnread);
+      }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -138,10 +139,9 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll for new notifications every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -164,10 +164,9 @@ export default function NotificationCenter() {
       }
       return;
     }
-
     try {
       await apiClient.put(`/notifications/${id}`, { is_read: true });
-      setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -175,23 +174,19 @@ export default function NotificationCenter() {
   };
 
   const markAllRead = async () => {
-    // Mark mock ones as read
-    const statusMap = getMockStatusMap();
-    Object.keys(statusMap).forEach(key => {
-      if (!statusMap[key].deleted) {
-        statusMap[key].is_read = true;
-      }
-    });
-    saveMockStatusMap(statusMap);
-
-    // Mark backend ones as read
+    if (isAdmin) {
+      const statusMap = getMockStatusMap();
+      Object.keys(statusMap).forEach(key => {
+        if (!statusMap[key].deleted) statusMap[key].is_read = true;
+      });
+      saveMockStatusMap(statusMap);
+    }
     try {
       await apiClient.post('/notifications/mark-all-read');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
-
-    setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     setUnreadCount(0);
   };
 
@@ -199,19 +194,18 @@ export default function NotificationCenter() {
     if (id.startsWith('mock_')) {
       const statusMap = getMockStatusMap();
       if (statusMap[id]) {
+        const wasUnread = !statusMap[id].is_read;
         statusMap[id].deleted = true;
         saveMockStatusMap(statusMap);
-        const wasUnread = !statusMap[id].is_read;
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
       }
       return;
     }
-
     try {
       await apiClient.delete(`/notifications/${id}`);
-      setNotifications(notifications.filter(n => n.id !== id));
       const n = notifications.find(n => n.id === id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
       if (n && !n.is_read) setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to delete notification:', error);
@@ -219,9 +213,7 @@ export default function NotificationCenter() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    if (!notification.is_read) {
-      markAsRead(notification.id);
-    }
+    if (!notification.is_read) markAsRead(notification.id);
     if (notification.link) {
       navigate(notification.link);
       setIsOpen(false);
@@ -230,12 +222,13 @@ export default function NotificationCenter() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'success': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-      case 'error': return <AlertCircle className="w-5 h-5 text-red-500" />;
+      case 'success':     return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'warning':     return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+      case 'error':       return <AlertCircle className="w-5 h-5 text-red-500" />;
       case 'application': return <Briefcase className="w-5 h-5 text-blue-500" />;
-      case 'billing': return <CreditCard className="w-5 h-5 text-purple-500" />;
-      default: return <Info className="w-5 h-5 text-blue-500" />;
+      case 'billing':     return <CreditCard className="w-5 h-5 text-purple-500" />;
+      case 'ai_match':    return <Star className="w-5 h-5 text-yellow-500" />;
+      default:            return <Info className="w-5 h-5 text-blue-500" />;
     }
   };
 
@@ -256,7 +249,14 @@ export default function NotificationCenter() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <h3 className="font-bold text-gray-900">Notifications</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-gray-900">Notifications</h3>
+              {isAdmin && (
+                <span className="text-[10px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                  All Users
+                </span>
+              )}
+            </div>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
@@ -325,14 +325,14 @@ export default function NotificationCenter() {
 
           {notifications.length > 0 && (
             <div className="p-3 border-t border-gray-100 text-center bg-gray-50/50">
-              <button 
+              <button
                 onClick={() => {
                   setIsOpen(false);
                   navigate('/settings');
                 }}
                 className="text-xs text-gray-500 hover:text-blue-600 font-semibold"
               >
-                View all configurations
+                Notification settings
               </button>
             </div>
           )}
