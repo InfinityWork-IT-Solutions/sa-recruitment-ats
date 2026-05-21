@@ -13,6 +13,7 @@ export interface User {
     managed_clients_count?: number;
     is_active: boolean;
     is_verified: boolean;
+    mfa_enabled?: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -104,6 +105,7 @@ export interface Application {
     source: ApplicationSource;
     cover_letter: string | null;
     screening_score: number | null;
+    screening_notes: string | null;
     interview_scheduled_at: string | null;
     interview_rating: number | null;
     offer_amount: number | null;
@@ -193,13 +195,15 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-    tokens: {
+    tokens?: {
         access_token: string;
         refresh_token: string;
         token_type: string;
         expires_in: number;
-    };
-    user: User;
+    } | null;
+    user?: User | null;
+    mfa_required?: boolean;
+    mfa_token?: string | null;
 }
 
 export interface RegisterRequest {

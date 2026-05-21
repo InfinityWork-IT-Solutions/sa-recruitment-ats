@@ -2,7 +2,7 @@
 Job API endpoints
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
@@ -24,6 +24,7 @@ from app.schemas import (
 )
 from app.services.job_service import job_service
 from app.services.job_posting_service import JobPostingService
+from app.services.ai_match_notification_service import send_ai_match_notifications
 
 router = APIRouter()
 
@@ -78,6 +79,7 @@ async def get_public_job(
 @router.post("/", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -135,6 +137,10 @@ async def create_job(
         res = await service.post_job_to_platforms(job_dict, platforms)
         platform_results = res.get('results', {})
     
+    # Trigger AI match notifications in the background if job is now active
+    if job.status == JobStatus.active:
+        background_tasks.add_task(send_ai_match_notifications, db, job)
+
     return {
         **JobResponse.model_validate(job).model_dump(),
         "platform_results": platform_results
@@ -305,6 +311,7 @@ async def delete_job(
 @router.post("/{job_id}/publish", response_model=JobResponse)
 async def publish_job(
     job_id: UUID,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -330,7 +337,7 @@ async def publish_job(
         )
     
     job = await job_service.publish_job(db, job)
-    
+    background_tasks.add_task(send_ai_match_notifications, db, job)
     return JobResponse.model_validate(job)
 
 

@@ -13,7 +13,8 @@ import {
     DollarSign,
     MessageSquare,
     Award,
-    Mail
+    Mail,
+    Sparkles,
 } from 'lucide-react';
 import EmailCandidateModal from '@/components/EmailCandidateModal';
 import { format } from 'date-fns';
@@ -40,6 +41,7 @@ type ActionModal =
     | { type: 'complete_interview' }
     | { type: 'offer' }
     | { type: 'reject' }
+    | { type: 'hire' }
     | null;
 
 export default function ApplicationDetailPage() {
@@ -93,8 +95,9 @@ export default function ApplicationDetailPage() {
     };
 
     const handleHire = async () => {
-        if (id && confirm('Are you sure you want to hire this candidate?')) {
+        if (id) {
             await hireMutation.mutateAsync(id);
+            setActiveModal(null);
         }
     };
 
@@ -133,9 +136,9 @@ export default function ApplicationDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Link to={user?.role === 'client' ? '/company/applications' : '/applications'} className="text-gray-600 hover:text-gray-900">
+                    <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="w-6 h-6" />
-                    </Link>
+                    </button>
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Application Details</h1>
                         <p className="text-gray-600 mt-1">
@@ -151,6 +154,23 @@ export default function ApplicationDetailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left column - Actions */}
                 <div className="lg:col-span-1 space-y-6">
+                    {/* AI Auto-Shortlist Banner */}
+                    {application.match_score != null && application.match_score >= 90 &&
+                        application.status === 'shortlisted' &&
+                        application.screening_notes?.includes('Auto-shortlisted by AI') && (
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white flex items-start gap-3">
+                            <Sparkles className="w-5 h-5 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-sm">
+                                    ⚡ AI Auto-Shortlisted ({application.match_score}% match)
+                                </p>
+                                <p className="text-blue-100 text-xs mt-0.5">
+                                    This candidate was automatically shortlisted by AI. Click "Schedule Interview" below to proceed.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Quick Actions */}
                     <div className="card">
                         <h3 className="font-semibold text-gray-900 mb-4">Actions</h3>
@@ -171,7 +191,7 @@ export default function ApplicationDetailPage() {
                                     <span>Screen Application</span>
                                 </button>
                             )}
-                            {user?.role !== 'client' && canScheduleInterview && (
+                            {canScheduleInterview && (
                                 <button
                                     onClick={() => setActiveModal({ type: 'interview' })}
                                     className="w-full btn-primary flex items-center justify-center space-x-2"
@@ -200,7 +220,7 @@ export default function ApplicationDetailPage() {
                             )}
                             {user?.role !== 'client' && canHire && (
                                 <button
-                                    onClick={handleHire}
+                                    onClick={() => setActiveModal({ type: 'hire' })}
                                     className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
                                 >
                                     <Award className="w-4 h-4" />
@@ -561,7 +581,28 @@ export default function ApplicationDetailPage() {
                 </Modal>
             )}
 
-            <EmailCandidateModal 
+            {activeModal?.type === 'hire' && (
+                <Modal title="Confirm Hire" onClose={() => setActiveModal(null)}>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <Award className="w-5 h-5 text-green-600 shrink-0" />
+                            <p className="text-sm text-green-800">
+                                You are about to mark this candidate as <strong>Hired</strong>. This will finalise the application and record them as a placed candidate.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleHire}
+                            disabled={hireMutation.isPending}
+                            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            <Award className="w-4 h-4" />
+                            {hireMutation.isPending ? 'Processing...' : 'Yes, Hire Candidate'}
+                        </button>
+                    </div>
+                </Modal>
+            )}
+
+            <EmailCandidateModal
                 isOpen={emailModalOpen}
                 onClose={() => setEmailModalOpen(false)}
                 candidateId={application.candidate_id}
