@@ -15,9 +15,15 @@ import {
     Sparkles,
     Video,
     CreditCard,
+    Calendar,
+    Gift,
+    MailWarning,
+    RefreshCw,
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationCenter from '@/components/NotificationCenter';
+import { toast } from 'react-hot-toast';
+import apiClient from '@/lib/api-client';
 
 const getNavigation = (role?: string) => {
     if (role === 'candidate') {
@@ -38,6 +44,8 @@ const getNavigation = (role?: string) => {
             { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
             { name: 'Candidates', href: '/company/candidates', icon: Users },
             { name: 'Applications', href: '/company/applications', icon: FileText },
+            { name: 'Interviews', href: '/company/interviews', icon: Calendar },
+            { name: 'Offers', href: '/company/offers', icon: Gift },
             { name: 'Team', href: '/company/team', icon: User },
             { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
             { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
@@ -70,6 +78,19 @@ export default function DashboardLayout() {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [resending, setResending] = useState(false);
+
+    const handleResendVerification = async () => {
+        setResending(true);
+        try {
+            await apiClient.post('/auth/resend-verification');
+            toast.success('Verification email sent — check your inbox!');
+        } catch {
+            toast.error('Failed to send email. Please try again.');
+        } finally {
+            setResending(false);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -211,6 +232,27 @@ export default function DashboardLayout() {
                         </Link>
                     </div>
                 </header>
+
+                {/* Unverified email banner */}
+                {user && user.is_verified === false && (
+                    <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 text-amber-800 text-sm">
+                            <MailWarning className="w-4 h-4 shrink-0" />
+                            <span>
+                                <strong>Your email address is not verified.</strong>{' '}
+                                Please check your inbox for the verification link.
+                            </span>
+                        </div>
+                        <button
+                            onClick={handleResendVerification}
+                            disabled={resending}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-900 border border-amber-300 rounded-lg px-3 py-1.5 hover:bg-amber-100 transition-colors shrink-0 disabled:opacity-50"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                            {resending ? 'Sending…' : 'Resend email'}
+                        </button>
+                    </div>
+                )}
 
                 {/* Page content */}
                 <main className="p-6">

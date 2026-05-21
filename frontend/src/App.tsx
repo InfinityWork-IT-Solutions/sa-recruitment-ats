@@ -14,6 +14,7 @@ import LandingPage from './pages/LandingPage';
 // Auth Pages
 import UnifiedLoginPage from './pages/auth/UnifiedLoginPage';
 import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import PublicJobsPage from './pages/PublicJobsPage';
 import PublicJobDetailPage from './pages/PublicJobDetailPage';
 
@@ -58,6 +59,8 @@ import ClientSettingsPage from './pages/clients/SettingsPage';
 import ClientIntegrationsSettingsPage from './pages/clients/IntegrationsSettingsPage';
 import CompanyProfile from './pages/clients/CompanyProfile';
 import AIDecisionDashboard from './pages/clients/AIDecisionDashboard';
+import InterviewsPage from './pages/clients/InterviewsPage';
+import OffersPage from './pages/clients/OffersPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -130,6 +133,9 @@ function App() {
           <Route path="/job-board/:jobId" element={<PublicJobDetailPage />} />
           <Route path="/pricing" element={<PricingPage />} />
 
+          {/* Email verification (public — no auth needed) */}
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+
           {/* Video Screening Routes */}
           <Route path="/video-screening/:access_token" element={<VideoScreeningLanding />} />
           <Route path="/video-screening/:access_token/record" element={<VideoRecordingPage />} />
@@ -178,6 +184,8 @@ function App() {
             <Route path="/company/settings/integrations" element={<ClientIntegrationsSettingsPage />} />
             <Route path="/company/settings/billing" element={<SubscriptionSettings />} />
             <Route path="/company/analytics" element={<AnalyticsPage />} />
+            <Route path="/company/interviews" element={<InterviewsPage />} />
+            <Route path="/company/offers" element={<OffersPage />} />
             {/* Legacy redirect */}
             <Route path="/client-dashboard" element={<Navigate to="/company/dashboard" replace />} />
           </Route>

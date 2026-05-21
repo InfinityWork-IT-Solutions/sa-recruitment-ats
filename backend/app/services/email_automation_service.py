@@ -157,10 +157,10 @@ class EmailAutomationService:
         user_name: str,
         verification_token: str
     ):
-        """Send verification email with security token"""
+        """Send verification email with a signed JWT token."""
         from app.services.email_service import email_service
-        # In production, use the actual frontend URL for verification
-        verification_link = f"http://localhost:5173/verify-email?token={verification_token}"
+        from app.core.security import FRONTEND_URL
+        verification_link = f"{FRONTEND_URL}/verify-email?token={verification_token}"
         
         template = """
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 12px; background: #fff;">
