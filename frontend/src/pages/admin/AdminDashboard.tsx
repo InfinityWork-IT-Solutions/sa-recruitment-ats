@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Briefcase, DollarSign, TrendingUp,
-  Building, UserCheck, CheckCircle, ArrowUpRight, ArrowDownRight, Eye
+  Building, UserCheck, CheckCircle, ArrowUpRight, ArrowDownRight, Eye,
+  Download, Settings as SettingsIcon, Plus, BarChart3, LayoutDashboard
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { apiClient } from '../../lib/api-client';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 interface DashboardStats {
   totalUsers: number;
@@ -69,6 +71,12 @@ export default function AdminDashboard() {
   
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 lg:p-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[
+        { label: 'Admin', href: '/admin/dashboard' },
+        { label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> }
+      ]} />
+      
       {/* Header */}
       <div className="mb-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -265,7 +273,7 @@ export default function AdminDashboard() {
                 <div className="w-10 h-10 bg-orange-100/50 rounded-xl flex items-center justify-center text-orange-600">
                   <TrendingUp className="w-5 h-5" />
                 </div>
-                <span className="text-gray-900 text-sm font-black uppercase tracking-wider">Talent Velocity</span>
+                <span className="text-gray-900 text-sm font-black uppercase tracking-wider">Applications This Cycle</span>
               </div>
               <span className="text-[10px] font-bold text-orange-600 bg-orange-50 group-hover:bg-orange-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-0.5">
                 View <Eye className="w-3 h-3" />
@@ -278,7 +286,7 @@ export default function AdminDashboard() {
               </span>
               <span className="text-emerald-600 text-xs font-bold flex items-center gap-0.5">
                 <ArrowUpRight className="w-3.5 h-3.5" /> +31%
-                <span className="text-gray-400 font-medium text-[9px] lowercase tracking-normal ml-0.5">from last month</span>
+                <span className="text-gray-400 font-medium text-[9px] lowercase tracking-normal ml-0.5">from last cycle</span>
               </span>
             </div>
           </div>
@@ -399,6 +407,121 @@ export default function AdminDashboard() {
               View All <span className="text-sm font-black">→</span>
             </button>
           </div>
+        </div>
+      </div>
+      
+      {/* Top Performers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        {/* Top Companies */}
+        <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center">
+              🏆 Top Companies
+            </h3>
+            <button 
+              onClick={() => navigate('/admin/users')}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700"
+            >
+              View All →
+            </button>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">Company Name {index + 1}</p>
+                    <p className="text-xs text-gray-500">8 jobs • 24 applications</p>
+                  </div>
+                </div>
+                <span className="text-sm font-black text-gray-600">+24%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Jobs */}
+        <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center">
+              🔥 Trending Jobs
+            </h3>
+            <button 
+              onClick={() => navigate('/admin/users')}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700"
+            >
+              View All →
+            </button>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">Senior Developer</p>
+                    <p className="text-xs text-gray-500">TechCorp Ltd • 45 applications</p>
+                  </div>
+                </div>
+                <span className="text-sm font-black text-blue-600">⭐ Trending</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* Quick Actions */}
+      <div className="mb-10 bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
+        <h3 className="text-lg font-black text-gray-900 mb-6 tracking-tight">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button 
+            onClick={() => navigate('/admin/users')}
+            className="flex flex-col items-center p-6 border-2 border-gray-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all active:scale-95 group"
+          >
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Plus className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-semibold text-gray-900">Create User</span>
+            <span className="text-[10px] text-gray-500 mt-1">Provision new account</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/admin/users')}
+            className="flex flex-col items-center p-6 border-2 border-gray-200 rounded-2xl hover:border-green-500 hover:bg-green-50 transition-all active:scale-95 group"
+          >
+            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Building className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-semibold text-gray-900">Add Company</span>
+            <span className="text-[10px] text-gray-500 mt-1">Onboard new client</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/admin/users')}
+            className="flex flex-col items-center p-6 border-2 border-gray-200 rounded-2xl hover:border-purple-500 hover:bg-purple-50 transition-all active:scale-95 group"
+          >
+            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Download className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-semibold text-gray-900">Export Data</span>
+            <span className="text-[10px] text-gray-500 mt-1">Download system data</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/settings')}
+            className="flex flex-col items-center p-6 border-2 border-gray-200 rounded-2xl hover:border-orange-500 hover:bg-orange-50 transition-all active:scale-95 group"
+          >
+            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <SettingsIcon className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-semibold text-gray-900">Settings</span>
+            <span className="text-[10px] text-gray-500 mt-1">Platform config</span>
+          </button>
         </div>
       </div>
       

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Search, Filter, MoreVertical, Ban, CheckCircle, Mail, Shield, Briefcase,
-  Building, User, FileText, Download, X, Plus, Phone, Globe, Lock
+  Building, User, FileText, Download, X, Plus, Phone, Globe, Lock,
+  Eye, Copy, Trash2, CheckSquare, Square, ChevronDown, LayoutDashboard
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '../../lib/api-client';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 type TabType = 'users' | 'companies' | 'jobs' | 'candidates' | 'applications';
 
@@ -19,6 +21,21 @@ export default function UserManagement() {
   const [userFilter, setUserFilter] = useState('all'); // 'all', 'candidate', 'client', 'super_admin'
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Job filtering and bulk actions
+  const [jobStatusFilter, setJobStatusFilter] = useState('all');
+  const [jobLocationFilter, setJobLocationFilter] = useState('all');
+  const [jobCompanyFilter, setJobCompanyFilter] = useState('all');
+  const [jobDateFilter, setJobDateFilter] = useState('all');
+  const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
+
+  // Company filtering
+  const [companyStatusFilter, setCompanyStatusFilter] = useState('all');
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+
+  // Application filtering
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState('all');
+  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
 
   // New Global User Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -161,6 +178,75 @@ export default function UserManagement() {
     }
   };
 
+  // Job-specific actions
+  const handleSelectAllJobs = () => {
+    if (selectedJobs.length === jobs.length) {
+      setSelectedJobs([]);
+    } else {
+      setSelectedJobs(jobs.map(j => j.id));
+    }
+  };
+
+  const handleSelectJob = (jobId: string) => {
+    setSelectedJobs(prev => 
+      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
+    );
+  };
+
+  const handleBulkActivateJobs = async () => {
+    if (selectedJobs.length === 0) {
+      toast.error('Please select at least one job');
+      return;
+    }
+    try {
+      await Promise.all(
+        selectedJobs.map(jobId => apiClient.post(`/admin/jobs/${jobId}/activate`))
+      );
+      toast.success(`Activated ${selectedJobs.length} job(s)`);
+      setSelectedJobs([]);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to activate jobs');
+    }
+  };
+
+  const handleBulkDeactivateJobs = async () => {
+    if (selectedJobs.length === 0) {
+      toast.error('Please select at least one job');
+      return;
+    }
+    try {
+      await Promise.all(
+        selectedJobs.map(jobId => apiClient.post(`/admin/jobs/${jobId}/deactivate`))
+      );
+      toast.success(`Deactivated ${selectedJobs.length} job(s)`);
+      setSelectedJobs([]);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to deactivate jobs');
+    }
+  };
+
+  const handleBulkDeleteJobs = async () => {
+    if (selectedJobs.length === 0) {
+      toast.error('Please select at least one job');
+      return;
+    }
+    if (!confirm(`Delete ${selectedJobs.length} job(s)? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await Promise.all(
+        selectedJobs.map(jobId => apiClient.delete(`/admin/jobs/${jobId}`))
+      );
+      toast.success(`Deleted ${selectedJobs.length} job(s)`);
+      setSelectedJobs([]);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete jobs');
+    }
+  };
+
   const tabs: { value: TabType; label: string; icon: any }[] = [
     { value: 'users', label: 'Accounts', icon: User },
     { value: 'companies', label: 'Companies', icon: Building },
@@ -172,6 +258,11 @@ export default function UserManagement() {
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={[
+          { label: 'Admin', href: '/admin/dashboard' },
+          { label: 'System Directory', icon: <LayoutDashboard className="w-4 h-4" /> }
+        ]} />
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
@@ -209,6 +300,7 @@ export default function UserManagement() {
                 onClick={() => {
                   setActiveTab(tab.value);
                   setSearchQuery('');
+                  setSelectedJobs([]);
                 }}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
                   isSelected
@@ -222,34 +314,223 @@ export default function UserManagement() {
             );
           })}
         </div>
+
+        {/* Jobs Tab: Quick Stats */}
+        {activeTab === 'jobs' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Total Jobs</p>
+              <p className="text-2xl font-black text-gray-900">{jobs.length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Active</p>
+              <p className="text-2xl font-black text-green-600">{jobs.filter(j => j.status === 'active').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Closed</p>
+              <p className="text-2xl font-black text-gray-400">{jobs.filter(j => j.status === 'closed').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Draft</p>
+              <p className="text-2xl font-black text-amber-600">{jobs.filter(j => j.status === 'draft').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Companies</p>
+              <p className="text-2xl font-black text-blue-600">{new Set(jobs.map(j => j.company_id)).size}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Users Tab: Quick Stats */}
+        {activeTab === 'users' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Total Users</p>
+              <p className="text-2xl font-black text-gray-900">{users.length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Candidates</p>
+              <p className="text-2xl font-black text-purple-600">{users.filter(u => u.user_type === 'candidate').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Companies</p>
+              <p className="text-2xl font-black text-blue-600">{users.filter(u => u.user_type === 'client').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Admins</p>
+              <p className="text-2xl font-black text-red-600">{users.filter(u => u.user_type === 'super_admin').length}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Companies Tab: Quick Stats */}
+        {activeTab === 'companies' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Total Companies</p>
+              <p className="text-2xl font-black text-gray-900">{companies.length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Active</p>
+              <p className="text-2xl font-black text-green-600">{companies.filter(c => c.is_active).length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Inactive</p>
+              <p className="text-2xl font-black text-gray-400">{companies.filter(c => !c.is_active).length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Industries</p>
+              <p className="text-2xl font-black text-blue-600">{new Set(companies.map(c => c.industry)).size}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Locations</p>
+              <p className="text-2xl font-black text-orange-600">{new Set(companies.map(c => c.city)).size}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Candidates Tab: Quick Stats */}
+        {activeTab === 'candidates' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Total Candidates</p>
+              <p className="text-2xl font-black text-gray-900">{candidates.length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Locations</p>
+              <p className="text-2xl font-black text-green-600">{new Set(candidates.map(c => c.city)).size}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Avg Experience</p>
+              <p className="text-2xl font-black text-blue-600">
+                {candidates.length > 0 
+                  ? Math.round(candidates.reduce((sum: number, c: any) => sum + (c.years_of_experience || 0), 0) / candidates.length)
+                  : 0} yrs
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Registered</p>
+              <p className="text-2xl font-black text-purple-600">
+                {candidates.filter(c => new Date(c.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Job Titles</p>
+              <p className="text-2xl font-black text-orange-600">{new Set(candidates.map(c => c.current_job_title)).size}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Applications Tab: Quick Stats */}
+        {activeTab === 'applications' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Total Applications</p>
+              <p className="text-2xl font-black text-gray-900">{applications.length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Pending</p>
+              <p className="text-2xl font-black text-amber-600">{applications.filter(a => a.status === 'pending').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Accepted</p>
+              <p className="text-2xl font-black text-green-600">{applications.filter(a => a.status === 'accepted').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Rejected</p>
+              <p className="text-2xl font-black text-red-600">{applications.filter(a => a.status === 'rejected').length}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500 font-bold mb-1 uppercase tracking-widest">Reviewing</p>
+              <p className="text-2xl font-black text-blue-600">{applications.filter(a => a.status === 'shortlisted').length}</p>
+            </div>
+          </div>
+        )}
         
         {/* Filters & Search */}
         <div className="bg-white rounded-3xl shadow-sm p-6 mb-8 border border-gray-100">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder={`Search ${activeTab}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-sm font-medium transition-all"
-              />
+          <div className="flex flex-col gap-4">
+            {/* Search Bar */}
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={`Search ${activeTab}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-sm font-medium transition-all"
+                />
+              </div>
+              
+              {activeTab === 'users' && (
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <Filter className="w-5 h-5 text-gray-400" />
+                  <select
+                    value={userFilter}
+                    onChange={(e) => setUserFilter(e.target.value)}
+                    className="flex-1 md:w-48 bg-gray-50 border-none rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest text-gray-600 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                  >
+                    <option value="all">Every Account</option>
+                    <option value="super_admin">Super Admins</option>
+                    <option value="client">Companies</option>
+                    <option value="candidate">Candidates</option>
+                  </select>
+                </div>
+              )}
             </div>
-            
-            {activeTab === 'users' && (
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <Filter className="w-5 h-5 text-gray-400" />
+
+            {/* Jobs Filters Row */}
+            {activeTab === 'jobs' && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <select
-                  value={userFilter}
-                  onChange={(e) => setUserFilter(e.target.value)}
-                  className="flex-1 md:w-48 bg-gray-50 border-none rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest text-gray-600 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                  value={jobStatusFilter}
+                  onChange={(e) => setJobStatusFilter(e.target.value)}
+                  className="bg-gray-50 border-none rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
                 >
-                  <option value="all">Every Account</option>
-                  <option value="super_admin">Super Admins</option>
-                  <option value="client">Companies</option>
-                  <option value="candidate">Candidates</option>
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="closed">Closed</option>
+                  <option value="draft">Draft</option>
                 </select>
+
+                <select
+                  value={jobLocationFilter}
+                  onChange={(e) => setJobLocationFilter(e.target.value)}
+                  className="bg-gray-50 border-none rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                >
+                  <option value="all">All Locations</option>
+                  <option value="cape-town">Cape Town</option>
+                  <option value="johannesburg">Johannesburg</option>
+                  <option value="remote">Remote</option>
+                  <option value="other">Other</option>
+                </select>
+
+                <select
+                  value={jobDateFilter}
+                  onChange={(e) => setJobDateFilter(e.target.value)}
+                  className="bg-gray-50 border-none rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                  <option value="quarter">Last 90 Days</option>
+                </select>
+
+                <div className="flex items-center justify-between">
+                  <button 
+                    onClick={() => {
+                      setJobStatusFilter('all');
+                      setJobLocationFilter('all');
+                      setJobDateFilter('all');
+                      setSearchQuery('');
+                    }}
+                    className="text-xs text-gray-600 hover:text-gray-900 font-bold"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -384,23 +665,25 @@ export default function UserManagement() {
                   <tr className="bg-gray-50/50">
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Name</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Industry</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Website</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Subscription</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Jobs</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan={5} className="px-8 py-10 bg-white">
+                        <td colSpan={7} className="px-8 py-10 bg-white">
                           <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
                         </td>
                       </tr>
                     ))
                   ) : companies.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-gray-400 font-medium">No client companies found.</td>
+                      <td colSpan={7} className="text-center py-12 text-gray-400 font-medium">No client companies found.</td>
                     </tr>
                   ) : companies.map((comp: any) => (
                     <tr key={comp.id} className="group hover:bg-gray-50/50 transition-colors duration-200">
@@ -411,27 +694,38 @@ export default function UserManagement() {
                           </div>
                           <div>
                             <div className="text-sm font-black text-gray-900 tracking-tight">{comp.name}</div>
-                            <div className="text-[10px] text-gray-400 font-bold">{comp.contact_email || 'No email contact'}</div>
+                            <div className="text-[10px] text-gray-400 font-bold">{comp.contact_email || 'No contact'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-sm text-gray-600 font-medium capitalize">{comp.industry || 'General Industry'}</td>
-                      <td className="px-8 py-6 text-xs text-blue-500 font-bold underline">
-                        {comp.website ? (
-                          <a href={comp.website.startsWith('http') ? comp.website : `https://${comp.website}`} target="_blank" rel="noreferrer">
-                            {comp.website}
-                          </a>
-                        ) : 'N/A'}
-                      </td>
+                      <td className="px-8 py-6 text-sm text-gray-600 font-medium capitalize">{comp.industry || 'General'}</td>
                       <td className="px-8 py-6 text-xs font-bold text-gray-500">
                         {comp.city ? `${comp.city}, ${comp.country || 'SA'}` : 'N/A'}
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <span className="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
+                          Pro
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <span className="text-sm font-black text-gray-900">0</span>
                       </td>
                       <td className="px-8 py-6 text-center">
                         <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                           comp.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200'
                         }`}>
-                          {comp.is_active ? 'Active' : 'Suspended'}
+                          {comp.is_active ? 'Active' : 'Inactive'}
                         </span>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600" title="View">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 hover:bg-red-100 rounded-lg transition text-red-600" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -440,57 +734,151 @@ export default function UserManagement() {
             )}
 
             {activeTab === 'jobs' && (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Opportunity</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Hiring Company</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Created Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {loading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td colSpan={5} className="px-8 py-10 bg-white">
-                          <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
+              <>
+                {/* Bulk Actions Bar */}
+                {selectedJobs.length > 0 && (
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-6">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold text-blue-900">
+                        {selectedJobs.length} job(s) selected
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={handleBulkActivateJobs}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-bold uppercase transition"
+                        >
+                          Activate
+                        </button>
+                        <button 
+                          onClick={handleBulkDeactivateJobs}
+                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-xs font-bold uppercase transition"
+                        >
+                          Deactivate
+                        </button>
+                        <button 
+                          onClick={handleBulkDeleteJobs}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs font-bold uppercase transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Jobs Table */}
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50">
+                      <th className="px-4 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        <button 
+                          onClick={handleSelectAllJobs}
+                          className="p-1 hover:bg-gray-200 rounded transition"
+                        >
+                          {selectedJobs.length === jobs.length && jobs.length > 0 ? (
+                            <CheckSquare className="w-5 h-5 text-blue-600" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-400" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Opportunity</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Hiring Company</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Applications</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Views</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Created Date</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td colSpan={9} className="px-8 py-10 bg-white">
+                            <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : jobs.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="text-center py-12 text-gray-400 font-medium">No job opportunities posted.</td>
+                      </tr>
+                    ) : jobs.map((job: any) => (
+                      <tr key={job.id} className="group hover:bg-gray-50/50 transition-colors duration-200">
+                        <td className="px-4 py-6">
+                          <button 
+                            onClick={() => handleSelectJob(job.id)}
+                            className="p-1 hover:bg-gray-200 rounded transition"
+                          >
+                            {selectedJobs.includes(job.id) ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400" />
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-bold text-sm">
+                              <Briefcase className="w-5 h-5" />
+                            </div>
+                            <div className="text-sm font-black text-gray-900 tracking-tight">{job.title}</div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-sm text-gray-700 font-bold">{job.company_name}</td>
+                        <td className="px-8 py-6 text-xs text-gray-500 font-bold">{job.location || 'N/A'}</td>
+                        <td className="px-8 py-6 text-center">
+                          <span className="text-sm font-black text-blue-600">{job.applications_count || 0}</span>
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                          <span className="text-sm font-black text-gray-600">{job.views_count || 0}</span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            job.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                            job.status === 'draft' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                            'bg-gray-50 text-gray-600 border border-gray-200'
+                          }`}>
+                            {job.status}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-xs text-gray-500 font-medium">
+                          {new Date(job.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600"
+                              title="View Job"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600"
+                              title="Duplicate Job"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (confirm('Delete this job? This action cannot be undone.')) {
+                                  handleBulkDeleteJobs();
+                                }
+                              }}
+                              className="p-2 hover:bg-red-100 rounded-lg transition text-red-600"
+                              title="Delete Job"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))
-                  ) : jobs.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-12 text-gray-400 font-medium">No job opportunities posted.</td>
-                    </tr>
-                  ) : jobs.map((job: any) => (
-                    <tr key={job.id} className="group hover:bg-gray-50/50 transition-colors duration-200">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-bold text-sm">
-                            <Briefcase className="w-5 h-5" />
-                          </div>
-                          <div className="text-sm font-black text-gray-900 tracking-tight">{job.title}</div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-sm text-gray-700 font-bold">{job.company_name}</td>
-                      <td className="px-8 py-6 text-xs text-gray-500 font-bold">{job.location || 'N/A'}</td>
-                      <td className="px-8 py-6">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          job.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                          job.status === 'draft' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                          'bg-gray-50 text-gray-600 border border-gray-200'
-                        }`}>
-                          {job.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-xs text-gray-500 font-medium">
-                        {new Date(job.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
 
             {activeTab === 'candidates' && (
@@ -549,39 +937,65 @@ export default function UserManagement() {
                 <thead>
                   <tr className="bg-gray-50/50">
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Applied Opportunity</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Title</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Company</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Submitted At</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Submitted</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan={4} className="px-8 py-10 bg-white">
+                        <td colSpan={6} className="px-8 py-10 bg-white">
                           <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
                         </td>
                       </tr>
                     ))
                   ) : applications.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-12 text-gray-400 font-medium">No application records found.</td>
+                      <td colSpan={6} className="text-center py-12 text-gray-400 font-medium">No application records found.</td>
                     </tr>
                   ) : applications.map((app: any) => (
                     <tr key={app.id} className="group hover:bg-gray-50/50 transition-colors duration-200">
-                      <td className="px-8 py-6 text-sm font-black text-gray-900 tracking-tight">{app.candidate_name}</td>
-                      <td className="px-8 py-6 text-sm text-gray-700 font-bold">{app.job_title}</td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center font-bold text-xs">
+                            {(app.candidate_name || '?').charAt(0)}
+                          </div>
+                          <span className="text-sm font-bold text-gray-900">{app.candidate_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-sm font-bold text-gray-900">{app.job_title}</td>
+                      <td className="px-8 py-6 text-sm text-gray-600">
+                        {app.company_name || 'N/A'}
+                      </td>
                       <td className="px-8 py-6">
                         <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                           app.status === 'shortlisted' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
                           app.status === 'rejected' ? 'bg-rose-50 text-rose-600 border border-rose-200' :
+                          app.status === 'accepted' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
                           'bg-amber-50 text-amber-600 border border-amber-200'
                         }`}>
-                          {app.status}
+                          {app.status || 'pending'}
                         </span>
                       </td>
                       <td className="px-8 py-6 text-xs text-gray-500 font-medium">
-                        {new Date(app.applied_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {new Date(app.applied_at || Date.now()).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600" title="View">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 hover:bg-green-100 rounded-lg transition text-green-600" title="Accept">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 hover:bg-red-100 rounded-lg transition text-red-600" title="Reject">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
