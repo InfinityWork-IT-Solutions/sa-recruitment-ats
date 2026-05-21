@@ -5,9 +5,11 @@ import {
   LayoutTemplate
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 import ConfigureAIAgentModal from '@/components/modals/ConfigureAIAgentModal';
 import InviteTeamMemberModal from '@/components/modals/InviteTeamMemberModal';
+import OnboardingWizard from '@/components/OnboardingWizard';
 import apiClient from '@/lib/api-client';
 
 export default function CompleteDashboard() {
@@ -19,11 +21,16 @@ export default function CompleteDashboard() {
   const [decisions, setDecisions] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [integrations, setIntegrations] = useState<any>(null);
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_dismissed'));
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboardData();
     fetchIntegrations();
     fetchPendingDecisions();
+    fetchRecentJobs();
+    apiClient.get('/client-companies/me/profile').then(r => setCompanyProfile(r.data)).catch(() => {});
   }, []);
 
   const fetchPendingDecisions = async () => {
@@ -46,6 +53,16 @@ export default function CompleteDashboard() {
     }
   };
 
+  const fetchRecentJobs = async () => {
+    try {
+      const response = await apiClient.get('/jobs?limit=3&status=active');
+      const data = response.data;
+      setRecentJobs((data.jobs || data || []).slice(0, 3));
+    } catch {
+      // silently leave empty
+    }
+  };
+
   const fetchIntegrations = async () => {
     try {
       const response = await apiClient.get('/integrations/');
@@ -62,14 +79,14 @@ export default function CompleteDashboard() {
     }
   };
 
-  // Stats derived from real data if available
+  // Stats derived from real data only — never show fake numbers
   const stats = {
-    activeJobs: dashboardData?.active_jobs || 5,
-    totalApplicants: dashboardData?.total_applicants || 48,
-    topMatches: decisions?.totals?.total_pending || 12,
-    scheduledInterviews: dashboardData?.scheduled_interviews || 8,
-    shortlisted: dashboardData?.shortlisted || 15,
-    offered: dashboardData?.offered || 3,
+    activeJobs: dashboardData?.active_jobs ?? 0,
+    totalApplicants: dashboardData?.total_applicants ?? 0,
+    topMatches: decisions?.totals?.total_pending ?? 0,
+    scheduledInterviews: dashboardData?.scheduled_interviews ?? 0,
+    shortlisted: dashboardData?.shortlisted ?? 0,
+    offered: dashboardData?.offered ?? 0,
   };
 
   const teamSeats = {
@@ -103,11 +120,6 @@ export default function CompleteDashboard() {
     color: ['bg-blue-600', 'bg-purple-600', 'bg-green-600', 'bg-pink-600'][idx % 4]
   })) || [];
 
-  const activeJobs = [
-    { id: "123e4567-e89b-12d3-a456-426614174000", title: 'Senior Software Engineer', applicants: 23, matches: 5, status: 'active', posted: '3 days ago' },
-    { id: "123e4567-e89b-12d3-a456-426614174001", title: 'DevOps Engineer', applicants: 15, matches: 3, status: 'active', posted: '1 week ago' },
-    { id: "123e4567-e89b-12d3-a456-426614174002", title: 'Product Manager', applicants: 10, matches: 4, status: 'active', posted: '2 weeks ago' },
-  ];
 
   const handlePostJob = async (modalData: any) => {
     try {
@@ -124,31 +136,35 @@ export default function CompleteDashboard() {
       };
 
       await apiClient.post('/jobs', apiData);
-      alert('Job posted successfully across selected platforms!');
+      toast.success('Job posted successfully across selected platforms!');
       setShowPostJobModal(false);
       fetchDashboardData();
+      fetchRecentJobs();
     } catch (error) {
       console.error('Error posting job:', error);
+      toast.error('Failed to post job. Please try again.');
     }
   };
 
   const handleSaveAIAgent = async (config: any) => {
     try {
       await apiClient.post('/ai-agent/configure', config);
-      alert('AI Agent activated! Automated outreach will begin shortly.');
+      toast.success('AI Agent activated! Automated outreach will begin shortly.');
       fetchDashboardData();
     } catch (error) {
       console.error('Error saving AI agent config:', error);
+      toast.error('Failed to activate AI agent.');
     }
   };
 
   const handleInviteTeamMember = async (data: any) => {
     try {
       await apiClient.post('/team/invite', data);
-      alert('Invitation sent successfully!');
+      toast.success('Invitation sent successfully!');
       fetchDashboardData();
     } catch (error) {
       console.error('Error inviting team member:', error);
+      toast.error('Failed to send invitation.');
     }
   };
 
@@ -194,6 +210,15 @@ export default function CompleteDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Onboarding Wizard */}
+        {showOnboarding && (
+          <OnboardingWizard
+            onDismiss={() => setShowOnboarding(false)}
+            hasLogo={!!companyProfile?.logo_url}
+            hasJobs={stats.activeJobs > 0}
+            hasTeam={(dashboardData?.team_members_count ?? 0) > 1}
+          />
+        )}
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Active Jobs */}
@@ -332,7 +357,7 @@ export default function CompleteDashboard() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Active Jobs</h2>
-                <button 
+                <button
                   onClick={() => navigate('/company/jobs')}
                   className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                 >
@@ -340,28 +365,38 @@ export default function CompleteDashboard() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {activeJobs.map((job) => (
-                  <div key={job.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-all">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                        <p className="text-sm text-gray-500">Posted {job.posted}</p>
+              {recentJobs.length === 0 ? (
+                <div className="text-center py-10 text-gray-500">
+                  <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="font-medium">No active jobs yet</p>
+                  <button
+                    onClick={() => setShowPostJobModal(true)}
+                    className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                  >
+                    Post Your First Job
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentJobs.map((job: any) => (
+                    <div key={job.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-all">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                          <p className="text-sm text-gray-500">{job.applicants_count ?? 0} applicants</p>
+                        </div>
+                        <Link
+                          to={`/jobs/${job.id}/kanban`}
+                          className="text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1 text-sm"
+                        >
+                          <LayoutTemplate className="w-4 h-4" />
+                          <span>Kanban</span>
+                        </Link>
                       </div>
-                      <span className="text-gray-600">
-                        <strong className="text-green-600">{Number(job.matches) || 0}</strong> top matches
-                      </span>
-                      <Link 
-                        to={`/jobs/${job.id}/kanban`}
-                        className="text-blue-600 hover:text-blue-700 font-medium ml-auto flex items-center space-x-1"
-                      >
-                        <LayoutTemplate className="w-4 h-4" />
-                        <span>Kanban Board</span>
-                      </Link>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Recent Activity */}

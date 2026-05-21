@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Settings, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Settings, ExternalLink, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 
 interface Integration {
@@ -17,6 +18,8 @@ export default function IntegrationsSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   useEffect(() => {
     fetchIntegrations();
@@ -40,27 +43,28 @@ export default function IntegrationsSettingsPage() {
   };
 
   const handleDisconnect = async (platform: string) => {
-    if (!confirm(`Are you sure you want to disconnect ${platform}? Active jobs will be removed from this platform.`)) {
-      return;
-    }
-
     try {
       await apiClient.post(`/integrations/${platform}/disconnect`);
-      alert(`${platform} disconnected successfully`);
+      toast.success(`${platformInfo[platform as keyof typeof platformInfo]?.name || platform} disconnected successfully`);
+      setConfirmDisconnect(null);
       fetchIntegrations();
     } catch (error) {
       console.error('Error disconnecting:', error);
-      // toast is handled by apiClient
+      toast.error('Failed to disconnect integration');
     }
   };
 
   const handleSync = async (platform: string) => {
+    setSyncing(platform);
     try {
       await apiClient.post(`/integrations/${platform}/sync`);
-      alert(`${platform} synced successfully`);
+      toast.success(`${platformInfo[platform as keyof typeof platformInfo]?.name || platform} synced successfully`);
       fetchIntegrations();
     } catch (error) {
       console.error('Error syncing:', error);
+      toast.error('Failed to sync integration');
+    } finally {
+      setSyncing(null);
     }
   };
 
@@ -204,10 +208,11 @@ export default function IntegrationsSettingsPage() {
                       <>
                         <button
                           onClick={() => handleSync(key)}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-all flex items-center space-x-2"
+                          disabled={syncing === key}
+                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-all flex items-center space-x-2 disabled:opacity-60"
                         >
-                          <RefreshCw className="w-4 h-4" />
-                          <span>Sync Now</span>
+                          <RefreshCw className={`w-4 h-4 ${syncing === key ? 'animate-spin' : ''}`} />
+                          <span>{syncing === key ? 'Syncing...' : 'Sync Now'}</span>
                         </button>
                         <button
                           onClick={() => handleConnect(key)}
@@ -217,7 +222,7 @@ export default function IntegrationsSettingsPage() {
                           <span>Configure</span>
                         </button>
                         <button
-                          onClick={() => handleDisconnect(key)}
+                          onClick={() => setConfirmDisconnect(key)}
                           className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-all"
                         >
                           Disconnect
@@ -226,7 +231,7 @@ export default function IntegrationsSettingsPage() {
                     ) : (
                       <button
                         onClick={() => handleConnect(key)}
-                        className={`px-6 py-3 bg-${info.color}-600 text-white rounded-lg font-semibold hover:bg-${info.color}-700 transition-all flex items-center space-x-2`}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center space-x-2"
                       >
                         <ExternalLink className="w-5 h-5" />
                         <span>Connect {info.name}</span>
@@ -274,6 +279,37 @@ export default function IntegrationsSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Disconnect Modal */}
+      {confirmDisconnect && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Disconnect {platformInfo[confirmDisconnect as keyof typeof platformInfo]?.name}?</h2>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Active jobs posted to {platformInfo[confirmDisconnect as keyof typeof platformInfo]?.name} will be removed from that platform. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDisconnect(null)}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDisconnect(confirmDisconnect)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all"
+              >
+                Yes, Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Connect Modal (placeholder - would implement full OAuth flow) */}
       {showConnectModal && (

@@ -110,7 +110,9 @@ export default function JobDetailPage() {
     const handleDelete = async () => {
         if (id) {
             await deleteJob.mutateAsync(id);
-            navigate('/jobs');
+            if (user?.role === 'client') navigate('/company/jobs');
+            else if (user?.role === 'candidate') navigate('/candidate/jobs');
+            else navigate(-1);
         }
     };
 
@@ -152,9 +154,9 @@ export default function JobDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Link to="/jobs" className="text-gray-600 hover:text-gray-900">
+                    <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="w-6 h-6" />
-                    </Link>
+                    </button>
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
                         <p className="text-gray-600 mt-1">Ref: {job.reference}</p>

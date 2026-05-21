@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { applicationsService } from '@/services/applications';
 import { ApplicationStatus } from '@/types/api';
 import { ArrowLeft, User, Star } from 'lucide-react';
@@ -87,6 +87,7 @@ const MOCK_PIPELINE = {
 
 export default function KanbanBoardPage() {
     const { jobId } = useParams<{ jobId: string }>();
+    const navigate = useNavigate();
 
     const isMockJob = jobId?.startsWith('123e4567');
 
@@ -130,9 +131,9 @@ export default function KanbanBoardPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <Link to="/jobs" className="text-gray-600 hover:text-gray-900">
+                    <button onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="w-6 h-6" />
-                    </Link>
+                    </button>
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">{displayPipeline.job_title}</h1>
                         <p className="text-gray-600 mt-1">

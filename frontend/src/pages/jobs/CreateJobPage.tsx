@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useCreateJob } from '@/hooks/use-jobs';
+import { useAuthStore } from '@/store/auth';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 
 // Form schema
@@ -37,6 +38,7 @@ const STEPS = [
 
 export default function CreateJobPage() {
     const navigate = useNavigate();
+    const { user } = useAuthStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [skillInput, setSkillInput] = useState('');
     const createJob = useCreateJob();
@@ -66,7 +68,8 @@ export default function CreateJobPage() {
             };
             // @ts-ignore - mapping the flattened form data to the expected API structure
             await createJob.mutateAsync(apiData);
-            navigate('/jobs');
+            if (user?.role === 'client') navigate('/company/jobs');
+            else navigate(-1);
         } catch (error) {
             // Error handled by mutation
         }
@@ -100,7 +103,7 @@ export default function CreateJobPage() {
             {/* Header */}
             <div className="flex items-center space-x-4">
                 <button
-                    onClick={() => navigate('/jobs')}
+                    onClick={() => navigate(-1)}
                     className="text-gray-600 hover:text-gray-900"
                 >
                     <ArrowLeft className="w-6 h-6" />

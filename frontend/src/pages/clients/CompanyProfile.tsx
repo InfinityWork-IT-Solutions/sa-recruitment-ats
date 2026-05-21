@@ -1,24 +1,45 @@
 // frontend/src/pages/company/CompanyProfile.tsx
 import { useState, useRef, useEffect } from 'react';
 import {
-  Building, Users, Briefcase, Settings, Download, Edit, Camera,
-  MapPin, Mail, Globe, Calendar, Plus, X, TrendingUp,
-  Eye, CheckCircle, Save, DollarSign, FileText
+  Building, Users, Briefcase, Settings, Edit, Camera,
+  MapPin, Mail, Globe, Plus, TrendingUp,
+  Eye, CheckCircle, Save, FileText, Phone, User, Bell
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/auth';
 import { ImageCropperModal } from '../../components/common/ImageCropperModal';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+const SA_PROVINCES = [
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
+  'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
+];
 
 export default function CompanyProfile() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [cropperModalOpen, setCropperModalOpen] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const [settingsForm, setSettingsForm] = useState({
+    name: '',
+    industry: '',
+    website: '',
+    company_size: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    contact_position: '',
+    city: '',
+    province: '',
+    postal_code: '',
+    country: 'South Africa',
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const { data: companyData, refetch } = useQuery({
     queryKey: ['company-profile'],
@@ -36,6 +57,15 @@ export default function CompanyProfile() {
     }
   });
 
+  const { data: jobsData } = useQuery({
+    queryKey: ['company-profile-jobs'],
+    queryFn: async () => {
+      const res = await apiClient.get('/jobs?limit=20');
+      return res.data;
+    },
+    enabled: activeTab === 'jobs',
+  });
+
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [tempDescription, setTempDescription] = useState("");
 
@@ -48,6 +78,20 @@ export default function CompanyProfile() {
       if (!isEditingDescription) {
         setTempDescription(companyData.description || "");
       }
+      setSettingsForm({
+        name: companyData.name || '',
+        industry: companyData.industry || '',
+        website: companyData.website || '',
+        company_size: companyData.company_size || '',
+        contact_name: companyData.contact_name || '',
+        contact_email: companyData.contact_email || '',
+        contact_phone: companyData.contact_phone || '',
+        contact_position: companyData.contact_position || '',
+        city: companyData.city || '',
+        province: companyData.province || '',
+        postal_code: companyData.postal_code || '',
+        country: companyData.country || 'South Africa',
+      });
     }
   }, [companyData, isEditingDescription]);
 
@@ -496,21 +540,76 @@ export default function CompanyProfile() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Active Job Postings</h2>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2">
+                <h2 className="text-xl font-bold text-gray-900">Job Postings</h2>
+                <button
+                  onClick={() => navigate('/company/jobs')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2"
+                >
                   <Plus className="w-4 h-4" />
                   <span>Post New Job</span>
                 </button>
               </div>
 
-              <div className="text-center py-12 text-gray-500">
-                <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg font-medium">No active jobs yet</p>
-                <p className="text-sm mt-2">Post your first job to start receiving applications!</p>
-                <button className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
-                  Create Your First Job Posting
-                </button>
-              </div>
+              {(() => {
+                const jobs: any[] = jobsData?.jobs || jobsData || [];
+                if (jobs.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-gray-500">
+                      <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No jobs posted yet</p>
+                      <p className="text-sm mt-2">Post your first job to start receiving applications!</p>
+                      <button
+                        onClick={() => navigate('/company/jobs')}
+                        className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                      >
+                        Create Your First Job Posting
+                      </button>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {jobs.map((job: any) => (
+                      <div key={job.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-200 transition-all">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              job.status === 'active' ? 'bg-green-100 text-green-700' :
+                              job.status === 'paused' ? 'bg-yellow-100 text-yellow-700' :
+                              job.status === 'draft' ? 'bg-gray-100 text-gray-600' :
+                              'bg-red-100 text-red-700'
+                            }`}>{job.status}</span>
+                            <span>{job.applicants_count ?? 0} applicants</span>
+                            {job.location && <span>{job.location}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => navigate(`/jobs/${job.id}/kanban`)}
+                            className="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Pipeline
+                          </button>
+                          <button
+                            onClick={() => navigate(`/jobs/${job.id}`)}
+                            className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => navigate('/company/jobs')}
+                      className="w-full py-3 text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-all text-sm"
+                    >
+                      Manage All Jobs →
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -521,9 +620,12 @@ export default function CompanyProfile() {
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">Team Members</h2>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2">
+                <button
+                  onClick={() => navigate('/company/team')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2"
+                >
                   <Plus className="w-4 h-4" />
-                  <span>Invite Team Member</span>
+                  <span>Manage Team</span>
                 </button>
               </div>
 
@@ -546,12 +648,10 @@ export default function CompanyProfile() {
         {/* SETTINGS TAB */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
-            {/* Company Profile Analytics */}
+            {/* Profile Analytics */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Analytics</h2>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Profile Views */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
@@ -570,8 +670,6 @@ export default function CompanyProfile() {
                     </div>
                   </div>
                 </div>
-
-                {/* Job Views */}
                 <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-xl p-6 border border-green-200">
                   <div className="flex items-center justify-between">
                     <div>
@@ -593,88 +691,218 @@ export default function CompanyProfile() {
               </div>
             </div>
 
-            {/* Company Settings Form */}
+            {/* Company Information Form */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Company Information</h2>
-                <button 
+                <button
+                  disabled={isSavingSettings}
                   onClick={async () => {
+                    setIsSavingSettings(true);
                     try {
                       await apiClient.put('/client-companies/me/profile', {
-                        name: company.name,
-                        industry: company.industry,
-                        website: company.website,
-                        company_size: company.size,
-                        location: company.location
+                        name: settingsForm.name,
+                        industry: settingsForm.industry,
+                        website: settingsForm.website,
+                        company_size: settingsForm.company_size,
+                        contact_name: settingsForm.contact_name,
+                        contact_email: settingsForm.contact_email,
+                        contact_phone: settingsForm.contact_phone,
+                        contact_position: settingsForm.contact_position,
+                        city: settingsForm.city,
+                        province: settingsForm.province,
+                        postal_code: settingsForm.postal_code,
+                        country: settingsForm.country,
                       });
-                      toast.success("Settings updated!");
+                      toast.success('Company profile updated!');
                       refetch();
-                    } catch (err) {
-                      toast.error("Failed to update settings");
+                    } catch {
+                      toast.error('Failed to update profile');
+                    } finally {
+                      setIsSavingSettings(false);
                     }
                   }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:opacity-60"
                 >
-                  Save Changes
+                  {isSavingSettings ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                  <input 
-                    type="text" 
-                    defaultValue={company.name}
+                  <input
+                    type="text"
+                    value={settingsForm.name}
+                    onChange={e => setSettingsForm(f => ({ ...f, name: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    onChange={(e) => { /* In a real app we'd use state, but for brevity/demo we use defaultValue/refs logic or just handle on save */}}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
-                  <input 
-                    type="text" 
-                    defaultValue={company.industry}
+                  <input
+                    type="text"
+                    value={settingsForm.industry}
+                    onChange={e => setSettingsForm(f => ({ ...f, industry: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
-                  <input 
-                    type="text" 
-                    defaultValue={company.website}
+                  <input
+                    type="text"
+                    value={settingsForm.website}
+                    onChange={e => setSettingsForm(f => ({ ...f, website: e.target.value }))}
+                    placeholder="e.g. yourcompany.co.za"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Company Size</label>
-                  <select 
-                    defaultValue={company.size}
+                  <select
+                    value={settingsForm.company_size}
+                    onChange={e => setSettingsForm(f => ({ ...f, company_size: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option>1-10</option>
-                    <option>11-50</option>
-                    <option>51-200</option>
-                    <option>201-500</option>
-                    <option>500+</option>
+                    <option value="">Select size</option>
+                    <option value="1-10">1–10 employees</option>
+                    <option value="11-50">11–50 employees</option>
+                    <option value="51-200">51–200 employees</option>
+                    <option value="201-500">201–500 employees</option>
+                    <option value="500+">500+ employees</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="border-t border-gray-100 pt-6 mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-base font-semibold text-gray-900">Contact Information</h3>
+                  <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                    Internal only · hidden from candidates
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> Contact Name</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.contact_name}
+                      onChange={e => setSettingsForm(f => ({ ...f, contact_name: e.target.value }))}
+                      placeholder="e.g. Jane Smith"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" /> Position / Title</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.contact_position}
+                      onChange={e => setSettingsForm(f => ({ ...f, contact_position: e.target.value }))}
+                      placeholder="e.g. HR Manager"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> Contact Email</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={settingsForm.contact_email}
+                      onChange={e => setSettingsForm(f => ({ ...f, contact_email: e.target.value }))}
+                      placeholder="e.g. hr@yourcompany.co.za"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> Contact Phone</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={settingsForm.contact_phone}
+                      onChange={e => setSettingsForm(f => ({ ...f, contact_phone: e.target.value }))}
+                      placeholder="e.g. +27 11 000 0000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Office Address */}
+              <div className="border-t border-gray-100 pt-6">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">Office Address</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                    <input
+                      type="text"
+                      value={settingsForm.city}
+                      onChange={e => setSettingsForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="e.g. Johannesburg"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+                    <select
+                      value={settingsForm.province}
+                      onChange={e => setSettingsForm(f => ({ ...f, province: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select province</option>
+                      {SA_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
+                    <input
+                      type="text"
+                      value={settingsForm.postal_code}
+                      onChange={e => setSettingsForm(f => ({ ...f, postal_code: e.target.value }))}
+                      placeholder="e.g. 2000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                    <input
+                      type="text"
+                      value={settingsForm.country}
+                      onChange={e => setSettingsForm(f => ({ ...f, country: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mt-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h2>
-              {/* ... existing settings ... */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Email Notifications</h3>
-                    <p className="text-sm text-gray-600">Receive email alerts for new applications</p>
+            {/* Notification Settings shortcut */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Bell className="w-5 h-5 text-blue-600" />
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Notification Preferences</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Control which in-app and email alerts you receive for applications, interviews, and AI matches.
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => navigate('/company/settings', { state: { tab: 'notifications' } })}
+                  className="px-4 py-2 text-sm font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all whitespace-nowrap"
+                >
+                  Manage alerts
+                </button>
               </div>
             </div>
           </div>

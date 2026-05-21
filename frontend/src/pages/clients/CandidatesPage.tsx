@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  Search, Filter, Users, MapPin, Briefcase, Award, Mail, 
+import {
+  Search, Filter, Users, MapPin, Briefcase, Award, Mail,
   Phone, Linkedin, Calendar, DollarSign, Star, ChevronDown,
-  X, Download, Eye, CheckCircle
+  X, Download, Eye, CheckCircle, ExternalLink, Clock
 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
@@ -206,6 +206,12 @@ export default function CandidatesPage() {
     { value: 'offered', label: 'Offered' },
     { value: 'rejected', label: 'Rejected' },
   ];
+
+  const statusActionLabel = (status: string) => {
+    if (status === 'new') return 'Shortlist';
+    if (status === 'shortlisted') return 'Schedule Interview';
+    return null;
+  };
 
   if (loading) {
     return (
@@ -475,11 +481,11 @@ export default function CandidatesPage() {
 
                       <div className="flex flex-col space-y-2 ml-4">
                         <button
-                          onClick={() => navigate(`/candidates/${candidate.id}`)}
+                          onClick={() => setSelectedCandidate(candidate)}
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center space-x-2"
                         >
                           <Eye className="w-4 h-4" />
-                          <span>View</span>
+                          <span>Quick View</span>
                         </button>
                         {candidate.status === 'new' && (
                           <button
@@ -500,7 +506,154 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      {/* Candidate Detail Modal - will add in next part */}
+      {/* Candidate Quick-View Slide-Over */}
+      {selectedCandidate && (
+        <>
+          {/* backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={() => setSelectedCandidate(null)}
+          />
+          {/* panel */}
+          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <h2 className="text-lg font-bold text-gray-900">Candidate Profile</h2>
+              <button
+                onClick={() => setSelectedCandidate(null)}
+                className="p-1.5 rounded-full hover:bg-gray-200 text-gray-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {/* Avatar + name */}
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                  {selectedCandidate.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-bold text-gray-900">{selectedCandidate.name}</h3>
+                  <p className="text-gray-600">{selectedCandidate.title}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(selectedCandidate.status)}`}>
+                      {selectedCandidate.status}
+                    </span>
+                    {selectedCandidate.match_score && selectedCandidate.match_score >= 70 && (
+                      <span className="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        {selectedCandidate.match_score}% Match
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Key details */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{selectedCandidate.city}{selectedCandidate.province ? `, ${selectedCandidate.province}` : ''}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{selectedCandidate.experience_years} yrs exp.</span>
+                </div>
+                {selectedCandidate.salary_expectation > 0 && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <DollarSign className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span>R{(selectedCandidate.salary_expectation / 1000).toFixed(0)}k</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span>{selectedCandidate.availability}</span>
+                </div>
+              </div>
+
+              {/* Contact info */}
+              <div className="space-y-2 text-sm">
+                {selectedCandidate.email && (
+                  <a href={`mailto:${selectedCandidate.email}`} className="flex items-center gap-2 text-blue-600 hover:underline">
+                    <Mail className="w-4 h-4 shrink-0" />
+                    {selectedCandidate.email}
+                  </a>
+                )}
+                {selectedCandidate.phone && (
+                  <a href={`tel:${selectedCandidate.phone}`} className="flex items-center gap-2 text-blue-600 hover:underline">
+                    <Phone className="w-4 h-4 shrink-0" />
+                    {selectedCandidate.phone}
+                  </a>
+                )}
+                {selectedCandidate.linkedin_url && (
+                  <a href={selectedCandidate.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                    <Linkedin className="w-4 h-4 shrink-0" />
+                    LinkedIn Profile
+                  </a>
+                )}
+              </div>
+
+              {/* Skills */}
+              {selectedCandidate.skills.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCandidate.skills.map(skill => (
+                      <span key={skill} className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Education */}
+              {selectedCandidate.education && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-1">Education</h4>
+                  <p className="text-sm text-gray-600 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-gray-400 shrink-0" />
+                    {selectedCandidate.education}
+                  </p>
+                </div>
+              )}
+
+              {/* Applied jobs */}
+              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                Applied to <strong className="text-gray-900">{selectedCandidate.applied_jobs}</strong> job{selectedCandidate.applied_jobs !== 1 ? 's' : ''} on this platform
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="border-t border-gray-100 px-6 py-4 space-y-2 bg-gray-50">
+              {selectedCandidate.status === 'new' && (
+                <button
+                  onClick={() => {
+                    handleShortlist(selectedCandidate.id);
+                    setSelectedCandidate(null);
+                  }}
+                  className="w-full px-4 py-2.5 bg-yellow-600 text-white rounded-lg font-semibold hover:bg-yellow-700 flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Shortlist Candidate
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  navigate(`/candidates/${selectedCandidate.id}`);
+                  setSelectedCandidate(null);
+                }}
+                className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Full Profile
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

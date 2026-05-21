@@ -2,21 +2,202 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Building, CreditCard, Bell, Save, Edit,
-    User, Shield, Globe, MapPin, Mail, Check, Camera
+    User, Shield, Globe, MapPin, Mail, Check, Camera,
+    Briefcase, Star, Calendar, DollarSign, Info, ArrowRight
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
 import UsageDashboard from '@/components/UsageDashboard';
 import { ImageCropperModal } from '@/components/common/ImageCropperModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// ---------------------------------------------------------------------------
+// Notification settings component for the client portal
+// ---------------------------------------------------------------------------
+
+type NotifPrefs = {
+    inapp_new_application: boolean;
+    inapp_application_status: boolean;
+    inapp_ai_match: boolean;
+    inapp_interview: boolean;
+    inapp_offer: boolean;
+    inapp_billing: boolean;
+    inapp_system: boolean;
+    email_new_application: boolean;
+    email_application_status: boolean;
+    email_ai_match: boolean;
+    email_interview: boolean;
+    email_offer: boolean;
+    email_billing: boolean;
+    email_system: boolean;
+};
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <button
+            type="button"
+            onClick={() => onChange(!checked)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-blue-600' : 'bg-gray-200'}`}
+        >
+            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+    );
+}
+
+const CLIENT_NOTIFICATION_ROWS: Array<{
+    key: keyof NotifPrefs;
+    emailKey: keyof NotifPrefs;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+}> = [
+    {
+        key: 'inapp_new_application',
+        emailKey: 'email_new_application',
+        label: 'New Application',
+        description: 'When a candidate applies to one of your job postings',
+        icon: <Briefcase className="w-5 h-5 text-blue-500" />,
+    },
+    {
+        key: 'inapp_ai_match',
+        emailKey: 'email_ai_match',
+        label: 'AI Top Match Alert',
+        description: 'When the AI finds a high-scoring candidate match for your job',
+        icon: <Star className="w-5 h-5 text-yellow-500" />,
+    },
+    {
+        key: 'inapp_interview',
+        emailKey: 'email_interview',
+        label: 'Interview Updates',
+        description: 'Interview scheduled, rescheduled or cancelled',
+        icon: <Calendar className="w-5 h-5 text-green-500" />,
+    },
+    {
+        key: 'inapp_offer',
+        emailKey: 'email_offer',
+        label: 'Offer Updates',
+        description: 'Offer accepted, declined or countered by a candidate',
+        icon: <DollarSign className="w-5 h-5 text-emerald-500" />,
+    },
+    {
+        key: 'inapp_billing',
+        emailKey: 'email_billing',
+        label: 'Billing & Subscription',
+        description: 'Invoices, seat changes and payment confirmations',
+        icon: <CreditCard className="w-5 h-5 text-orange-500" />,
+    },
+    {
+        key: 'inapp_system',
+        emailKey: 'email_system',
+        label: 'System Announcements',
+        description: 'Platform updates, maintenance windows and feature releases',
+        icon: <Info className="w-5 h-5 text-gray-400" />,
+    },
+];
+
+function ClientNotificationSettings() {
+    const qc = useQueryClient();
+
+    const { data: prefs, isLoading } = useQuery<NotifPrefs>({
+        queryKey: ['notification-preferences'],
+        queryFn: async () => {
+            const res = await apiClient.get('/notifications/preferences');
+            return res.data;
+        },
+    });
+
+    const mutation = useMutation({
+        mutationFn: async (patch: Partial<NotifPrefs>) => {
+            const res = await apiClient.put('/notifications/preferences', patch);
+            return res.data;
+        },
+        onSuccess: (data) => qc.setQueryData(['notification-preferences'], data),
+        onError: () => toast.error('Failed to save notification preference'),
+    });
+
+    const handleToggle = (field: keyof NotifPrefs, value: boolean) => {
+        mutation.mutate({ [field]: value });
+    };
+
+    if (isLoading || !prefs) {
+        return (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <div className="flex items-center space-x-3 mb-2">
+                    <Bell className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Notification Preferences</h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-8">Control which events trigger notifications and how you receive them.</p>
+
+                {/* Column headers */}
+                <div className="grid grid-cols-[1fr_90px_90px] gap-4 mb-3 px-1">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Event</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">In-App</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Email</span>
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                    {CLIENT_NOTIFICATION_ROWS.map((row) => (
+                        <div key={row.key} className="grid grid-cols-[1fr_90px_90px] gap-4 items-center py-5 px-1">
+                            <div className="flex items-start space-x-3">
+                                <div className="mt-0.5 flex-shrink-0">{row.icon}</div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">{row.label}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{row.description}</p>
+                                </div>
+                            </div>
+                            <div className="flex justify-center">
+                                <Toggle
+                                    checked={prefs[row.key]}
+                                    onChange={(v) => handleToggle(row.key, v)}
+                                />
+                            </div>
+                            <div className="flex justify-center">
+                                <Toggle
+                                    checked={prefs[row.emailKey]}
+                                    onChange={(v) => handleToggle(row.emailKey, v)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex items-start space-x-3">
+                <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-700">
+                    Changes are saved instantly. Email notifications are sent to <span className="font-bold">your registered email address</span>.
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
 
 interface CompanyProfile {
     company_name: string;
     website?: string;
     industry?: string;
     company_size?: string;
-    location?: string;
+    city?: string;
+    province?: string;
+    country?: string;
+    postal_code?: string;
     description?: string;
+    // Contact details — internal only, never exposed to candidates
+    contact_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    contact_position?: string;
 }
 
 export default function SettingsPage() {
@@ -33,6 +214,7 @@ export default function SettingsPage() {
         first_name: user?.first_name || '',
         last_name: user?.last_name || '',
         email: user?.email || '',
+        phone: (user as any)?.phone || '',
         avatar_url: user?.avatar_url || '',
     });
 
@@ -41,8 +223,15 @@ export default function SettingsPage() {
         website: '',
         industry: '',
         company_size: '',
-        location: '',
+        city: '',
+        province: '',
+        country: 'South Africa',
+        postal_code: '',
         description: '',
+        contact_name: '',
+        contact_email: '',
+        contact_phone: '',
+        contact_position: '',
     });
 
     const [editingCompany, setEditingCompany] = useState(false);
@@ -53,6 +242,7 @@ export default function SettingsPage() {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
+                phone: (user as any).phone || '',
                 avatar_url: user.avatar_url || '',
             });
             fetchCompanyProfile();
@@ -63,13 +253,21 @@ export default function SettingsPage() {
         try {
             const response = await apiClient.get('/client-companies/me/profile');
             if (response.data) {
+                const d = response.data;
                 setCompanyData({
-                    company_name: response.data.name,
-                    website: response.data.website || '',
-                    industry: response.data.industry || '',
-                    company_size: response.data.company_size || '',
-                    location: response.data.city ? `${response.data.city}, ${response.data.country || 'South Africa'}` : '',
-                    description: response.data.description || '',
+                    company_name: d.name || '',
+                    website: d.website || '',
+                    industry: d.industry || '',
+                    company_size: d.company_size || '',
+                    city: d.city || '',
+                    province: d.province || '',
+                    country: d.country || 'South Africa',
+                    postal_code: d.postal_code || '',
+                    description: d.description || '',
+                    contact_name: d.contact_name || '',
+                    contact_email: d.contact_email || '',
+                    contact_phone: d.contact_phone || '',
+                    contact_position: d.contact_position || '',
                 });
             }
         } catch (error) {
@@ -80,13 +278,12 @@ export default function SettingsPage() {
     const handleSaveUser = async () => {
         setSaving(true);
         try {
-            // Only send valid fields for UserUpdate
-            const updateData = {
+            await apiClient.put('/auth/me', {
                 first_name: userData.first_name,
                 last_name: userData.last_name,
+                phone: userData.phone,
                 avatar_url: userData.avatar_url,
-            };
-            await apiClient.put('/auth/me', updateData);
+            });
             toast.success('Identity updated successfully!');
             await refreshUser();
             setEditingUser(false);
@@ -100,20 +297,26 @@ export default function SettingsPage() {
     const handleSaveCompany = async () => {
         setSaving(true);
         try {
-            const updateData = {
+            await apiClient.put('/client-companies/me/profile', {
                 name: companyData.company_name,
                 website: companyData.website,
                 industry: companyData.industry,
                 company_size: companyData.company_size,
+                city: companyData.city,
+                province: companyData.province,
+                country: companyData.country,
+                postal_code: companyData.postal_code,
                 description: companyData.description,
-                city: companyData.location?.split(',')[0].trim() || ''
-            };
-            await apiClient.put('/client-companies/me/profile', updateData);
-            toast.success('Company branding updated!');
+                contact_name: companyData.contact_name,
+                contact_email: companyData.contact_email,
+                contact_phone: companyData.contact_phone,
+                contact_position: companyData.contact_position,
+            });
+            toast.success('Company profile updated!');
             setEditingCompany(false);
             fetchCompanyProfile();
         } catch (error) {
-            toast.error('Failed to update company branding');
+            toast.error('Failed to update company profile');
         } finally {
             setSaving(false);
         }
@@ -293,8 +496,8 @@ export default function SettingsPage() {
                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                               <div className="space-y-2">
                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">First Name</label>
-                                                  <input 
-                                                      type="text" 
+                                                  <input
+                                                      type="text"
                                                       value={userData.first_name}
                                                       onChange={(e) => setUserData({...userData, first_name: e.target.value})}
                                                       disabled={!editingUser}
@@ -303,18 +506,42 @@ export default function SettingsPage() {
                                               </div>
                                               <div className="space-y-2">
                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Last Name</label>
-                                                  <input 
-                                                      type="text" 
+                                                  <input
+                                                      type="text"
                                                       value={userData.last_name}
                                                       onChange={(e) => setUserData({...userData, last_name: e.target.value})}
                                                       disabled={!editingUser}
                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
                                                   />
                                               </div>
+                                              <div className="space-y-2">
+                                                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Email Address</label>
+                                                  <div className="relative">
+                                                      <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                                                      <input
+                                                          type="email"
+                                                          value={userData.email}
+                                                          disabled
+                                                          className="w-full pl-16 pr-6 py-4 bg-gray-100 border-none rounded-2xl font-bold text-gray-500 cursor-not-allowed transition-all"
+                                                      />
+                                                  </div>
+                                                  <p className="text-[10px] text-gray-400 font-bold ml-1">Email is managed by your administrator.</p>
+                                              </div>
+                                              <div className="space-y-2">
+                                                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Phone Number</label>
+                                                  <input
+                                                      type="tel"
+                                                      value={userData.phone}
+                                                      onChange={(e) => setUserData({...userData, phone: e.target.value})}
+                                                      disabled={!editingUser}
+                                                      placeholder="+27 82 000 0000"
+                                                      className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                  />
+                                              </div>
                                               <div className="md:col-span-2 space-y-2">
                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Profile Picture URL</label>
-                                                  <input 
-                                                      type="text" 
+                                                  <input
+                                                      type="text"
                                                       value={userData.avatar_url}
                                                       onChange={(e) => setUserData({...userData, avatar_url: e.target.value})}
                                                       disabled={!editingUser}
@@ -351,75 +578,67 @@ export default function SettingsPage() {
                                   </div>
                                   
                                   <div className="space-y-8">
+
+                                       {/* ── Basic Info ── */}
                                        <div className="space-y-2">
                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Name</label>
-                                           <input 
-                                               type="text" 
+                                           <input
+                                               type="text"
                                                value={companyData.company_name}
                                                onChange={(e) => setCompanyData({...companyData, company_name: e.target.value})}
                                                disabled={!editingCompany}
                                                className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
                                            />
                                        </div>
-                                       <div className="space-y-2">
-                                           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Branding Website</label>
-                                           <div className="relative">
-                                               <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                                               <input 
-                                                   type="text" 
-                                                   value={companyData.website}
-                                                   onChange={(e) => setCompanyData({...companyData, website: e.target.value})}
-                                                   disabled={!editingCompany}
-                                                   className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
-                                               />
-                                           </div>
-                                       </div>
+
                                        <div className="grid grid-cols-2 gap-8">
                                            <div className="space-y-2">
-                                               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Primary Location</label>
-                                               <div className="relative">
-                                                   <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                                                   <input 
-                                                       type="text" 
-                                                       value={companyData.location}
-                                                       onChange={(e) => setCompanyData({...companyData, location: e.target.value})}
-                                                       disabled={!editingCompany}
-                                                       className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
-                                                   />
-                                               </div>
-                                           </div>
-                                           <div className="space-y-2">
-                                               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Operational Context</label>
-                                               <input 
-                                                   type="text" 
+                                               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Industry</label>
+                                               <input
+                                                   type="text"
                                                    value={companyData.industry}
                                                    onChange={(e) => setCompanyData({...companyData, industry: e.target.value})}
                                                    disabled={!editingCompany}
+                                                   placeholder="e.g. Technology, Finance"
                                                    className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
                                                />
                                            </div>
-                                       </div>
-                                       <div className="grid grid-cols-2 gap-8">
                                            <div className="space-y-2">
                                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Size</label>
-                                               <select 
+                                               <select
                                                    value={companyData.company_size}
                                                    onChange={(e) => setCompanyData({...companyData, company_size: e.target.value})}
                                                    disabled={!editingCompany}
                                                    className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all appearance-none"
                                                >
-                                                   <option value="">Select Size</option>
-                                                   <option value="1-10">1-10 employees</option>
-                                                   <option value="11-50">11-50 employees</option>
-                                                   <option value="51-200">51-200 employees</option>
-                                                   <option value="201-500">201-500 employees</option>
+                                                   <option value="">Select size</option>
+                                                   <option value="1-10">1–10 employees</option>
+                                                   <option value="11-50">11–50 employees</option>
+                                                   <option value="51-200">51–200 employees</option>
+                                                   <option value="201-500">201–500 employees</option>
                                                    <option value="500+">500+ employees</option>
                                                </select>
                                            </div>
                                        </div>
+
+                                       <div className="space-y-2">
+                                           <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Website</label>
+                                           <div className="relative">
+                                               <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                                               <input
+                                                   type="text"
+                                                   value={companyData.website}
+                                                   onChange={(e) => setCompanyData({...companyData, website: e.target.value})}
+                                                   disabled={!editingCompany}
+                                                   placeholder="https://yourcompany.co.za"
+                                                   className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                               />
+                                           </div>
+                                       </div>
+
                                        <div className="space-y-2">
                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Company Description</label>
-                                           <textarea 
+                                           <textarea
                                                value={companyData.description}
                                                onChange={(e) => setCompanyData({...companyData, description: e.target.value})}
                                                disabled={!editingCompany}
@@ -428,6 +647,127 @@ export default function SettingsPage() {
                                                placeholder="Describe your company's mission and values..."
                                            />
                                        </div>
+
+                                       {/* ── Contact Information (internal — not shown to candidates) ── */}
+                                       <div className="pt-4 border-t border-gray-50">
+                                           <div className="flex items-center space-x-2 mb-6">
+                                               <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Contact Information</h4>
+                                               <span className="text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Internal only · hidden from candidates</span>
+                                           </div>
+                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Contact Person Name</label>
+                                                   <input
+                                                       type="text"
+                                                       value={companyData.contact_name}
+                                                       onChange={(e) => setCompanyData({...companyData, contact_name: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       placeholder="Jane Smith"
+                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                   />
+                                               </div>
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Contact Position / Title</label>
+                                                   <input
+                                                       type="text"
+                                                       value={companyData.contact_position}
+                                                       onChange={(e) => setCompanyData({...companyData, contact_position: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       placeholder="HR Manager"
+                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                   />
+                                               </div>
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Contact Email</label>
+                                                   <div className="relative">
+                                                       <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                                                       <input
+                                                           type="email"
+                                                           value={companyData.contact_email}
+                                                           onChange={(e) => setCompanyData({...companyData, contact_email: e.target.value})}
+                                                           disabled={!editingCompany}
+                                                           placeholder="hr@yourcompany.co.za"
+                                                           className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                       />
+                                                   </div>
+                                               </div>
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Contact Phone</label>
+                                                   <input
+                                                       type="tel"
+                                                       value={companyData.contact_phone}
+                                                       onChange={(e) => setCompanyData({...companyData, contact_phone: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       placeholder="+27 11 000 0000"
+                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                   />
+                                               </div>
+                                           </div>
+                                       </div>
+
+                                       {/* ── Address ── */}
+                                       <div className="pt-4 border-t border-gray-50">
+                                           <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-6">Office Address</h4>
+                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">City</label>
+                                                   <div className="relative">
+                                                       <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                                                       <input
+                                                           type="text"
+                                                           value={companyData.city}
+                                                           onChange={(e) => setCompanyData({...companyData, city: e.target.value})}
+                                                           disabled={!editingCompany}
+                                                           placeholder="Johannesburg"
+                                                           className="w-full pl-16 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                       />
+                                                   </div>
+                                               </div>
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Province</label>
+                                                   <select
+                                                       value={companyData.province}
+                                                       onChange={(e) => setCompanyData({...companyData, province: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all appearance-none"
+                                                   >
+                                                       <option value="">Select province</option>
+                                                       <option>Gauteng</option>
+                                                       <option>Western Cape</option>
+                                                       <option>KwaZulu-Natal</option>
+                                                       <option>Eastern Cape</option>
+                                                       <option>Limpopo</option>
+                                                       <option>Mpumalanga</option>
+                                                       <option>North West</option>
+                                                       <option>Northern Cape</option>
+                                                       <option>Free State</option>
+                                                   </select>
+                                               </div>
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Postal Code</label>
+                                                   <input
+                                                       type="text"
+                                                       value={companyData.postal_code}
+                                                       onChange={(e) => setCompanyData({...companyData, postal_code: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       placeholder="2000"
+                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                   />
+                                               </div>
+                                               <div className="space-y-2">
+                                                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Country</label>
+                                                   <input
+                                                       type="text"
+                                                       value={companyData.country}
+                                                       onChange={(e) => setCompanyData({...companyData, country: e.target.value})}
+                                                       disabled={!editingCompany}
+                                                       placeholder="South Africa"
+                                                       className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-all"
+                                                   />
+                                               </div>
+                                           </div>
+                                       </div>
+
                                   </div>
                               </div>
                          )}
@@ -454,13 +794,7 @@ export default function SettingsPage() {
                          )}
 
                          {activeTab === 'notifications' && (
-                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-20 text-center">
-                                 <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                                     <Shield className="w-10 h-10 text-gray-200" />
-                                 </div>
-                                 <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Notifications Logic</h3>
-                                 <p className="text-gray-400 font-bold max-w-md mx-auto mb-10">Notification settings are scheduled for deployment in the next sprint.</p>
-                             </div>
+                             <ClientNotificationSettings />
                          )}
                     </div>
                 </div>

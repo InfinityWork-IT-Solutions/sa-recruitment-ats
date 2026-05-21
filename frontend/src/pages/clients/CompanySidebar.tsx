@@ -1,7 +1,7 @@
 // frontend/src/components/CompanySidebar.tsx
-import { 
+import {
   Home, Briefcase, FileText, Users, Settings, LogOut,
-  Building, DollarSign
+  Building, DollarSign, Calendar, Gift
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -29,6 +29,8 @@ export default function CompanySidebar({
     { name: 'Dashboard', href: '/company/dashboard', icon: Home },
     { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
     { name: 'Applications', href: '/company/applications', icon: FileText },
+    { name: 'Interviews', href: '/company/interviews', icon: Calendar },
+    { name: 'Offers', href: '/company/offers', icon: Gift },
     { name: 'Team', href: '/company/team', icon: Users },
     { name: 'Billing', href: '/company/billing', icon: DollarSign },
   ];
