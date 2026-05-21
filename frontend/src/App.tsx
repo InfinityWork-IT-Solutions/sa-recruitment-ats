@@ -15,6 +15,7 @@ import LandingPage from './pages/LandingPage';
 import UnifiedLoginPage from './pages/auth/UnifiedLoginPage';
 import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
+import VerifyEmailRequired from './pages/auth/VerifyEmailRequired';
 import PublicJobsPage from './pages/PublicJobsPage';
 import PublicJobDetailPage from './pages/PublicJobDetailPage';
 
@@ -104,6 +105,11 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
     return <Navigate to="/login" replace />;
   }
 
+  // Email must be verified before accessing any protected page
+  if (user && user.is_verified === false) {
+    return <Navigate to="/verify-email-required" replace />;
+  }
+
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     // Redirect to their default dashboard if they hit the wrong portal
     if (user.role === 'candidate') return <Navigate to="/candidate-dashboard" replace />;
@@ -135,6 +141,7 @@ function App() {
 
           {/* Email verification (public — no auth needed) */}
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/verify-email-required" element={<VerifyEmailRequired />} />
 
           {/* Video Screening Routes */}
           <Route path="/video-screening/:access_token" element={<VideoScreeningLanding />} />
