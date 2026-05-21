@@ -23,8 +23,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isLoading: true });
         try {
             const response = await apiClient.post<LoginResponse>('/auth/login', { email, password });
-            const { tokens, user } = response.data;
-            
+            const { tokens, user, mfa_required, mfa_token } = response.data;
+
+            // MFA challenge — caller must show the TOTP input step
+            if (mfa_required) {
+                set({ isLoading: false });
+                const err: any = new Error('mfa_required');
+                err.mfa_required = true;
+                err.mfa_token = mfa_token;
+                throw err;
+            }
+
+            if (!tokens || !user) throw new Error('Unexpected login response');
+
             if (expectedType) {
                 const userRole = user.role;
                 let isValid = false;
@@ -35,7 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 } else if (expectedType === 'company' && userRole === 'client') {
                     isValid = true;
                 }
-                
+
                 if (!isValid) {
                     throw new Error(`Invalid login type. Your account is not registered as a ${expectedType}.`);
                 }

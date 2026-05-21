@@ -9,7 +9,10 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_user, get_current_active_user, decode_token
+from app.core.security import (
+    get_current_user, get_current_active_user, decode_token,
+    create_verification_token, decode_verification_token,
+)
 from app.models import User
 from app.schemas import (
     RegisterRequest,
@@ -26,6 +29,7 @@ from app.schemas import (
     UnifiedRegisterRequest,
     UserUpdate,
 )
+from app.schemas.auth import MFASetupResponse, MFAVerifyRequest, MFADisableRequest, MFALoginRequest
 from app.services.auth_service import auth_service
 
 router = APIRouter()
@@ -60,12 +64,11 @@ async def register(
     # SEND EMAILS
     try:
         from app.services.email_automation_service import EmailAutomationService
-        import uuid
-        # 1. Verification to user
+        # 1. Verification to user — signed JWT so the link actually works
         await EmailAutomationService.send_verification_email(
             user_email=user.email,
             user_name=f"{user.first_name} {user.last_name}",
-            verification_token=str(uuid.uuid4())
+            verification_token=create_verification_token(str(user.id))
         )
         # 2. Alert to Admin
         await EmailAutomationService.send_admin_registration_notification({
@@ -99,14 +102,11 @@ async def register_candidate(
     # SEND EMAILS
     try:
         from app.services.email_automation_service import EmailAutomationService
-        import uuid
-        # 1. Verification to candidate
         await EmailAutomationService.send_verification_email(
             user_email=user.email,
             user_name=f"{user.first_name} {user.last_name}",
-            verification_token=str(uuid.uuid4())
+            verification_token=create_verification_token(str(user.id))
         )
-        # 2. Alert to Admin
         await EmailAutomationService.send_admin_registration_notification({
             "first_name": user.first_name,
             "last_name": user.last_name,
@@ -138,14 +138,11 @@ async def register_company(
     # SEND EMAILS
     try:
         from app.services.email_automation_service import EmailAutomationService
-        import uuid
-        # 1. Verification to client
         await EmailAutomationService.send_verification_email(
             user_email=user.email,
             user_name=f"{user.first_name} {user.last_name}",
-            verification_token=str(uuid.uuid4())
+            verification_token=create_verification_token(str(user.id))
         )
-        # 2. Alert to Admin
         await EmailAutomationService.send_admin_registration_notification({
             "first_name": user.first_name,
             "last_name": user.last_name,
@@ -234,20 +231,26 @@ async def login(
         credentials.password,
         ip_address=client_ip
     )
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+    # If MFA is enabled, issue a short-lived challenge token instead of full JWT
+    if user.mfa_enabled:
+        from app.core.security import create_mfa_token
+        mfa_token = create_mfa_token({"sub": str(user.id)})
+        return LoginResponse(mfa_required=True, mfa_token=mfa_token)
+
     # Eagerly load relationships
     await db.refresh(user, ["agency", "candidate"])
-    
+
     # Create tokens
     tokens = auth_service.create_tokens(user)
-    
+
     return LoginResponse(
         user=UserResponse.model_validate(user),
         tokens=TokenResponse(**tokens)
@@ -428,6 +431,93 @@ async def change_password(
     )
 
 
+# ---------------------------------------------------------------------------
+# MFA endpoints
+# ---------------------------------------------------------------------------
+
+@router.post("/mfa/setup", response_model=MFASetupResponse)
+async def mfa_setup(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a TOTP secret and return the otpauth:// URI for QR code display.
+    Call this to initialise setup; the secret is saved but MFA is not yet active
+    until the user confirms with /mfa/verify-setup."""
+    import pyotp
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name=current_user.email, issuer_name="RecruitPro ATS")
+    current_user.mfa_secret = secret
+    await db.commit()
+    return MFASetupResponse(secret=secret, otpauth_url=uri)
+
+
+@router.post("/mfa/verify-setup", response_model=MessageResponse)
+async def mfa_verify_setup(
+    data: MFAVerifyRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm a TOTP code to activate 2FA on the account."""
+    import pyotp
+    if not current_user.mfa_secret:
+        raise HTTPException(status_code=400, detail="Call /auth/mfa/setup first")
+    if not pyotp.TOTP(current_user.mfa_secret).verify(data.code, valid_window=1):
+        raise HTTPException(status_code=400, detail="Invalid authentication code")
+    current_user.mfa_enabled = True
+    await db.commit()
+    return MessageResponse(message="Two-factor authentication has been enabled")
+
+
+@router.delete("/mfa/disable", response_model=MessageResponse)
+async def mfa_disable(
+    data: MFADisableRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Disable 2FA after verifying the current TOTP code."""
+    import pyotp
+    if not current_user.mfa_enabled or not current_user.mfa_secret:
+        raise HTTPException(status_code=400, detail="2FA is not enabled on this account")
+    if not pyotp.TOTP(current_user.mfa_secret).verify(data.code, valid_window=1):
+        raise HTTPException(status_code=400, detail="Invalid authentication code")
+    current_user.mfa_enabled = False
+    current_user.mfa_secret = None
+    await db.commit()
+    return MessageResponse(message="Two-factor authentication has been disabled")
+
+
+@router.post("/mfa/complete", response_model=LoginResponse)
+async def mfa_complete(
+    data: MFALoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Second step of MFA login. Exchange the challenge token + TOTP code for full JWT tokens."""
+    import pyotp
+    try:
+        payload = decode_token(data.mfa_token)
+    except HTTPException:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired MFA token")
+
+    if payload.get("type") != "mfa_pending":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA token type")
+
+    user_id = payload.get("sub")
+    user = await auth_service.get_user_by_id(db, user_id)
+    if not user or not user.mfa_enabled or not user.mfa_secret:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="MFA state invalid")
+
+    if not pyotp.TOTP(user.mfa_secret).verify(data.code, valid_window=1):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid authentication code")
+
+    await db.refresh(user, ["agency", "candidate"])
+    tokens = auth_service.create_tokens(user)
+    return LoginResponse(
+        user=UserResponse.model_validate(user),
+        tokens=TokenResponse(**tokens)
+    )
+
+
 # TODO: Implement these endpoints in future sprints
 @router.post("/forgot-password", response_model=MessageResponse)
 async def forgot_password(
@@ -456,16 +546,27 @@ async def verify_email(
     token: str,
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Verify user email with token (Simplified version using user_id as token for now)
-    """
-    from app.services.auth_service import auth_service
-    # In a real app, you would decode the JWT or lookup a token table
-    # Here we assume token is user_id for simplicity in this demo
+    """Verify a user's email address using the signed JWT from the verification email."""
+    user_id = decode_verification_token(token)   # raises 400 if invalid/expired
+    user = await auth_service.verify_email(db, user_id)
+    return MessageResponse(message=f"Email {user.email} verified successfully. You can now log in.")
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Re-send the verification email to the currently authenticated user."""
+    if current_user.is_verified:
+        return MessageResponse(message="Your email is already verified.")
     try:
-        user = await auth_service.verify_email(db, token)
-        return MessageResponse(
-            message=f"Success! Email {user.email} has been verified."
+        from app.services.email_automation_service import EmailAutomationService
+        await EmailAutomationService.send_verification_email(
+            user_email=current_user.email,
+            user_name=f"{current_user.first_name} {current_user.last_name}",
+            verification_token=create_verification_token(str(current_user.id))
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        print(f"Resend verification failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send verification email")
+    return MessageResponse(message="Verification email sent. Please check your inbox.")

@@ -98,13 +98,14 @@ class UserResponse(UserBase):
     role: UserRole
     is_active: bool
     is_verified: bool
+    mfa_enabled: bool = False
     last_login_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    
+
     # Include agency info
     agency: Optional[AgencyBrief] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

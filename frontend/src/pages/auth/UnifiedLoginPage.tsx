@@ -3,8 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, ArrowLeft, Users, Building2, User, Shield } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Building2, User, Shield, SmartphoneNfc } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import apiClient from '@/lib/api-client';
+import { LoginResponse } from '@/types/api';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,6 +22,14 @@ export default function UnifiedLoginPage() {
   const [searchParams] = useSearchParams();
   const urlType = searchParams.get('type') as 'candidate' | 'company' | null;
   const isAdminRoute = window.location.pathname === '/login/admin';
+
+  // MFA step state
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [pendingUserType, setPendingUserType] = useState<string | undefined>(undefined);
 
   const {
     register,
@@ -50,11 +60,52 @@ export default function UnifiedLoginPage() {
     try {
       await login(data.email, data.password, data.user_type);
     } catch (error: any) {
+      if (error?.mfa_required) {
+        setMfaToken(error.mfa_token);
+        setPendingUserType(data.user_type);
+        setMfaRequired(true);
+        return;
+      }
       console.error('Login failed:', error);
-      setError('root', { 
-         type: 'manual', 
-         message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials.' 
+      setError('root', {
+        type: 'manual',
+        message: error.response?.data?.detail || error.message || 'Login failed. Please check your credentials.',
       });
+    }
+  };
+
+  const onMfaSubmit = async () => {
+    if (mfaCode.length !== 6) { setMfaError('Enter your 6-digit code'); return; }
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/mfa/complete', {
+        mfa_token: mfaToken,
+        code: mfaCode,
+      });
+      const { tokens, user } = response.data;
+      if (!tokens || !user) throw new Error('Invalid MFA response');
+
+      if (pendingUserType) {
+        const role = user.role;
+        const valid =
+          role === 'super_admin' ||
+          (pendingUserType === 'candidate' && role === 'candidate') ||
+          (pendingUserType === 'company' && role === 'client');
+        if (!valid) throw new Error(`Account is not registered as a ${pendingUserType}.`);
+      }
+
+      localStorage.setItem('access_token', tokens.access_token);
+      localStorage.setItem('refresh_token', tokens.refresh_token);
+      useAuthStore.setState({ user, isAuthenticated: true });
+      if (user.role === 'super_admin') window.location.href = '/admin/dashboard';
+      else if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
+      else if (user.role === 'client') window.location.href = '/client-dashboard';
+      else window.location.href = '/admin/dashboard';
+    } catch (err: any) {
+      setMfaError(err.response?.data?.detail || err.message || 'Invalid code. Try again.');
+    } finally {
+      setMfaLoading(false);
     }
   };
 
@@ -72,6 +123,62 @@ export default function UnifiedLoginPage() {
     blue: 'bg-blue-600',
     indigo: 'bg-indigo-600 bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-indigo-500/30'
   }[currentUserType?.color as 'emerald' | 'blue' | 'indigo'] || 'bg-blue-600';
+
+  // ── MFA step ──────────────────────────────────────────────────────────────
+  if (mfaRequired) {
+    return (
+      <div className="max-w-xl w-full mx-auto px-4 sm:px-0">
+        <button
+          onClick={() => { setMfaRequired(false); setMfaCode(''); setMfaError(''); }}
+          className="fixed top-8 left-8 flex items-center space-x-2 text-white/60 hover:text-white transition-colors z-50 group"
+        >
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center group-hover:bg-white/20 transition-all border border-white/10">
+            <ArrowLeft className="w-5 h-5" />
+          </div>
+          <span className="hidden sm:inline font-bold tracking-widest text-xs uppercase">Back</span>
+        </button>
+
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-600 rounded-3xl mb-6 shadow-2xl">
+            <SmartphoneNfc className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Two-Factor Auth</h1>
+          <p className="text-slate-400 font-medium">Enter the 6-digit code from your authenticator app</p>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl p-8 sm:p-12 border border-white/20">
+          {mfaError && (
+            <div className="bg-red-500/20 text-red-200 p-4 rounded-2xl text-sm border border-red-500/30 font-medium mb-6">
+              {mfaError}
+            </div>
+          )}
+          <div className="mb-8">
+            <label className="block text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-3 ml-1">
+              Authentication Code
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyDown={(e) => e.key === 'Enter' && onMfaSubmit()}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-white text-3xl font-bold tracking-[0.5em] text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all backdrop-blur-md placeholder:text-white/20"
+              placeholder="000000"
+              autoFocus
+            />
+          </div>
+          <button
+            onClick={onMfaSubmit}
+            disabled={mfaLoading || mfaCode.length !== 6}
+            className="w-full py-5 rounded-2xl font-black text-lg uppercase tracking-[0.2em] transition-all bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-xl"
+          >
+            {mfaLoading ? 'Verifying...' : 'Verify & Sign In'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-xl w-full mx-auto px-4 sm:px-0">

@@ -56,6 +56,10 @@ class User(Base):
     profile_views_count = Column(Integer, default=0)
     profile_completion_percentage = Column(Integer, default=0)
     
+    # MFA
+    mfa_enabled = Column(Boolean, default=False, nullable=False)
+    mfa_secret = Column(String(255), nullable=True)
+
     # Security
     last_login_at = Column(DateTime(timezone=True))
     last_login_ip = Column(String(45))  # IPv6 compatible

@@ -43,9 +43,11 @@ class TokenResponse(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    """Login response with user and tokens"""
-    user: UserResponse
-    tokens: TokenResponse
+    """Login response with user and tokens — or an MFA challenge"""
+    user: Optional[UserResponse] = None
+    tokens: Optional[TokenResponse] = None
+    mfa_required: bool = False
+    mfa_token: Optional[str] = None
     
     model_config = ConfigDict(json_schema_extra={
         "example": {
@@ -159,6 +161,25 @@ class PasswordResetConfirm(BaseModel):
 class EmailVerifyRequest(BaseModel):
     """Email verification request"""
     token: str = Field(..., description="Verification token from email")
+
+
+# MFA schemas
+class MFASetupResponse(BaseModel):
+    secret: str
+    otpauth_url: str
+
+
+class MFAVerifyRequest(BaseModel):
+    code: str = Field(..., min_length=6, max_length=6, description="6-digit TOTP code")
+
+
+class MFADisableRequest(BaseModel):
+    code: str = Field(..., min_length=6, max_length=6, description="6-digit TOTP code to confirm disable")
+
+
+class MFALoginRequest(BaseModel):
+    mfa_token: str = Field(..., description="Short-lived token from the login MFA challenge")
+    code: str = Field(..., min_length=6, max_length=6, description="6-digit TOTP code")
 
 
 # Generic message response
