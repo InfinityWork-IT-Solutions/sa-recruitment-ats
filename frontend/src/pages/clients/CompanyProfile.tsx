@@ -557,10 +557,10 @@ export default function CompanyProfile() {
                     <div>
                       <p className="text-sm text-gray-600 font-medium">Profile Views This Week</p>
                       <div className="flex items-baseline space-x-3 mt-2">
-                        <p className="text-4xl font-bold text-blue-600">{company.stats.profileViews}</p>
+                        <p className="text-4xl font-bold text-blue-600">{Number(company.stats.profileViews) || 0}</p>
                         <div className="flex items-center space-x-1 text-green-600">
                           <TrendingUp className="w-4 h-4" />
-                          <span className="text-sm font-semibold">+{company.stats.profileViewsChange}%</span>
+                          <span className="text-sm font-semibold">+{Number(company.stats.profileViewsChange) || 0}%</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">Candidates viewing your company</p>
@@ -577,7 +577,7 @@ export default function CompanyProfile() {
                     <div>
                       <p className="text-sm text-gray-600 font-medium">Job Views This Week</p>
                       <div className="flex items-baseline space-x-3 mt-2">
-                        <p className="text-4xl font-bold text-green-600">{company.stats.jobViewsThisWeek}</p>
+                        <p className="text-4xl font-bold text-green-600">{Number(company.stats.jobViewsThisWeek) || 0}</p>
                         <div className="flex items-center space-x-1 text-green-600">
                           <TrendingUp className="w-4 h-4" />
                           <span className="text-sm font-semibold">+12%</span>

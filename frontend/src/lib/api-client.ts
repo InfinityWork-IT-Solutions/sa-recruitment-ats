@@ -79,7 +79,8 @@ apiClient.interceptors.response.use(
         }
 
         // Show toast for errors (except 401 which redirects)
-        if (error.response?.status !== 401) {
+        const hideErrorToast = originalRequest.headers && originalRequest.headers['X-Hide-Error-Toast'] === 'true';
+        if (error.response?.status !== 401 && !hideErrorToast) {
             toast.error(errorMessage);
         }
 

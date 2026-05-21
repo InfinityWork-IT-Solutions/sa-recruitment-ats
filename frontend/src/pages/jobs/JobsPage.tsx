@@ -261,11 +261,11 @@ export default function JobsPage() {
                                     <div className="flex items-center space-x-4 text-sm text-gray-600">
                                         <div className="flex items-center space-x-1">
                                             <Users className="w-4 h-4" />
-                                            <span>{job.applications_count}</span>
+                                            <span>{Number(job.applications_count) || 0}</span>
                                         </div>
                                         <div className="flex items-center space-x-1">
                                             <Eye className="w-4 h-4" />
-                                            <span>{job.views_count}</span>
+                                            <span>{Number(job.views_count) || 0}</span>
                                         </div>
                                     </div>
                                     <span className="text-xs text-gray-500">
@@ -281,7 +281,7 @@ export default function JobsPage() {
             {/* Pagination info */}
             {data && data.total > 0 && (
                 <div className="text-center text-sm text-gray-600">
-                    Showing {data.jobs.length} of {data.total} jobs
+                    Showing {data.jobs?.length || 0} of {Number(data.total) || 0} jobs
                 </div>
             )}
             

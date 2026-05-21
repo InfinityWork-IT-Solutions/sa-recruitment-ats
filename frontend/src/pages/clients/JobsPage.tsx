@@ -230,8 +230,8 @@ export default function JobsPage() {
   const stats = {
     total: jobs.length,
     active: jobs.filter(j => j.status === 'active').length,
-    applicants: jobs.reduce((sum, j) => sum + j.applicants_count, 0),
-    topMatches: jobs.reduce((sum, j) => sum + j.matches_count, 0),
+    applicants: jobs.reduce((sum, j) => sum + (Number(j.applicants_count) || 0), 0),
+    topMatches: jobs.reduce((sum, j) => sum + (Number(j.matches_count) || 0), 0),
   };
 
   if (loading) {
@@ -410,19 +410,19 @@ export default function JobsPage() {
                       <div className="flex items-center space-x-2">
                         <Users className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          <strong className="text-gray-900">{job.applicants_count}</strong> applicants
+                          <strong className="text-gray-900">{Number(job.applicants_count) || 0}</strong> applicants
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <TrendingUp className="w-4 h-4 text-green-500" />
                         <span className="text-sm text-gray-600">
-                          <strong className="text-green-600">{job.matches_count}</strong> top matches
+                          <strong className="text-green-600">{Number(job.matches_count) || 0}</strong> top matches
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Eye className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          <strong className="text-gray-900">{job.views_count}</strong> views
+                          <strong className="text-gray-900">{Number(job.views_count) || 0}</strong> views
                         </span>
                       </div>
                     </div>

@@ -429,7 +429,7 @@ export default function CandidatesPage() {
                             {candidate.match_score && candidate.match_score >= 85 && (
                               <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center space-x-1">
                                 <Star className="w-3 h-3" />
-                                <span>{candidate.match_score}% Match</span>
+                                <span>{Number(candidate.match_score) || 0}% Match</span>
                               </span>
                             )}
                           </div>

@@ -205,7 +205,7 @@ export default function CompleteDashboard() {
               <span className="text-green-600 text-sm font-semibold">+12% ↗</span>
             </div>
             <div className="text-sm text-gray-600 mb-1">Active Jobs</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.activeJobs}</div>
+            <div className="text-3xl font-bold text-gray-900">{Number(stats.activeJobs) || 0}</div>
           </div>
 
           {/* Applicants */}
@@ -217,7 +217,7 @@ export default function CompleteDashboard() {
               <span className="text-green-600 text-sm font-semibold">+15% ↗</span>
             </div>
             <div className="text-sm text-gray-600 mb-1">Total Applicants</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.totalApplicants}</div>
+            <div className="text-3xl font-bold text-gray-900">{Number(stats.totalApplicants) || 0}</div>
           </div>
 
           {/* Top Matches */}
@@ -229,7 +229,7 @@ export default function CompleteDashboard() {
               <span className="text-green-600 text-sm font-semibold">+42% ↗</span>
             </div>
             <div className="text-sm text-gray-600 mb-1">AI Matches (85%+)</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.topMatches}</div>
+            <div className="text-3xl font-bold text-gray-900">{Number(stats.topMatches) || 0}</div>
           </div>
 
           {/* Interviews */}
@@ -241,7 +241,7 @@ export default function CompleteDashboard() {
               <span className="text-green-600 text-sm font-semibold">+8% ↗</span>
             </div>
             <div className="text-sm text-gray-600 mb-1">Scheduled Interviews</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.scheduledInterviews}</div>
+            <div className="text-3xl font-bold text-gray-900">{Number(stats.scheduledInterviews) || 0}</div>
           </div>
         </div>
 
@@ -313,7 +313,7 @@ export default function CompleteDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600">{candidate.matchScore}%</div>
+                      <div className="text-2xl font-bold text-green-600">{Number(candidate.matchScore) || 0}%</div>
                       <div className="text-xs text-gray-500">Match Score</div>
                     </div>
                   </div>
@@ -349,7 +349,7 @@ export default function CompleteDashboard() {
                         <p className="text-sm text-gray-500">Posted {job.posted}</p>
                       </div>
                       <span className="text-gray-600">
-                        <strong className="text-green-600">{job.matches}</strong> top matches
+                        <strong className="text-green-600">{Number(job.matches) || 0}</strong> top matches
                       </span>
                       <Link 
                         to={`/jobs/${job.id}/kanban`}
@@ -508,11 +508,11 @@ export default function CompleteDashboard() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Shortlisted</span>
-                  <span className="font-bold text-gray-900">{stats.shortlisted}</span>
+                  <span className="font-bold text-gray-900">{Number(stats.shortlisted) || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Offered</span>
-                  <span className="font-bold text-green-600">{stats.offered}</span>
+                  <span className="font-bold text-green-600">{Number(stats.offered) || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Response Rate</span>

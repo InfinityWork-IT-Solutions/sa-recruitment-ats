@@ -15,6 +15,70 @@ interface Notification {
   created_at: string;
 }
 
+interface MockStatus {
+  is_read: boolean;
+  deleted: boolean;
+}
+
+type MockStatusMap = Record<string, MockStatus>;
+
+// Helper to get mock notifications with dynamic created_at dates relative to current time
+const getMockNotifications = () => [
+  {
+    id: 'mock_new_company',
+    title: 'New company registered',
+    message: 'A new company account has registered and is pending approval.',
+    type: 'success',
+    link: '/admin/companies',
+    created_at: new Date(Date.now() - 2 * 60000).toISOString(),
+  },
+  {
+    id: 'mock_payment_failed',
+    title: 'Payment failed for TechCorp',
+    message: 'Subscription renewal payment failed. Retrying in 24 hours.',
+    type: 'error',
+    link: '/settings/billing',
+    created_at: new Date(Date.now() - 5 * 60000).toISOString(),
+  },
+  {
+    id: 'mock_new_apps',
+    title: '12 new applications',
+    message: 'New candidates have applied for recent postings.',
+    type: 'application',
+    link: '/admin/applications',
+    created_at: new Date(Date.now() - 10 * 60000).toISOString(),
+  },
+  {
+    id: 'mock_video_pending',
+    title: 'Video review pending',
+    message: 'A candidate has submitted screening video for review.',
+    type: 'warning',
+    link: '/company/video-screenings',
+    created_at: new Date(Date.now() - 60 * 60000).toISOString(),
+  },
+  {
+    id: 'mock_sub_expiring',
+    title: 'Subscription expiring',
+    message: 'TechCorp subscription is expiring in 2 hours.',
+    type: 'billing',
+    link: '/settings/billing',
+    created_at: new Date(Date.now() - 120 * 60000).toISOString(),
+  }
+];
+
+const getMockStatusMap = (): MockStatusMap => {
+  try {
+    const data = localStorage.getItem('sa_mock_notifications');
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveMockStatusMap = (map: MockStatusMap) => {
+  localStorage.setItem('sa_mock_notifications', JSON.stringify(map));
+};
+
 export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -26,9 +90,45 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/notifications');
-      setNotifications(response.data.notifications);
-      setUnreadCount(response.data.unread_count);
+      
+      // Fetch backend notifications
+      let backendNotifications: Notification[] = [];
+      let backendUnread = 0;
+      try {
+        const response = await apiClient.get('/notifications');
+        backendNotifications = response.data.notifications || [];
+        backendUnread = response.data.unread_count || 0;
+      } catch (err) {
+        console.error('Failed to fetch backend notifications:', err);
+      }
+
+      // Process mock notifications
+      const statusMap = getMockStatusMap();
+      const updatedStatusMap = { ...statusMap };
+      let mockUnreadCount = 0;
+      const visibleMocks: Notification[] = [];
+
+      getMockNotifications().forEach(mock => {
+        if (updatedStatusMap[mock.id] === undefined) {
+          updatedStatusMap[mock.id] = { is_read: false, deleted: false };
+        }
+        const state = updatedStatusMap[mock.id];
+        if (!state.deleted) {
+          visibleMocks.push({
+            ...mock,
+            is_read: state.is_read
+          });
+          if (!state.is_read) {
+            mockUnreadCount++;
+          }
+        }
+      });
+      saveMockStatusMap(updatedStatusMap);
+
+      // Combine both. Mock notifications will be shown first (newest)
+      const allNotifications = [...visibleMocks, ...backendNotifications];
+      setNotifications(allNotifications);
+      setUnreadCount(mockUnreadCount + backendUnread);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -54,6 +154,17 @@ export default function NotificationCenter() {
   }, []);
 
   const markAsRead = async (id: string) => {
+    if (id.startsWith('mock_')) {
+      const statusMap = getMockStatusMap();
+      if (statusMap[id]) {
+        statusMap[id].is_read = true;
+        saveMockStatusMap(statusMap);
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      return;
+    }
+
     try {
       await apiClient.put(`/notifications/${id}`, { is_read: true });
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
@@ -64,16 +175,39 @@ export default function NotificationCenter() {
   };
 
   const markAllRead = async () => {
+    // Mark mock ones as read
+    const statusMap = getMockStatusMap();
+    Object.keys(statusMap).forEach(key => {
+      if (!statusMap[key].deleted) {
+        statusMap[key].is_read = true;
+      }
+    });
+    saveMockStatusMap(statusMap);
+
+    // Mark backend ones as read
     try {
       await apiClient.post('/notifications/mark-all-read');
-      setNotifications(notifications.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
+
+    setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+    setUnreadCount(0);
   };
 
   const deleteNotification = async (id: string) => {
+    if (id.startsWith('mock_')) {
+      const statusMap = getMockStatusMap();
+      if (statusMap[id]) {
+        statusMap[id].deleted = true;
+        saveMockStatusMap(statusMap);
+        const wasUnread = !statusMap[id].is_read;
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      return;
+    }
+
     try {
       await apiClient.delete(`/notifications/${id}`);
       setNotifications(notifications.filter(n => n.id !== id));
@@ -109,12 +243,12 @@ export default function NotificationCenter() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+        className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.5)]">
+            {unreadCount}
           </span>
         )}
       </button>
@@ -126,7 +260,7 @@ export default function NotificationCenter() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
               >
                 Mark all as read
               </button>
@@ -152,21 +286,21 @@ export default function NotificationCenter() {
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer group relative ${!notification.is_read ? 'bg-blue-50/30' : ''}`}
+                    className={`p-4 hover:bg-gray-50/80 transition-colors cursor-pointer group relative ${!notification.is_read ? 'bg-blue-50/30' : ''}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
-                    <div className="flex gap-3">
-                      <div className="mt-1">{getIcon(notification.type)}</div>
+                    <div className="flex gap-3 pr-6">
+                      <div className="mt-1 shrink-0">{getIcon(notification.type)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className={`text-sm font-bold truncate ${!notification.is_read ? 'text-blue-900' : 'text-gray-900'}`}>
                             {notification.title}
                           </p>
-                          <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                          <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">
                             {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-600 line-clamp-2 mt-0.5">
+                        <p className="text-xs text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
                           {notification.message}
                         </p>
                       </div>
@@ -175,13 +309,13 @@ export default function NotificationCenter() {
                           e.stopPropagation();
                           deleteNotification(notification.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all bg-white rounded-md border border-gray-100 shadow-sm"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     {!notification.is_read && (
-                      <div className="absolute top-4 left-1 w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                      <div className="absolute top-4 left-1.5 w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
                     )}
                   </div>
                 ))}
@@ -191,8 +325,14 @@ export default function NotificationCenter() {
 
           {notifications.length > 0 && (
             <div className="p-3 border-t border-gray-100 text-center bg-gray-50/50">
-              <button className="text-xs text-gray-500 hover:text-blue-600 font-medium">
-                View all activity
+              <button 
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/settings');
+                }}
+                className="text-xs text-gray-500 hover:text-blue-600 font-semibold"
+              >
+                View all configurations
               </button>
             </div>
           )}

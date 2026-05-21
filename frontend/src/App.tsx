@@ -62,6 +62,7 @@ import AIDecisionDashboard from './pages/clients/AIDecisionDashboard';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
+import AdminCompanyDetail from './pages/admin/AdminCompanyDetail';
 
 // Video Screening
 import VideoScreeningLanding from './pages/video-screening/VideoScreeningLanding';
@@ -191,7 +192,13 @@ function App() {
           >
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/analytics" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/companies" element={<UserManagement />} />
+            <Route path="/admin/companies/:id" element={<AdminCompanyDetail />} />
+            <Route path="/admin/jobs" element={<UserManagement />} />
+            <Route path="/admin/applications" element={<UserManagement />} />
+            <Route path="/admin/candidates" element={<UserManagement />} />
           </Route>
 
           {/* Shared Routes (Accessible by all roles) */}

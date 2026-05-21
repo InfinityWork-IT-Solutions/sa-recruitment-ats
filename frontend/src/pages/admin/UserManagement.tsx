@@ -1,17 +1,40 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Search, Filter, MoreVertical, Ban, CheckCircle, Mail, Shield, Briefcase,
   Building, User, FileText, Download, X, Plus, Phone, Globe, Lock,
-  Eye, Copy, Trash2, CheckSquare, Square, ChevronDown, LayoutDashboard
+  Eye, Copy, Trash2, CheckSquare, Square, ChevronDown, LayoutDashboard,
+  LayoutList, LayoutGrid
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '../../lib/api-client';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import StatusBadge from '../../components/common/StatusBadge';
 
 type TabType = 'users' | 'companies' | 'jobs' | 'candidates' | 'applications';
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState<TabType>('users');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive activeTab from route path
+  const activeTab = (() => {
+    const path = location.pathname;
+    if (path.includes('/admin/companies')) return 'companies';
+    if (path.includes('/admin/jobs')) return 'jobs';
+    if (path.includes('/admin/applications')) return 'applications';
+    if (path.includes('/admin/candidates')) return 'candidates';
+    return 'users';
+  })();
+
+  const setActiveTab = (tab: TabType) => {
+    if (tab === 'users') navigate('/admin/users');
+    else if (tab === 'companies') navigate('/admin/companies');
+    else if (tab === 'jobs') navigate('/admin/jobs');
+    else if (tab === 'applications') navigate('/admin/applications');
+    else if (tab === 'candidates') navigate('/admin/candidates');
+  };
+
   const [users, setUsers] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -21,6 +44,7 @@ export default function UserManagement() {
   const [userFilter, setUserFilter] = useState('all'); // 'all', 'candidate', 'client', 'super_admin'
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Job filtering and bulk actions
   const [jobStatusFilter, setJobStatusFilter] = useState('all');
@@ -289,30 +313,59 @@ export default function UserManagement() {
           </div>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex flex-wrap gap-2 mb-8 bg-white/60 p-1.5 rounded-2xl border border-gray-100 backdrop-blur-md max-w-fit">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                onClick={() => {
-                  setActiveTab(tab.value);
-                  setSearchQuery('');
-                  setSelectedJobs([]);
-                }}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        {/* Controls Row: Tab Selection & View Mode */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          {/* Tab Selection */}
+          <div className="flex flex-wrap gap-2 bg-white/60 p-1.5 rounded-2xl border border-gray-100 backdrop-blur-md">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => {
+                    setActiveTab(tab.value);
+                    setSearchQuery('');
+                    setSelectedJobs([]);
+                  }}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === 'list' 
+                  ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
+              title="List View"
+            >
+              <LayoutList className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === 'grid' 
+                  ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Jobs Tab: Quick Stats */}
@@ -660,77 +713,114 @@ export default function UserManagement() {
             )}
 
             {activeTab === 'companies' && (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Name</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Industry</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Subscription</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Jobs</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {loading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td colSpan={7} className="px-8 py-10 bg-white">
-                          <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
+              viewMode === 'list' ? (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50">
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Name</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Industry</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Subscription</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Jobs</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td colSpan={7} className="px-8 py-10 bg-white">
+                            <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : companies.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-12 text-gray-400 font-medium">No client companies found.</td>
+                      </tr>
+                    ) : companies.map((comp: any) => (
+                      <tr key={comp.id} onClick={() => navigate(`/admin/companies/${comp.id}`)} className="group hover:bg-gray-50/50 transition-colors duration-200 cursor-pointer">
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center font-bold text-sm">
+                              <Building className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-black text-gray-900 tracking-tight">{comp.name}</div>
+                              <div className="text-[10px] text-gray-400 font-bold">{comp.contact_email || 'No contact'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-sm text-gray-600 font-medium capitalize">{comp.industry || 'General'}</td>
+                        <td className="px-8 py-6 text-xs font-bold text-gray-500">
+                          {comp.city ? `${comp.city}, ${comp.country || 'SA'}` : 'N/A'}
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                          <span className="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
+                            Pro
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                          <span className="text-sm font-black text-gray-900">0</span>
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                          <StatusBadge status={comp.is_active ? 'active' : 'inactive'} />
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600" title="View" onClick={(e) => { e.stopPropagation(); navigate(`/admin/companies/${comp.id}`); }}>
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 hover:bg-red-100 rounded-lg transition text-red-600" title="Delete" onClick={(e) => e.stopPropagation()}>
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+                  {loading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="animate-pulse bg-white p-6 rounded-3xl border border-gray-100 h-40 w-full"></div>
                     ))
                   ) : companies.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-12 text-gray-400 font-medium">No client companies found.</td>
-                    </tr>
+                    <div className="col-span-full text-center py-12 text-gray-400 font-medium">No client companies found.</div>
                   ) : companies.map((comp: any) => (
-                    <tr key={comp.id} className="group hover:bg-gray-50/50 transition-colors duration-200">
-                      <td className="px-8 py-6">
+                    <div 
+                      key={comp.id} 
+                      onClick={() => navigate(`/admin/companies/${comp.id}`)}
+                      className="group bg-white rounded-3xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center font-bold text-sm">
-                            <Building className="w-5 h-5" />
+                          <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center font-bold">
+                            <Building className="w-6 h-6" />
                           </div>
                           <div>
-                            <div className="text-sm font-black text-gray-900 tracking-tight">{comp.name}</div>
-                            <div className="text-[10px] text-gray-400 font-bold">{comp.contact_email || 'No contact'}</div>
+                            <div className="text-base font-black text-gray-900 tracking-tight">{comp.name}</div>
+                            <div className="text-xs text-gray-400 font-bold">{comp.contact_email || 'No contact'}</div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-8 py-6 text-sm text-gray-600 font-medium capitalize">{comp.industry || 'General'}</td>
-                      <td className="px-8 py-6 text-xs font-bold text-gray-500">
-                        {comp.city ? `${comp.city}, ${comp.country || 'SA'}` : 'N/A'}
-                      </td>
-                      <td className="px-8 py-6 text-center">
-                        <span className="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
-                          Pro
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-center">
-                        <span className="text-sm font-black text-gray-900">0</span>
-                      </td>
-                      <td className="px-8 py-6 text-center">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          comp.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200'
-                        }`}>
-                          {comp.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600" title="View">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 hover:bg-red-100 rounded-lg transition text-red-600" title="Delete">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <StatusBadge status={comp.is_active ? 'active' : 'inactive'} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-gray-50">
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Industry</div>
+                          <div className="text-sm font-bold text-gray-700 capitalize">{comp.industry || 'General'}</div>
                         </div>
-                      </td>
-                    </tr>
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Location</div>
+                          <div className="text-sm font-bold text-gray-700">{comp.city || 'N/A'}</div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              )
             )}
 
             {activeTab === 'jobs' && (
@@ -836,13 +926,7 @@ export default function UserManagement() {
                           <span className="text-sm font-black text-gray-600">{job.views_count || 0}</span>
                         </td>
                         <td className="px-8 py-6">
-                          <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            job.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                            job.status === 'draft' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                            'bg-gray-50 text-gray-600 border border-gray-200'
-                          }`}>
-                            {job.status}
-                          </span>
+                          <StatusBadge status={job.status} />
                         </td>
                         <td className="px-8 py-6 text-xs text-gray-500 font-medium">
                           {new Date(job.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -882,54 +966,95 @@ export default function UserManagement() {
             )}
 
             {activeTab === 'candidates' && (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate Profile</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Role</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Experience</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Registration Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {loading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td colSpan={5} className="px-8 py-10 bg-white">
-                          <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : candidates.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-12 text-gray-400 font-medium">No candidates registered.</td>
+              viewMode === 'list' ? (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50">
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate Profile</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Role</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Experience</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Registration Date</th>
                     </tr>
-                  ) : candidates.map((cand: any) => (
-                    <tr key={cand.id} className="group hover:bg-gray-50/50 transition-colors duration-200">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-bold text-sm">
-                            <User className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-black text-gray-900 tracking-tight">{cand.name}</div>
-                            <div className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
-                              <Mail className="w-3 h-3" /> {cand.email} | <Phone className="w-3 h-3" /> {cand.phone || 'No phone'}
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td colSpan={5} className="px-8 py-10 bg-white">
+                            <div className="h-10 bg-gray-100 rounded-2xl w-full"></div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : candidates.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-12 text-gray-400 font-medium">No candidates registered.</td>
+                      </tr>
+                    ) : candidates.map((cand: any) => (
+                      <tr key={cand.id} onClick={() => navigate(`/candidates/${cand.id}`)} className="group hover:bg-gray-50/50 transition-colors duration-200 cursor-pointer">
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-bold text-sm">
+                              <User className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-black text-gray-900 tracking-tight">{cand.name}</div>
+                              <div className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                                <Mail className="w-3 h-3" /> {cand.email} | <Phone className="w-3 h-3" /> {cand.phone || 'No phone'}
+                              </div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-8 py-6 text-sm text-gray-600 font-bold">{cand.current_job_title || 'N/A'}</td>
+                        <td className="px-8 py-6 text-center text-xs text-gray-900 font-black">{cand.years_of_experience ?? 0} Years</td>
+                        <td className="px-8 py-6 text-xs text-gray-500 font-bold">{cand.city ? `${cand.city}, ${cand.country || 'SA'}` : 'N/A'}</td>
+                        <td className="px-8 py-6 text-xs text-gray-500 font-medium">
+                          {new Date(cand.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+                  {loading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="animate-pulse bg-white p-6 rounded-3xl border border-gray-100 h-40 w-full"></div>
+                    ))
+                  ) : candidates.length === 0 ? (
+                    <div className="col-span-full text-center py-12 text-gray-400 font-medium">No candidates registered.</div>
+                  ) : candidates.map((cand: any) => (
+                    <div 
+                      key={cand.id} 
+                      onClick={() => navigate(`/candidates/${cand.id}`)}
+                      className="group bg-white rounded-3xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center font-bold">
+                          <User className="w-6 h-6" />
                         </div>
-                      </td>
-                      <td className="px-8 py-6 text-sm text-gray-600 font-bold">{cand.current_job_title || 'N/A'}</td>
-                      <td className="px-8 py-6 text-center text-xs text-gray-900 font-black">{cand.years_of_experience ?? 0} Years</td>
-                      <td className="px-8 py-6 text-xs text-gray-500 font-bold">{cand.city ? `${cand.city}, ${cand.country || 'SA'}` : 'N/A'}</td>
-                      <td className="px-8 py-6 text-xs text-gray-500 font-medium">
-                        {new Date(cand.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </td>
-                    </tr>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-base font-black text-gray-900 tracking-tight truncate">{cand.name}</div>
+                          <div className="text-xs text-gray-500 font-bold truncate mt-0.5">{cand.current_job_title || 'No Role specified'}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-2 mt-6 pt-4 border-t border-gray-50">
+                        <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
+                          <Mail className="w-4 h-4 text-gray-400" /> {cand.email}
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-200">
+                            {cand.years_of_experience ?? 0} YOE
+                          </span>
+                          <span className="text-xs font-bold text-gray-400">
+                            {cand.city || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              )
             )}
 
             {activeTab === 'applications' && (
@@ -972,14 +1097,7 @@ export default function UserManagement() {
                         {app.company_name || 'N/A'}
                       </td>
                       <td className="px-8 py-6">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          app.status === 'shortlisted' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                          app.status === 'rejected' ? 'bg-rose-50 text-rose-600 border border-rose-200' :
-                          app.status === 'accepted' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
-                          'bg-amber-50 text-amber-600 border border-amber-200'
-                        }`}>
-                          {app.status || 'pending'}
-                        </span>
+                        <StatusBadge status={app.status || 'pending'} />
                       </td>
                       <td className="px-8 py-6 text-xs text-gray-500 font-medium">
                         {new Date(app.applied_at || Date.now()).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}

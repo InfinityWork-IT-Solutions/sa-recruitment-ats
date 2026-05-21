@@ -237,14 +237,14 @@ export default function JobDetailPage() {
                                         <Users className="w-4 h-4" />
                                         <span className="text-sm">Applications</span>
                                     </div>
-                                    <p className="text-2xl font-bold text-gray-900">{job.applications_count}</p>
+                                    <p className="text-2xl font-bold text-gray-900">{Number(job.applications_count) || 0}</p>
                                 </div>
                                 <div>
                                     <div className="flex items-center space-x-2 text-gray-600 mb-1">
                                         <Eye className="w-4 h-4" />
                                         <span className="text-sm">Views</span>
                                     </div>
-                                    <p className="text-2xl font-bold text-gray-900">{job.views_count}</p>
+                                    <p className="text-2xl font-bold text-gray-900">{Number(job.views_count) || 0}</p>
                                 </div>
                             </div>
                         </div>

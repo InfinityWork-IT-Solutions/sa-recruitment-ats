@@ -49,10 +49,15 @@ const getNavigation = (role?: string) => {
 
     if (role === 'super_admin') {
         return [
-            { name: 'Admin Console', href: '/admin/dashboard', icon: LayoutDashboard },
-            { name: 'System Users', href: '/admin/users', icon: Users },
+            { name: 'Admin Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+            { name: 'Analytics Hub', href: '/admin/analytics', icon: BarChart3 },
+            { name: 'Users', href: '/admin/users', icon: Users },
+            { name: 'Companies', href: '/admin/companies', icon: Building2 },
+            { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
+            { name: 'Applications', href: '/admin/applications', icon: FileText },
             { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
+            { name: 'Billing & Payments', href: '/settings/billing', icon: CreditCard },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }

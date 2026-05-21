@@ -111,7 +111,11 @@ export default function SubscriptionSettings() {
 
   const fetchSubscription = async () => {
     try {
-      const response = await apiClient.get(`/subscriptions/current?agency_id=${agencyId}`);
+      const response = await apiClient.get(`/subscriptions/current?agency_id=${agencyId}`, {
+        headers: {
+          'X-Hide-Error-Toast': 'true'
+        }
+      });
       setSubscription(response.data);
     } catch (error) {
       console.error('Error fetching subscription:', error);
