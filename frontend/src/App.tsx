@@ -1,8 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useAuthStore } from './store/auth';
+import apiClient from './lib/api-client';
+import { MailCheck, X, RefreshCw } from 'lucide-react';
 
 // Layouts
 import AuthLayout from './layouts/AuthLayout';
@@ -93,6 +96,68 @@ const queryClient = new QueryClient({
   },
 });
 
+// Email verification banner — shows above the page, doesn't block
+function EmailVerificationBanner() {
+  const { user, refreshUser } = useAuthStore();
+  const [dismissed, setDismissed] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  if (!user || user.is_verified !== false || dismissed) return null;
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const res = await apiClient.post('/auth/resend-verification');
+      toast.success(res.data?.message || 'Verification email sent — check your inbox!');
+    } catch {
+      toast.error('Failed to send email. Check server logs for the verification link.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleCheck = async () => {
+    setChecking(true);
+    try {
+      await refreshUser();
+      toast.success('Email verified! You now have full access.');
+    } catch {
+      toast.error('Not verified yet — check your inbox.');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white px-4 py-2 flex items-center gap-3 shadow-lg">
+      <MailCheck className="w-4 h-4 shrink-0" />
+      <span className="text-sm font-medium flex-1">
+        Please verify your email — check <strong>{user.email}</strong> for a verification link.
+      </span>
+      <button
+        onClick={handleResend}
+        disabled={resending}
+        className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60"
+      >
+        <RefreshCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
+        {resending ? 'Sending…' : 'Resend'}
+      </button>
+      <button
+        onClick={handleCheck}
+        disabled={checking}
+        className="flex items-center gap-1.5 px-3 py-1 bg-white text-amber-700 hover:bg-amber-50 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60"
+      >
+        <RefreshCw className={`w-3 h-3 ${checking ? 'animate-spin' : ''}`} />
+        {checking ? 'Checking…' : "I've verified"}
+      </button>
+      <button onClick={() => setDismissed(true)} className="p-1 hover:bg-white/20 rounded">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
@@ -110,11 +175,6 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  // Email must be verified before accessing any protected page
-  if (user && user.is_verified === false) {
-    return <Navigate to="/verify-email-required" replace />;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
@@ -137,6 +197,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <EmailVerificationBanner />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
