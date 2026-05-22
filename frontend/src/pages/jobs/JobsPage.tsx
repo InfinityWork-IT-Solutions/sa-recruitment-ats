@@ -58,6 +58,24 @@ export default function JobsPage() {
   const { savedIds, toggle: toggleSave } = useSavedJobs(isCandidate);
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
 
+  // Fetch AI match scores for each visible job (candidate only, non-blocking)
+  useEffect(() => {
+    if (!isCandidate || !data?.jobs?.length) return;
+    const fetchScores = async () => {
+      const results: Record<string, number> = {};
+      await Promise.allSettled(
+        data.jobs.slice(0, 10).map(async (job) => {
+          try {
+            const res = await apiClient.get(`/candidate-portal/match-score/${job.id}`);
+            if (res.data?.score != null) results[job.id] = res.data.score;
+          } catch { /* non-blocking */ }
+        })
+      );
+      setMatchScores(results);
+    };
+    fetchScores();
+  }, [isCandidate, data?.jobs]);
+
   const [showPostJobModal, setShowPostJobModal] = useState(false);
   const [integrations, setIntegrations] = useState({
     pnet: { connected: false, enabled: false },

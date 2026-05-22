@@ -11,6 +11,7 @@ from uuid import UUID
 
 from app.models import Application, Job, Candidate, User, ApplicationStatus
 from app.schemas import ApplicationCreate, ApplicationUpdate, ApplicationFilter
+from app.services.notification_service import notification_service
 
 
 class ApplicationService:
@@ -196,13 +197,49 @@ class ApplicationService:
         # Track status change
         if application_data.status and application_data.status != old_status:
             application.add_status_change(application_data.status, user.id)
-        
+            # Notify the candidate
+            await ApplicationService._notify_candidate_status(db, application, application_data.status)
+
         application.updated_at = datetime.utcnow()
-        
+
         await db.commit()
         await db.refresh(application)
-        
+
         return application
+
+    @staticmethod
+    async def _notify_candidate_status(db: AsyncSession, application: Application, new_status: ApplicationStatus):
+        """Send an in-app notification to the candidate when their application status changes."""
+        try:
+            cand_result = await db.execute(
+                select(Candidate).where(Candidate.id == application.candidate_id)
+            )
+            candidate = cand_result.scalar_one_or_none()
+            if not candidate or not candidate.user_id:
+                return
+            job_result = await db.execute(select(Job).where(Job.id == application.job_id))
+            job = job_result.scalar_one_or_none()
+            job_title = job.title if job else "your application"
+
+            _messages = {
+                ApplicationStatus.shortlisted: ("You've been shortlisted!", f"Great news — you've been shortlisted for {job_title}.", "success"),
+                ApplicationStatus.interview_scheduled: ("Interview scheduled", f"An interview has been scheduled for {job_title}. Check your application for details.", "info"),
+                ApplicationStatus.offer_made: ("Offer received!", f"You have received a job offer for {job_title}. View it now.", "success"),
+                ApplicationStatus.offer_accepted: ("Offer confirmed", f"Your offer for {job_title} has been confirmed.", "success"),
+                ApplicationStatus.rejected: ("Application update", f"Thank you for applying to {job_title}. Unfortunately you were not selected at this time.", "info"),
+            }
+            if new_status in _messages:
+                title, message, ntype = _messages[new_status]
+                await notification_service.create_notification(
+                    db=db,
+                    user_id=candidate.user_id,
+                    title=title,
+                    message=message,
+                    notification_type=ntype,
+                    link=f"/candidate/applications",
+                )
+        except Exception:
+            pass
     
     @staticmethod
     async def delete_application(

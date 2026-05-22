@@ -122,9 +122,10 @@ export default function ApplicationTrackerPage() {
                         <p className="text-[11px] text-gray-400">Nothing here</p>
                       </div>
                     ) : cards.map((app) => (
-                      <div
+                      <Link
                         key={app.id}
-                        className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 hover:shadow-md transition-shadow"
+                        to={`/candidate/applications/${app.id}`}
+                        className="block bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 hover:shadow-md hover:border-blue-200 transition-all"
                       >
                         {/* Company avatar + title */}
                         <div className="flex items-start gap-2.5 mb-2">
@@ -183,14 +184,11 @@ export default function ApplicationTrackerPage() {
                             <Clock className="w-3 h-3" />
                             {formatDistanceToNow(new Date(app.updated_at), { addSuffix: true })}
                           </span>
-                          <Link
-                            to={`/jobs/${app.job_id}`}
-                            className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-0.5"
-                          >
-                            View <ChevronRight className="w-3 h-3" />
-                          </Link>
+                          <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-0.5">
+                            Details <ChevronRight className="w-3 h-3" />
+                          </span>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>

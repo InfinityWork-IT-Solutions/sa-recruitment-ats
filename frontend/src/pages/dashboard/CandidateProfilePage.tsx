@@ -6,6 +6,171 @@ import apiClient from '@/lib/api-client';
 import toast from 'react-hot-toast';
 import { ImageCropperModal } from '@/components/common/ImageCropperModal';
 
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function ApplicationsTabContent() {
+    const [apps, setApps] = useState<any[]>([]);
+    useEffect(() => {
+        apiClient.get('/candidate-portal/my-applications').then(r => setApps(r.data)).catch(() => {});
+    }, []);
+    const statusLabel: Record<string, string> = {
+        applied: 'Applied', screening: 'Under Review', shortlisted: 'Shortlisted',
+        interview_scheduled: 'Interview', offer_made: 'Offer Received', hired: 'Hired',
+        rejected: 'Not Selected', withdrawn: 'Withdrawn',
+    };
+    const statusColor: Record<string, string> = {
+        applied: 'badge-blue', screening: 'badge-yellow', shortlisted: 'badge-blue',
+        interview_scheduled: 'badge-blue', offer_made: 'badge-green', hired: 'badge-green',
+        rejected: 'badge-gray', withdrawn: 'badge-gray',
+    };
+    if (!apps.length) return (
+        <div className="text-center py-10 text-gray-400 text-sm">
+            No applications yet. <a href="/candidate/jobs" className="text-blue-600 hover:underline">Browse jobs</a>
+        </div>
+    );
+    return (
+        <div className="space-y-3">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Recent Applications</h3>
+            {apps.slice(0, 8).map((app: any) => (
+                <a key={app.id} href={`/candidate/applications/${app.id}`}
+                    className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all">
+                    <div>
+                        <p className="font-semibold text-gray-900 text-sm">{app.job_title || 'Job'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{app.job_location || ''}</p>
+                    </div>
+                    <span className={`badge ${statusColor[app.status] || 'badge-gray'} text-xs`}>
+                        {statusLabel[app.status] || app.status}
+                    </span>
+                </a>
+            ))}
+            {apps.length > 8 && (
+                <a href="/candidate/applications" className="block text-center text-sm text-blue-600 hover:underline pt-1">
+                    View all {apps.length} applications →
+                </a>
+            )}
+        </div>
+    );
+}
+
+function MatchesTabContent() {
+    const [jobs, setJobs] = useState<any[]>([]);
+    const [scores, setScores] = useState<Record<string, number>>({});
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        apiClient.get('/jobs/?status=active&limit=6').then(async r => {
+            const jobList = r.data?.jobs || [];
+            setJobs(jobList);
+            const results: Record<string, number> = {};
+            await Promise.allSettled(jobList.map(async (job: any) => {
+                try {
+                    const res = await apiClient.get(`/candidate-portal/match-score/${job.id}`);
+                    if (res.data?.score != null) results[job.id] = res.data.score;
+                } catch {}
+            }));
+            setScores(results);
+        }).catch(() => {}).finally(() => setLoading(false));
+    }, []);
+    if (loading) return <div className="flex justify-center py-8"><div className="w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>;
+    const sorted = [...jobs].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between mb-1">
+                <h3 className="text-lg font-bold text-gray-900">AI Job Matches</h3>
+                <span className="text-[10px] bg-green-100 text-green-800 px-2 py-1 rounded font-bold tracking-wider">AI POWERED</span>
+            </div>
+            {sorted.map(job => {
+                const score = scores[job.id] ?? null;
+                return (
+                    <a key={job.id} href={`/jobs/${job.id}`}
+                        className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all">
+                        <div>
+                            <p className="font-semibold text-gray-900 text-sm">{job.title}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{job.location}</p>
+                        </div>
+                        {score != null ? (
+                            <div className="text-right">
+                                <p className={`text-xl font-bold ${score >= 75 ? 'text-green-600' : score >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>{score}%</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Match</p>
+                            </div>
+                        ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                        )}
+                    </a>
+                );
+            })}
+        </div>
+    );
+}
+
+function CVUploadPanel({ onUploaded }: { onUploaded: () => void }) {
+    const [uploading, setUploading] = useState(false);
+    const [uploaded, setUploaded] = useState<{ filename: string; skills?: string[] } | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleFile = async (file: File) => {
+        setUploading(true);
+        const form = new FormData();
+        form.append('file', file);
+        try {
+            const res = await apiClient.post('/candidate-portal/upload-cv', form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setUploaded({ filename: file.name, skills: res.data?.parsed_data?.skills });
+            toast.success('CV uploaded and parsed!');
+            onUploaded();
+        } catch {
+            toast.error('CV upload failed — try again');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <label className="block w-full cursor-pointer">
+                <div
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-white hover:bg-gray-50 transition-colors"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleFile(file);
+                    }}
+                    onClick={() => inputRef.current?.click()}
+                >
+                    <FileText className={`w-10 h-10 mb-3 ${uploading ? 'text-blue-400 animate-pulse' : 'text-gray-400'}`} />
+                    <p className="text-sm font-medium text-gray-900">{uploading ? 'Uploading & parsing…' : 'Drag & Drop Resume Here'}</p>
+                    <p className="text-xs text-gray-500 mt-1">or click to browse</p>
+                    <p className="text-xs text-gray-400 mt-2">PDF, DOC, DOCX · Max 10 MB</p>
+                </div>
+                <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" disabled={uploading}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+            </label>
+            {uploaded && (
+                <div className="p-4 border border-green-200 bg-green-50 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <span className="font-bold text-green-800 text-sm">Parsing Complete!</span>
+                    </div>
+                    <p className="text-xs text-green-700">{uploaded.filename} uploaded successfully.</p>
+                    {uploaded.skills && uploaded.skills.length > 0 && (
+                        <div className="mt-3">
+                            <p className="text-xs font-semibold text-gray-700 mb-1.5">Skills detected:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {uploaded.skills.slice(0, 8).map(s => (
+                                    <span key={s} className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{s}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function CandidateProfilePage() {
     const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState('Overview');
@@ -43,6 +208,10 @@ export default function CandidateProfilePage() {
     const [completionScore, setCompletionScore] = useState(0);
     const [missingItems, setMissingItems] = useState<string[]>([]);
 
+    // Real candidate data from backend
+    const [candidateData, setCandidateData] = useState<any>(null);
+    const [realStats, setRealStats] = useState({ applied: 0, interviews: 0, saved: 0 });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
 
@@ -60,9 +229,30 @@ export default function CandidateProfilePage() {
         }
     }, []);
 
-    // On mount: sync localStorage profile to backend once, then fetch completeness
+    // On mount: load real candidate data + stats, sync localStorage, fetch completeness
     useEffect(() => {
         const syncAndFetch = async () => {
+            // Load real candidate profile from backend
+            try {
+                const profileRes = await apiClient.get('/candidate-portal/profile');
+                setCandidateData(profileRes.data);
+            } catch { /* non-blocking */ }
+
+            // Load real stats
+            try {
+                const [appsRes, savedRes] = await Promise.allSettled([
+                    apiClient.get('/candidate-portal/my-applications'),
+                    apiClient.get('/candidate-portal/saved-jobs/ids'),
+                ]);
+                const apps = appsRes.status === 'fulfilled' ? appsRes.value.data : [];
+                const savedIds = savedRes.status === 'fulfilled' ? savedRes.value.data : [];
+                const interviews = apps.filter((a: any) =>
+                    ['interview_scheduled', 'interviewed'].includes(a.status)
+                ).length;
+                setRealStats({ applied: apps.length, interviews, saved: savedIds.length });
+            } catch { /* non-blocking */ }
+
+            // Sync localStorage profile to backend once
             const saved = localStorage.getItem('candidate_profile');
             if (saved) {
                 try {
@@ -75,9 +265,7 @@ export default function CandidateProfilePage() {
                         current_job_title: pd.title || null,
                         current_company: pd.company || null,
                     });
-                } catch {
-                    // non-blocking
-                }
+                } catch { /* non-blocking */ }
             }
             await fetchCompleteness();
         };
@@ -204,7 +392,12 @@ export default function CandidateProfilePage() {
                                 
                                 <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
                                     <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {user?.email}</span>
-                                    <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Cape Town, Western Cape</span>
+                                    {(candidateData?.city || candidateData?.province) && (
+                                        <span className="flex items-center gap-1">
+                                            <MapPin className="w-4 h-4" />
+                                            {[candidateData.city, candidateData.province].filter(Boolean).join(', ')}
+                                        </span>
+                                    )}
                                 </div>
                                 
                                 <div className="flex gap-2 mt-4">
@@ -214,9 +407,25 @@ export default function CandidateProfilePage() {
                             </div>
                             
                             <div className="flex flex-col gap-2">
-                                <button className="btn-secondary flex items-center gap-2">
-                                    <Download className="w-4 h-4" /> Download CV
-                                </button>
+                                {candidateData?.resume_url ? (
+                                    <a
+                                        href={`http://localhost:8000${candidateData.resume_url}`}
+                                        download={candidateData.resume_filename || 'cv.pdf'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn-secondary flex items-center gap-2"
+                                    >
+                                        <Download className="w-4 h-4" /> Download CV
+                                    </a>
+                                ) : (
+                                    <button
+                                        className="btn-secondary flex items-center gap-2 opacity-50 cursor-not-allowed"
+                                        title="Upload a CV first"
+                                        disabled
+                                    >
+                                        <Download className="w-4 h-4" /> No CV uploaded
+                                    </button>
+                                )}
                                 <button className="btn-secondary flex items-center gap-2" onClick={() => { setEditForm(profileData); setIsEditing(true); }}>
                                     <Edit className="w-4 h-4" /> Edit Profile
                                 </button>
@@ -232,7 +441,7 @@ export default function CandidateProfilePage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Applied Jobs</p>
-                                <p className="text-2xl font-bold text-gray-900">12</p>
+                                <p className="text-2xl font-bold text-gray-900">{realStats.applied}</p>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 hover:border-green-300 transition-colors cursor-pointer group">
@@ -241,7 +450,7 @@ export default function CandidateProfilePage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Interviews</p>
-                                <p className="text-2xl font-bold text-gray-900">3</p>
+                                <p className="text-2xl font-bold text-gray-900">{realStats.interviews}</p>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 hover:border-purple-300 transition-colors cursor-pointer group">
@@ -250,7 +459,7 @@ export default function CandidateProfilePage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Saved Jobs</p>
-                                <p className="text-2xl font-bold text-gray-900">8</p>
+                                <p className="text-2xl font-bold text-gray-900">{realStats.saved}</p>
                             </div>
                         </div>
                     </div>
@@ -405,42 +614,11 @@ export default function CandidateProfilePage() {
                             )}
 
                             {activeTab === 'Applications' && (
-                                <div className="space-y-4">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Applications</h3>
-                                    <div className="p-4 border border-gray-100 rounded-lg flex items-center justify-between hover:border-blue-300 transition-colors shadow-sm">
-                                        <div>
-                                            <h4 className="font-bold text-gray-900">Senior React Developer</h4>
-                                            <p className="text-sm text-gray-500">InnovateZA • Applied 2 days ago</p>
-                                        </div>
-                                        <span className="badge badge-yellow">IN REVIEW</span>
-                                    </div>
-                                    <div className="p-4 border border-gray-100 rounded-lg flex items-center justify-between hover:border-blue-300 transition-colors shadow-sm">
-                                        <div>
-                                            <h4 className="font-bold text-gray-900">Full Stack Engineer</h4>
-                                            <p className="text-sm text-gray-500">TechCorp • Applied 1 week ago</p>
-                                        </div>
-                                        <span className="badge badge-gray">INTERVIEWING</span>
-                                    </div>
-                                </div>
+                                <ApplicationsTabContent />
                             )}
 
                             {activeTab === 'Matches' && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-bold text-gray-900">AI Job Matches</h3>
-                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold tracking-wider">AI POWERED</span>
-                                    </div>
-                                    <div className="p-4 border border-green-100 bg-green-50 rounded-lg flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-bold text-gray-900">Lead Frontend Engineer</h4>
-                                            <p className="text-sm text-gray-600">Global Tech Hub • Remote</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-xl font-bold text-green-600">96%</div>
-                                            <div className="text-xs font-bold text-green-800 uppercase tracking-widest">Match</div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <MatchesTabContent />
                             )}
                         </div>
                     </div>
@@ -451,46 +629,11 @@ export default function CandidateProfilePage() {
                     <div className="card bg-slate-50 border-blue-100">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">Resume Upload & Parsing</h3>
                         
-                        <div className="space-y-4">
-                            <label htmlFor="resume-upload" className="block w-full">
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-white hover:bg-gray-50 cursor-pointer transition-colors">
-                                    <FileText className="w-10 h-10 text-gray-400 mb-3" />
-                                    <p className="text-sm font-medium text-gray-900">Drag & Drop Resume Here</p>
-                                    <p className="text-xs text-gray-500 mt-1">or click to browse</p>
-                                    <p className="text-xs text-gray-400 mt-2">Supported: PDF, DOC, DOCX (Max 10MB)</p>
-                                </div>
-                                <input id="resume-upload" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => {
-                                    if(e.target.files?.length) {
-                                        setTimeout(() => setUploadSla(true), 800);
-                                    }
-                                }} />
-                            </label>
-                            
-                            <div className="flex gap-3">
-                                <button className="btn-secondary flex-1" onClick={() => setUploadSla(false)}>Cancel</button>
-                                <button className="btn-primary flex-1" onClick={() => document.getElementById('resume-upload')?.click()}>Upload & Parse</button>
-                            </div>
-                            
-                            {uploadSla && (
-                                <div className="mt-6 p-4 border border-blue-200 bg-blue-50 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <CheckCircle className="w-5 h-5 text-blue-600" />
-                                        <span className="font-bold text-blue-800">Parsing Complete!</span>
-                                    </div>
-                                    <p className="text-xs text-blue-700 mb-3">AI successfully extracted profile data from Resume.pdf</p>
-                                    
-                                    <div className="space-y-2 text-xs text-gray-700">
-                                        <div className="bg-white p-2 rounded border border-blue-100">
-                                            <span className="font-semibold text-gray-900">Matches Found:</span>
-                                            <ul className="mt-1 list-disc pl-4 text-blue-600">
-                                                <li>Senior Frontend Developer @ InnovateZA (94% match)</li>
-                                                <li>Full Stack Engineer @ StartApp (85% match)</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <CVUploadPanel onUploaded={async () => {
+                            const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
+                            if (profileRes) setCandidateData(profileRes.data);
+                            await fetchCompleteness();
+                        }} />
                     </div>
                     
                     {/* Notes Box */}

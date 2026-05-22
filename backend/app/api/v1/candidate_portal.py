@@ -433,7 +433,48 @@ async def get_interview_prep(
     return InterviewPrepOut(questions=questions, tips=tips)
 
 
-# ─── Profile update (self-service) ───────────────────────────────────────────
+# ─── Profile get + update (self-service) ─────────────────────────────────────
+
+@router.get("/profile")
+async def get_my_profile(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the candidate's own profile data."""
+    _require_candidate(current_user)
+    cand_result = await db.execute(
+        select(Candidate).where(Candidate.user_id == current_user.id)
+    )
+    candidate = cand_result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+    return {
+        "id": str(candidate.id),
+        "first_name": candidate.first_name,
+        "last_name": candidate.last_name,
+        "email": candidate.email,
+        "phone": candidate.phone,
+        "city": candidate.city,
+        "province": candidate.province,
+        "current_job_title": candidate.current_job_title,
+        "current_company": candidate.current_company,
+        "years_of_experience": candidate.years_of_experience,
+        "skills": candidate.skills or [],
+        "education_level": candidate.education_level,
+        "education_details": candidate.education_details or [],
+        "certifications": candidate.certifications or [],
+        "summary": candidate.summary,
+        "work_history": candidate.work_history or [],
+        "resume_url": candidate.resume_url,
+        "resume_filename": candidate.resume_filename,
+        "linkedin_url": candidate.linkedin_url,
+        "portfolio_url": candidate.portfolio_url,
+        "notice_period_days": candidate.notice_period_days,
+        "expected_salary_min": candidate.expected_salary_min,
+        "expected_salary_max": candidate.expected_salary_max,
+    }
+
+
 
 class CandidateProfileUpdate(BaseModel):
     summary: Optional[str] = None

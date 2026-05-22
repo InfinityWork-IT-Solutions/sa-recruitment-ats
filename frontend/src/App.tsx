@@ -43,6 +43,7 @@ import CreateJobPage from './pages/jobs/CreateJobPage';
 import CandidateDetailPage from './pages/candidates/CandidateDetailPage';
 import MyAssessments from './pages/candidates/MyAssessments';
 import ApplicationTrackerPage from './pages/candidates/ApplicationTrackerPage';
+import CandidateApplicationDetailPage from './pages/candidates/CandidateApplicationDetailPage';
 import SavedJobsPage from './pages/candidates/SavedJobsPage';
 import OfferViewPage from './pages/candidates/OfferViewPage';
 
@@ -239,6 +240,7 @@ function App() {
             <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/jobs" element={<JobsPage />} />
             <Route path="/candidate/applications" element={<ApplicationTrackerPage />} />
+            <Route path="/candidate/applications/:id" element={<CandidateApplicationDetailPage />} />
             <Route path="/candidate/saved-jobs" element={<SavedJobsPage />} />
             <Route path="/candidate/offers" element={<OfferViewPage />} />
             <Route path="/candidate/assessments" element={<MyAssessments />} />
