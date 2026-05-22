@@ -230,9 +230,9 @@ export default function JobDetailPage() {
       location_city: job.city || '',
       location_province: job.province || '',
       description: job.description,
-      requirements: job.requirements || '',
-      responsibilities: job.responsibilities || '',
-      benefits: job.benefits || '',
+      requirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : (job.requirements || ''),
+      responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join('\n') : (job.responsibilities || ''),
+      benefits: Array.isArray(job.benefits) ? job.benefits.join('\n') : (job.benefits || ''),
       skills: job.skills || [],
       salary_min: job.salary_min || undefined,
       salary_max: job.salary_max || undefined,
@@ -549,7 +549,7 @@ export default function JobDetailPage() {
           {!isEditing ? (
             <>
               <button
-                onClick={() => { reset({ title: job.title, employment_type: job.employment_type, location_city: job.city || '', location_province: job.province || '', description: job.description, requirements: job.requirements || '', responsibilities: job.responsibilities || '', benefits: job.benefits || '', skills: job.skills || [], salary_min: job.salary_min || undefined, salary_max: job.salary_max || undefined }); setIsEditing(true); }}
+                onClick={() => { reset({ title: job.title, employment_type: job.employment_type, location_city: job.city || '', location_province: job.province || '', description: job.description, requirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : (job.requirements || ''), responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join('\n') : (job.responsibilities || ''), benefits: Array.isArray(job.benefits) ? job.benefits.join('\n') : (job.benefits || ''), skills: job.skills || [], salary_min: job.salary_min || undefined, salary_max: job.salary_max || undefined }); setIsEditing(true); }}
                 className="btn-secondary flex items-center space-x-2"
               >
                 <Edit className="w-4 h-4" /><span>Edit</span>

@@ -293,7 +293,7 @@ async def upload_my_cv(
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    resume_url = f"/uploads/resumes/{filename}"
+    resume_url = f"/static/uploads/resumes/{filename}"
 
     # Extract raw text locally (free — no AI call) so the file is searchable.
     # AI parsing is deferred to a future paid tier.

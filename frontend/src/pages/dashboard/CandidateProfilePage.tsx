@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera } from 'lucide-react';
+import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera, Eye, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
@@ -102,20 +102,22 @@ function MatchesTabContent() {
     );
 }
 
-function CVUploadPanel({ onUploaded }: { onUploaded: () => void }) {
+function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => void; externalInputRef?: React.RefObject<HTMLInputElement> }) {
     const [uploading, setUploading] = useState(false);
-    const [uploaded, setUploaded] = useState<{ filename: string; skills?: string[] } | null>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const [uploadedName, setUploadedName] = useState<string | null>(null);
+    const localInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = externalInputRef || localInputRef;
 
     const handleFile = async (file: File) => {
+        if (uploading) return;
         setUploading(true);
         const form = new FormData();
         form.append('file', file);
         try {
-            const res = await apiClient.post('/candidate-portal/upload-cv', form, {
+            await apiClient.post('/candidate-portal/upload-cv', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setUploaded({ filename: file.name, skills: [] });
+            setUploadedName(file.name);
             toast.success('CV uploaded successfully!');
             onUploaded();
         } catch {
@@ -127,35 +129,47 @@ function CVUploadPanel({ onUploaded }: { onUploaded: () => void }) {
 
     return (
         <div className="space-y-4">
-            <label className="block w-full cursor-pointer">
-                <div
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-white hover:bg-gray-50 transition-colors"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const file = e.dataTransfer.files?.[0];
-                        if (file) handleFile(file);
+            {/* Plain div — no label wrapper so the hidden input fires exactly once */}
+            <div
+                className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer select-none transition-colors
+                    ${uploading ? 'border-blue-300 bg-blue-50 pointer-events-none' : 'border-gray-300 bg-white hover:bg-gray-50 hover:border-blue-300'}`}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleFile(file);
+                }}
+                onClick={() => inputRef.current?.click()}
+            >
+                <FileText className={`w-10 h-10 mb-3 ${uploading ? 'text-blue-500 animate-pulse' : 'text-gray-400'}`} />
+                <p className="text-sm font-semibold text-gray-800">
+                    {uploading ? 'Uploading…' : 'Drag & Drop or Click to Upload'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX · Max 10 MB</p>
+                <input
+                    ref={inputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx"
+                    disabled={uploading}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (f) handleFile(f);
                     }}
-                    onClick={() => inputRef.current?.click()}
-                >
-                    <FileText className={`w-10 h-10 mb-3 ${uploading ? 'text-blue-400 animate-pulse' : 'text-gray-400'}`} />
-                    <p className="text-sm font-medium text-gray-900">{uploading ? 'Uploading & parsing…' : 'Drag & Drop Resume Here'}</p>
-                    <p className="text-xs text-gray-500 mt-1">or click to browse</p>
-                    <p className="text-xs text-gray-400 mt-2">PDF, DOC, DOCX · Max 10 MB</p>
-                </div>
-                <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" disabled={uploading}
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-            </label>
-            {uploaded && (
-                <div className="p-4 border border-green-200 bg-green-50 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <span className="font-bold text-green-800 text-sm">Parsing Complete!</span>
+                />
+            </div>
+
+            {uploadedName && (
+                <div className="flex items-start gap-3 p-3.5 border border-green-200 bg-green-50 rounded-xl">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-green-800">{uploadedName} — uploaded</p>
+                        <p className="text-xs text-green-600 mt-0.5">
+                            Stored and visible to recruiters. Add skills via <strong>Edit Profile</strong> to improve matches.
+                        </p>
                     </div>
-                    <p className="text-xs text-green-700">{uploaded.filename} uploaded successfully.</p>
-                    <p className="text-xs text-green-600 mt-1">
-                        Your CV is stored and ready for recruiters to download. Add your skills and experience via <strong>Edit Profile</strong> to improve your match scores.
-                    </p>
                 </div>
             )}
         </div>
@@ -206,6 +220,7 @@ export default function CandidateProfilePage() {
     const [realStats, setRealStats] = useState({ applied: 0, interviews: 0, saved: 0 });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cvInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
 
     // Cropper State
@@ -617,18 +632,72 @@ export default function CandidateProfilePage() {
                     </div>
                 </div>
 
-                {/* Right Column: Resume Upload & Parsing */}
+                {/* Right Column: CV Attachment + Resume Upload */}
                 <div className="space-y-6">
-                    <div className="card bg-slate-50 border-blue-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">Resume Upload & Parsing</h3>
-                        
-                        <CVUploadPanel onUploaded={async () => {
-                            const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
-                            if (profileRes) setCandidateData(profileRes.data);
-                            await fetchCompleteness();
-                        }} />
+                    {/* CV Attachment Viewer */}
+                    <div className="card">
+                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            Attached CV / Resume
+                        </h3>
+                        {candidateData?.resume_url ? (
+                            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                                {/* Document icon thumbnail */}
+                                <div className="w-10 h-12 bg-white border border-blue-200 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <FileText className="w-5 h-5 text-blue-500" />
+                                </div>
+                                {/* Filename + type */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">
+                                        {candidateData.resume_filename
+                                            || candidateData.resume_url.split('/').pop()?.replace(/^[a-f0-9-]+_/, '')
+                                            || 'resume.pdf'}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">CV / Resume document</p>
+                                </div>
+                                {/* Action buttons */}
+                                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                                    <a
+                                        href={`http://localhost:8000${candidateData.resume_url}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-white border border-blue-200 rounded-lg px-2.5 py-1.5 hover:bg-blue-50 transition-colors"
+                                    >
+                                        <Eye className="w-3 h-3" /> View
+                                    </a>
+                                    <button
+                                        className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                                        onClick={() => cvInputRef.current?.click()}
+                                    >
+                                        <RefreshCw className="w-3 h-3" /> Replace
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-5 border-2 border-dashed border-gray-200 rounded-xl">
+                                <FileText className="w-9 h-9 text-gray-300 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-gray-400">No CV uploaded yet</p>
+                                <p className="text-xs text-gray-300 mt-0.5">Upload your CV below</p>
+                            </div>
+                        )}
                     </div>
-                    
+
+                    {/* Resume Upload */}
+                    <div className="card bg-slate-50 border-blue-100">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                            {candidateData?.resume_url ? 'Replace CV' : 'Upload Your CV'}
+                        </h3>
+
+                        <CVUploadPanel
+                            externalInputRef={cvInputRef}
+                            onUploaded={async () => {
+                                const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
+                                if (profileRes) setCandidateData(profileRes.data);
+                                await fetchCompleteness();
+                            }}
+                        />
+                    </div>
+
                     {/* Notes Box */}
                     <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg shadow-sm">
                         <h4 className="font-bold text-yellow-800 text-sm mb-1">System Note</h4>
