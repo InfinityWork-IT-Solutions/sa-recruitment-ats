@@ -294,26 +294,27 @@ async def upload_my_cv(
         shutil.copyfileobj(file.file, f)
 
     resume_url = f"/uploads/resumes/{filename}"
-    parsed_data = None
+
+    # Extract raw text locally (free — no AI call) so the file is searchable.
+    # AI parsing is deferred to a future paid tier.
+    resume_text = ""
     try:
         from app.services.ai_resume_parser import ai_resume_parser
         resume_text = await ai_resume_parser.extract_text_from_file(str(dest))
-        parsed_data = await ai_resume_parser.parse_resume_with_ai(resume_text)
     except Exception:
         pass
 
     candidate.resume_filename = file.filename
     candidate.resume_url = resume_url
-    if parsed_data:
-        candidate.resume_parsed_data = parsed_data
-        candidate.resume_text = parsed_data.get("summary", "")
-        if parsed_data.get("skills"):
-            candidate.skills = parsed_data["skills"]
-        if parsed_data.get("years_of_experience") is not None:
-            candidate.years_of_experience = parsed_data["years_of_experience"]
+    if resume_text:
+        candidate.resume_text = resume_text
 
     await db.commit()
-    return CVParseResult(message="CV uploaded and parsed successfully", parsed_data=parsed_data, resume_url=resume_url)
+    return CVParseResult(
+        message="CV uploaded successfully. Complete your profile to add skills and experience.",
+        parsed_data=None,
+        resume_url=resume_url,
+    )
 
 
 # ─── Match Score ──────────────────────────────────────────────────────────────

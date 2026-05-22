@@ -115,8 +115,8 @@ function CVUploadPanel({ onUploaded }: { onUploaded: () => void }) {
             const res = await apiClient.post('/candidate-portal/upload-cv', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setUploaded({ filename: file.name, skills: res.data?.parsed_data?.skills });
-            toast.success('CV uploaded and parsed!');
+            setUploaded({ filename: file.name, skills: [] });
+            toast.success('CV uploaded successfully!');
             onUploaded();
         } catch {
             toast.error('CV upload failed — try again');
@@ -153,16 +153,9 @@ function CVUploadPanel({ onUploaded }: { onUploaded: () => void }) {
                         <span className="font-bold text-green-800 text-sm">Parsing Complete!</span>
                     </div>
                     <p className="text-xs text-green-700">{uploaded.filename} uploaded successfully.</p>
-                    {uploaded.skills && uploaded.skills.length > 0 && (
-                        <div className="mt-3">
-                            <p className="text-xs font-semibold text-gray-700 mb-1.5">Skills detected:</p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {uploaded.skills.slice(0, 8).map(s => (
-                                    <span key={s} className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{s}</span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <p className="text-xs text-green-600 mt-1">
+                        Your CV is stored and ready for recruiters to download. Add your skills and experience via <strong>Edit Profile</strong> to improve your match scores.
+                    </p>
                 </div>
             )}
         </div>
