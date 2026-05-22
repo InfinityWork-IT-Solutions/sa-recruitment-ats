@@ -93,10 +93,23 @@ export default function CandidateProfilePage() {
         }
     };
 
-    const handleSaveProfile = () => {
+    const handleSaveProfile = async () => {
         setProfileData(editForm);
         localStorage.setItem('candidate_profile', JSON.stringify(editForm));
         setIsEditing(false);
+        // Persist to backend so completeness score stays in sync
+        try {
+            await apiClient.patch('/candidate-portal/profile', {
+                summary: editForm.summary || null,
+                skills: editForm.skills || [],
+                work_history: editForm.workHistory || [],
+                education_level: editForm.qualification || null,
+                current_job_title: editForm.title || null,
+                current_company: editForm.company || null,
+            });
+        } catch {
+            // Non-blocking — local state already updated
+        }
     };
 
     const calculateCompletion = () => {

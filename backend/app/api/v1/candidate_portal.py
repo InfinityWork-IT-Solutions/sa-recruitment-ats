@@ -433,6 +433,52 @@ async def get_interview_prep(
     return InterviewPrepOut(questions=questions, tips=tips)
 
 
+# ─── Profile update (self-service) ───────────────────────────────────────────
+
+class CandidateProfileUpdate(BaseModel):
+    summary: Optional[str] = None
+    skills: Optional[List[str]] = None
+    work_history: Optional[List[dict]] = None
+    education_level: Optional[str] = None
+    education_details: Optional[List[dict]] = None
+    current_job_title: Optional[str] = None
+    current_company: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    province: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    github_url: Optional[str] = None
+    employment_type_preference: Optional[str] = None
+    notice_period_days: Optional[int] = None
+    expected_salary_min: Optional[int] = None
+    expected_salary_max: Optional[int] = None
+    certifications: Optional[List[str]] = None
+
+
+@router.patch("/profile", status_code=200)
+async def update_my_profile(
+    data: CandidateProfileUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Let a candidate update their own profile fields."""
+    _require_candidate(current_user)
+    cand_result = await db.execute(
+        select(Candidate).where(Candidate.user_id == current_user.id)
+    )
+    candidate = cand_result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(candidate, field, value)
+
+    await db.commit()
+    return {"message": "Profile updated"}
+
+
 # ─── Profile completeness ─────────────────────────────────────────────────────
 
 class ProfileCompletenessOut(BaseModel):
@@ -453,11 +499,14 @@ async def get_profile_completeness(
     if not candidate:
         return ProfileCompletenessOut(score=0, missing=["Complete your profile"])
 
+    has_photo = bool(current_user.avatar_url or getattr(candidate, 'avatar_url', None))
+    has_summary = bool(candidate.summary or candidate.resume_text)
+    has_experience = bool(candidate.work_history or candidate.current_company)
     checks = [
-        ("Profile photo", bool(getattr(candidate, 'avatar_url', None))),
-        ("Professional summary", bool(getattr(candidate, 'summary', None) or getattr(candidate, 'professional_summary', None))),
+        ("Profile photo", has_photo),
+        ("Professional summary", has_summary),
         ("At least 5 skills", bool(candidate.skills and len(candidate.skills) >= 5)),
-        ("Work experience", bool(getattr(candidate, 'work_history', None) or getattr(candidate, 'current_company', None))),
+        ("Work experience", has_experience),
         ("Education", bool(candidate.education_level)),
         ("CV / Resume", bool(candidate.resume_url)),
         ("Location", bool(candidate.city and candidate.province)),

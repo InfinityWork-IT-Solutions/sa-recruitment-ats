@@ -87,7 +87,11 @@ class Candidate(Base):
     resume_url = Column(String(500))  # S3 URL or local path
     resume_text = Column(Text)  # Extracted text for searching
     resume_parsed_data = Column(JSONB)  # AI-parsed resume data
-    
+
+    # Profile content
+    summary = Column(Text)  # Professional summary written by candidate
+    work_history = Column(JSONB)  # [{id, title, company, timeline, description}]
+
     # LinkedIn & Social
     linkedin_url = Column(String(255))
     portfolio_url = Column(String(255))
