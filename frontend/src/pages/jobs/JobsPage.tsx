@@ -4,13 +4,14 @@ import { useJobs, useCreateJob } from '@/hooks/use-jobs';
 import { useAuthStore } from '@/store/auth';
 import {
   Plus, Search, Briefcase, MapPin, Clock, ChevronRight,
-  Building2, Banknote, CalendarDays, Wifi, Users, Eye,
-  Filter, SlidersHorizontal, X
+  Banknote, CalendarDays, Wifi, Users, Eye,
+  SlidersHorizontal, X, Bookmark, BookmarkCheck,
 } from 'lucide-react';
 import { JobStatus, EmploymentType } from '@/types/api';
 import apiClient from '@/lib/api-client';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 import { formatDistanceToNow, format, isPast } from 'date-fns';
+import { useSavedJobs } from '@/hooks/use-saved-jobs';
 
 const employmentTypeLabels: Record<EmploymentType, string> = {
   full_time: 'Full Time',
@@ -53,6 +54,9 @@ export default function JobsPage() {
     employment_type: employmentTypeFilter,
     limit: 20,
   });
+
+  const { savedIds, toggle: toggleSave } = useSavedJobs(isCandidate);
+  const [matchScores, setMatchScores] = useState<Record<string, number>>({});
 
   const [showPostJobModal, setShowPostJobModal] = useState(false);
   const [integrations, setIntegrations] = useState({
@@ -282,7 +286,21 @@ export default function JobsPage() {
                         </div>
 
                         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                          <button
+                            onClick={(e) => { e.preventDefault(); toggleSave(job.id); }}
+                            className={`p-1.5 rounded-lg transition-colors ${savedIds.has(job.id) ? 'text-purple-600 bg-purple-50' : 'text-gray-300 hover:text-purple-500 hover:bg-purple-50'}`}
+                            title={savedIds.has(job.id) ? 'Remove from saved' : 'Save job'}
+                          >
+                            {savedIds.has(job.id)
+                              ? <BookmarkCheck className="w-4 h-4" />
+                              : <Bookmark className="w-4 h-4" />
+                            }
+                          </button>
+                          {matchScores[job.id] != null && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${matchScores[job.id] >= 75 ? 'bg-green-100 text-green-700' : matchScores[job.id] >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600'}`}>
+                              {matchScores[job.id]}% match
+                            </span>
+                          )}
                           <span className="text-[10px] text-gray-400">
                             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
                           </span>

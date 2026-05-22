@@ -17,6 +17,9 @@ import {
     CreditCard,
     Calendar,
     Gift,
+    Bookmark,
+    PartyPopper,
+    Bell,
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -24,11 +27,13 @@ import NotificationCenter from '@/components/NotificationCenter';
 const getNavigation = (role?: string) => {
     if (role === 'candidate') {
         return [
-            { name: 'Profile', href: '/candidate/profile', icon: User },
             { name: 'Dashboard', href: '/candidate-dashboard', icon: LayoutDashboard },
-            { name: 'Assessments', href: '/candidate/assessments', icon: Video },
+            { name: 'Profile', href: '/candidate/profile', icon: User },
             { name: 'Jobs', href: '/candidate/jobs', icon: Briefcase },
-            { name: 'Applications', href: '/candidate/applications', icon: FileText },
+            { name: 'My Applications', href: '/candidate/applications', icon: FileText },
+            { name: 'Saved Jobs', href: '/candidate/saved-jobs', icon: Bookmark },
+            { name: 'Offers', href: '/candidate/offers', icon: PartyPopper },
+            { name: 'Assessments', href: '/candidate/assessments', icon: Video },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }

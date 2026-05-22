@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,13 +9,95 @@ import { useApplications } from '@/hooks/use-applications';
 import {
   ArrowLeft, Edit, Trash2, Save, X, MapPin, Briefcase,
   Banknote, Eye, Users, Calendar, CheckCircle, Pause, XCircle,
-  Wifi, Clock, CalendarDays, Share2, BookmarkPlus, Building2,
+  Wifi, Clock, CalendarDays, Share2, BookmarkPlus, BookmarkCheck, Building2,
   ChevronRight, Send, FileText, Sparkles,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { JobStatus, EmploymentType } from '@/types/api';
 import apiClient from '@/lib/api-client';
 import toast from 'react-hot-toast';
+import { useSavedJobs } from '@/hooks/use-saved-jobs';
+
+function InterviewPrepSection({ jobId }: { jobId: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<{ questions: string[]; tips: string[] } | null>(null);
+
+  const load = async () => {
+    if (data) { setOpen(true); return; }
+    setLoading(true);
+    try {
+      // We fetch prep against the job itself (using a stub application_id = job_id)
+      // The backend will fall back to generic questions if no real application exists
+      const res = await apiClient.get(`/candidate-portal/interview-prep/${jobId}`);
+      setData(res.data);
+      setOpen(true);
+    } catch {
+      toast.error('Could not generate interview prep');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <button
+        onClick={open ? () => setOpen(false) : load}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-gray-900">AI Interview Prep</p>
+            <p className="text-xs text-gray-400">Practice questions tailored to this role</p>
+          </div>
+        </div>
+        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+
+      {open && data && (
+        <div className="px-5 pb-5 border-t border-gray-50 pt-4 space-y-4">
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Likely Interview Questions</p>
+            <ol className="space-y-2">
+              {data.questions.map((q, i) => (
+                <li key={i} className="flex gap-2.5 text-sm">
+                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span className="text-gray-700 leading-relaxed">{q}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          {data.tips.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tips</p>
+              <ul className="space-y-1.5">
+                {data.tips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {loading && (
+        <div className="px-5 pb-4 border-t border-gray-50 pt-4 flex items-center gap-2 text-sm text-indigo-600">
+          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          Generating questions…
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 const jobSchema = z.object({
   title: z.string().min(1, 'Job title is required'),
@@ -132,6 +214,7 @@ export default function JobDetailPage() {
   const [skillInput, setSkillInput] = useState('');
   const { user } = useAuthStore();
   const isCandidate = user?.role === 'candidate';
+  const { savedIds, toggle: toggleSave } = useSavedJobs(isCandidate);
 
   const { data: job, isLoading } = useJob(id!);
   const { data: applicationsData } = useApplications({ job_id: id });
@@ -328,6 +411,13 @@ export default function JobDetailPage() {
                 {isClosed ? 'Applications Closed' : job.status !== 'active' ? 'Not Accepting Applications' : 'Apply Now'}
               </button>
               <button
+                onClick={() => id && toggleSave(id)}
+                className={`p-3 rounded-xl transition-colors ${id && savedIds.has(id) ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                title={id && savedIds.has(id) ? 'Remove from saved' : 'Save job'}
+              >
+                {id && savedIds.has(id) ? <BookmarkCheck className="w-5 h-5" /> : <BookmarkPlus className="w-5 h-5" />}
+              </button>
+              <button
                 onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); }}
                 className="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"
               >
@@ -381,6 +471,9 @@ export default function JobDetailPage() {
               <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.benefits}</div>
             </div>
           )}
+
+          {/* Interview Prep AI — shown only after applying */}
+          <InterviewPrepSection jobId={id!} />
 
           {/* Sticky bottom apply bar */}
           <div className="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-100 -mx-4 px-4 py-4 mt-6">

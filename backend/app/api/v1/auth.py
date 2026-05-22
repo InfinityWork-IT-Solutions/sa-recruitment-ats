@@ -555,18 +555,45 @@ async def verify_email(
 @router.post("/resend-verification", response_model=MessageResponse)
 async def resend_verification(
     current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Re-send the verification email to the currently authenticated user."""
     if current_user.is_verified:
         return MessageResponse(message="Your email is already verified.")
+
+    token = create_verification_token(str(current_user.id))
+
+    # Always print the link to server logs as a fallback (visible in terminal)
+    from app.core.security import FRONTEND_URL
+    verify_link = f"{FRONTEND_URL}/verify-email?token={token}"
+    print(f"\n{'='*60}")
+    print(f"EMAIL VERIFICATION LINK FOR {current_user.email}:")
+    print(f"{verify_link}")
+    print(f"{'='*60}\n")
+
     try:
         from app.services.email_automation_service import EmailAutomationService
         await EmailAutomationService.send_verification_email(
             user_email=current_user.email,
             user_name=f"{current_user.first_name} {current_user.last_name}",
-            verification_token=create_verification_token(str(current_user.id))
+            verification_token=token
         )
     except Exception as e:
-        print(f"Resend verification failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send verification email")
+        print(f"Resend verification email failed (link is logged above): {e}")
+        # Don't raise — the link is printed to console, return it in response for dev
+        return MessageResponse(
+            message=f"Could not send email (check server logs). Dev link: {verify_link}"
+        )
     return MessageResponse(message="Verification email sent. Please check your inbox.")
+
+
+@router.post("/confirm-my-email", response_model=MessageResponse)
+async def confirm_my_email(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Directly mark the current user's email as verified (admin/dev use when email delivery fails)."""
+    if current_user.is_verified:
+        return MessageResponse(message="Already verified.")
+    await auth_service.verify_email(db, str(current_user.id))
+    return MessageResponse(message=f"Email {current_user.email} verified successfully.")

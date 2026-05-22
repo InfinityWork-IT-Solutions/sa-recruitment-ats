@@ -42,6 +42,9 @@ import CreateJobPage from './pages/jobs/CreateJobPage';
 // Candidates
 import CandidateDetailPage from './pages/candidates/CandidateDetailPage';
 import MyAssessments from './pages/candidates/MyAssessments';
+import ApplicationTrackerPage from './pages/candidates/ApplicationTrackerPage';
+import SavedJobsPage from './pages/candidates/SavedJobsPage';
+import OfferViewPage from './pages/candidates/OfferViewPage';
 
 // Applications
 import ApplicationsPage from './pages/applications/ApplicationsPage';
@@ -235,7 +238,9 @@ function App() {
             <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
             <Route path="/candidate/profile" element={<CandidateProfilePage />} />
             <Route path="/candidate/jobs" element={<JobsPage />} />
-            <Route path="/candidate/applications" element={<ApplicationsPage />} />
+            <Route path="/candidate/applications" element={<ApplicationTrackerPage />} />
+            <Route path="/candidate/saved-jobs" element={<SavedJobsPage />} />
+            <Route path="/candidate/offers" element={<OfferViewPage />} />
             <Route path="/candidate/assessments" element={<MyAssessments />} />
             <Route path="/candidate-dashboard" element={<Navigate to="/candidate/assessments" replace />} />
           </Route>

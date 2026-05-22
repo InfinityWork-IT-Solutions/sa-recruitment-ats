@@ -1,97 +1,282 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
-import { Briefcase, FileText, CheckCircle, Search, MapPin, DollarSign, Clock } from 'lucide-react';
+import {
+  Briefcase, CheckCircle, Bookmark, Search, MapPin, Banknote,
+  Clock, ChevronRight, Sparkles, TrendingUp, FileText,
+  AlertCircle, Bell, CircleDashed,
+} from 'lucide-react';
+import apiClient from '@/lib/api-client';
+import { formatDistanceToNow } from 'date-fns';
+
+const STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  applied:           { label: 'Applied',            color: 'bg-blue-100 text-blue-700' },
+  screening:         { label: 'Screening',           color: 'bg-yellow-100 text-yellow-700' },
+  shortlisted:       { label: 'Shortlisted',         color: 'bg-purple-100 text-purple-700' },
+  interview_scheduled: { label: 'Interview',         color: 'bg-indigo-100 text-indigo-700' },
+  interviewed:       { label: 'Interviewed',         color: 'bg-violet-100 text-violet-700' },
+  offer_pending:     { label: 'Offer Pending',        color: 'bg-orange-100 text-orange-700' },
+  offer_made:        { label: 'Offer Received',       color: 'bg-green-100 text-green-700' },
+  offer_accepted:    { label: 'Offer Accepted',       color: 'bg-emerald-100 text-emerald-700' },
+  hired:             { label: 'Hired',                color: 'bg-green-200 text-green-800' },
+  rejected:          { label: 'Not Selected',         color: 'bg-red-100 text-red-700' },
+  withdrawn:         { label: 'Withdrawn',            color: 'bg-gray-100 text-gray-500' },
+};
 
 export default function CandidateDashboard() {
-  const user = useAuthStore((state) => state.user);
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
 
-  // Mock data for UI demonstration
-  const stats = [
-    { label: 'Applied Jobs', count: 12, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: 'Interviews', count: 2, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' },
-    { label: 'Saved Jobs', count: 8, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-100' },
-  ];
+  const [apps, setApps] = useState<any[]>([]);
+  const [savedJobs, setSavedJobs] = useState<any[]>([]);
+  const [completeness, setCompleteness] = useState<{ score: number; missing: string[] } | null>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingApps, setLoadingApps] = useState(true);
+  const [loadingSaved, setLoadingSaved] = useState(true);
 
-  const matchedJobs = [
-    { title: 'Frontend Developer', company: 'TechSolutions', location: 'Cape Town', salary: 'R45k - R60k', score: 95, time: '2 hours ago' },
-    { title: 'Fullstack Engineer', company: 'GlobalDev', location: 'Johannesburg', salary: 'R55k - R75k', score: 88, time: '1 day ago' },
-    { title: 'React Expert', company: 'InnoHire', location: 'Remote', salary: 'R50k - R70k', score: 82, time: '3 days ago' },
-  ];
+  useEffect(() => {
+    apiClient.get('/candidate-portal/my-applications')
+      .then(r => setApps(r.data))
+      .catch(() => {})
+      .finally(() => setLoadingApps(false));
+
+    apiClient.get('/candidate-portal/saved-jobs')
+      .then(r => setSavedJobs(r.data))
+      .catch(() => {})
+      .finally(() => setLoadingSaved(false));
+
+    apiClient.get('/candidate-portal/profile-completeness')
+      .then(r => setCompleteness(r.data))
+      .catch(() => {});
+
+    apiClient.get('/candidate-portal/job-alerts')
+      .then(r => setAlerts(r.data))
+      .catch(() => {});
+  }, []);
+
+  const activeApps = apps.filter(a => !['rejected', 'withdrawn', 'hired'].includes(a.status));
+  const interviewApps = apps.filter(a => a.status === 'interview_scheduled');
+  const offerApps = apps.filter(a => ['offer_made', 'offer_pending'].includes(a.status));
 
   return (
-    <div className="space-y-8 p-6 animate-in fade-in duration-700">
-      <header className="flex justify-between items-center">
+    <div className="space-y-6 p-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.first_name}!</h1>
-          <p className="text-gray-600 mt-1">Check out your latest career opportunities.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {user?.first_name}!
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">Here's your job search overview.</p>
         </div>
-        <button className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition flex items-center shadow-md active:transform active:scale-95">
-          <Search className="w-4 h-4 mr-2" />
-          Find More Jobs
-        </button>
-      </header>
+        <Link
+          to="/candidate/jobs"
+          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition flex items-center gap-2 shadow-sm"
+        >
+          <Search className="w-4 h-4" /> Find Jobs
+        </Link>
+      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition">
-            <div className="flex items-center gap-4">
-              <div className={`${stat.bg} p-3 rounded-lg`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stat.count}</p>
-              </div>
+      {/* Profile completeness banner */}
+      {completeness && completeness.score < 100 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-sm font-semibold text-amber-800">
+                Profile {completeness.score}% complete
+              </p>
+              <Link to="/candidate/profile" className="text-xs font-semibold text-amber-700 hover:underline">
+                Complete profile →
+              </Link>
             </div>
+            <div className="w-full bg-amber-100 rounded-full h-1.5 mb-2">
+              <div
+                className="bg-amber-500 h-1.5 rounded-full transition-all"
+                style={{ width: `${completeness.score}%` }}
+              />
+            </div>
+            {completeness.missing.length > 0 && (
+              <p className="text-xs text-amber-700">
+                Missing: {completeness.missing.slice(0, 3).join(', ')}
+                {completeness.missing.length > 3 && ` +${completeness.missing.length - 3} more`}
+              </p>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Applications', value: apps.length, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', link: '/candidate/applications' },
+          { label: 'Active', value: activeApps.length, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50', link: '/candidate/applications' },
+          { label: 'Saved Jobs', value: loadingSaved ? '…' : savedJobs.length, icon: Bookmark, color: 'text-purple-600', bg: 'bg-purple-50', link: '/candidate/saved-jobs' },
+          { label: 'Job Alerts', value: alerts.length, icon: Bell, color: 'text-orange-600', bg: 'bg-orange-50', link: '/candidate/profile' },
+        ].map((s) => (
+          <Link key={s.label} to={s.link} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+            <div className={`${s.bg} w-9 h-9 rounded-xl flex items-center justify-center mb-3`}>
+              <s.icon className={`w-5 h-5 ${s.color}`} />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{loadingApps && s.label !== 'Saved Jobs' && s.label !== 'Job Alerts' ? '…' : s.value}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">{s.label}</p>
+          </Link>
         ))}
       </div>
 
-      {/* AI Matched Jobs Section */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <span className="bg-green-500 w-2 h-8 rounded-full mr-3"></span>
-            AI Recommendations for You
-          </h2>
-          <span className="text-green-600 font-semibold cursor-pointer hover:underline">See all matches</span>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Recent Applications — left col */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-400" /> My Applications
+            </h2>
+            <Link to="/candidate/applications" className="text-xs text-blue-600 font-semibold hover:underline">
+              View all →
+            </Link>
+          </div>
+
+          {loadingApps ? (
+            <div className="space-y-3 p-4">
+              {[1,2,3].map(i => (
+                <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : apps.length === 0 ? (
+            <div className="py-10 text-center">
+              <CircleDashed className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No applications yet</p>
+              <Link to="/candidate/jobs" className="text-xs text-blue-600 font-semibold mt-1 inline-block hover:underline">
+                Browse jobs →
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {apps.slice(0, 5).map((app) => {
+                const st = STATUS_LABEL[app.status] ?? { label: app.status, color: 'bg-gray-100 text-gray-600' };
+                return (
+                  <Link
+                    key={app.id}
+                    to="/candidate/applications"
+                    className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{app.job_title || 'Job'}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {app.job_location && (
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />{app.job_location}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDistanceToNow(new Date(app.updated_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-3 ${st.color}`}>
+                      {st.label}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          {matchedJobs.map((job, i) => (
-            <div key={i} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:border-green-300 transition-all hover:translate-x-1 group">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-gray-400 group-hover:bg-green-100 group-hover:text-green-600 transition">
-                    {job.company[0]}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition">{job.title}</h3>
-                    <div className="flex flex-wrap gap-4 mt-1 text-sm text-gray-500">
-                      <span className="flex items-center"><MapPin className="w-4 h-4 mr-1 text-gray-400" /> {job.location}</span>
-                      <span className="flex items-center"><Briefcase className="w-4 h-4 mr-1 text-gray-400" /> {job.company}</span>
-                      <span className="flex items-center"><DollarSign className="w-4 h-4 mr-1 text-gray-400" /> {job.salary}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-green-600">{job.score}%</p>
-                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-tighter">AI Match</p>
-                  </div>
-                  <button className="bg-gray-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-green-600 transition-all shadow-sm">
-                    View & Apply
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between text-[11px] text-gray-400 font-medium">
-                <span className="flex items-center"><Clock className="w-3 h-3 mr-1" /> Posted {job.time}</span>
-                <span className="uppercase bg-gray-100 px-2 py-0.5 rounded">Full Time</span>
-              </div>
+        {/* Right col */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Offers / Interviews alert */}
+          {(offerApps.length > 0 || interviewApps.length > 0) && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4">
+              <h3 className="font-semibold text-green-800 text-sm mb-2 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4" /> Action Required
+              </h3>
+              {offerApps.map(a => (
+                <p key={a.id} className="text-xs text-green-700 mb-1">
+                  🎉 You have an offer for <strong>{a.job_title}</strong>
+                </p>
+              ))}
+              {interviewApps.map(a => (
+                <p key={a.id} className="text-xs text-green-700 mb-1">
+                  📅 Interview scheduled for <strong>{a.job_title}</strong>
+                </p>
+              ))}
+              <Link to="/candidate/applications" className="text-xs font-semibold text-green-700 hover:underline mt-1 inline-block">
+                View details →
+              </Link>
             </div>
-          ))}
+          )}
+
+          {/* Saved Jobs */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2 text-sm">
+                <Bookmark className="w-4 h-4 text-gray-400" /> Saved Jobs
+              </h2>
+              <Link to="/candidate/saved-jobs" className="text-xs text-blue-600 font-semibold hover:underline">
+                View all →
+              </Link>
+            </div>
+            {loadingSaved ? (
+              <div className="p-4 space-y-2">
+                {[1,2].map(i => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
+              </div>
+            ) : savedJobs.length === 0 ? (
+              <div className="py-6 text-center">
+                <p className="text-xs text-gray-400">No saved jobs yet</p>
+                <Link to="/candidate/jobs" className="text-xs text-blue-600 font-semibold mt-1 inline-block hover:underline">Browse jobs →</Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {savedJobs.slice(0, 3).map((sj) => (
+                  <Link
+                    key={sj.id}
+                    to={`/jobs/${sj.job_id}`}
+                    className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{sj.job?.title ?? 'Job'}</p>
+                      <p className="text-xs text-gray-400">{sj.job?.city ?? ''}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Job Alerts */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <Bell className="w-4 h-4 text-gray-400" /> Job Alerts
+              </h2>
+            </div>
+            {alerts.length === 0 ? (
+              <div className="text-center py-2">
+                <p className="text-xs text-gray-400 mb-2">No active job alerts</p>
+                <Link
+                  to="/candidate/profile"
+                  className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-100 transition-colors"
+                >
+                  Set up alerts →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {alerts.slice(0, 3).map((a) => (
+                  <div key={a.id} className="flex items-center justify-between">
+                    <p className="text-xs text-gray-700 font-medium">{a.name}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${a.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {a.is_active ? 'Active' : 'Paused'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\mpume\\\\Documents\\\\PROJECTS\\\\sa-recruitment-ats\" -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(ls \"c:\\\\Users\\\\mpume\\\\Documents\\\\PROJECTS\\\\sa-recruitment-ats\" | Where-Object { $_.PSIsContainer } | ForEach-Object { $_.Name })",
+      "Bash(python -m alembic revision --autogenerate -m \"add notification preferences\")",
+      "Bash(alembic revision *)",
+      "Bash(.venv/Scripts/alembic revision *)",
+      "Bash(xargs grep -l \"company_logo\\\\|company_name\")",
+      "Bash(npx tsc *)",
+      "Bash(findstr /i \"pyotp qrcode\")",
+      "Bash(python -m alembic heads)",
+      "Bash(..\\\\\\\\.venv\\\\\\\\Scripts\\\\\\\\alembic heads *)",
+      "Bash(xargs grep \"^Revision ID:\")",
+      "Bash(grep -v \"Revises: $\")",
+      "Bash(npm install *)",
+      "Bash(./venv/Scripts/alembic.exe upgrade *)",
+      "Bash(./venv/Scripts/pip.exe install *)"
+    ]
+  }
+}

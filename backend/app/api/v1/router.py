@@ -30,6 +30,7 @@ from app.api.v1 import (
     saved_searches,
     email_sequences,
     team,
+    candidate_portal,
 )
 
 # Create main API router
@@ -209,6 +210,13 @@ api_router.include_router(
 api_router.include_router(
     team.router,
     tags=["Team & Bulk Actions"]
+)
+
+# Candidate self-service portal
+api_router.include_router(
+    candidate_portal.router,
+    prefix="/candidate-portal",
+    tags=["Candidate Portal"]
 )
 
 

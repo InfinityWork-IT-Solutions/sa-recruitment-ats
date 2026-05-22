@@ -47,6 +47,8 @@ from app.models.onboarding import OnboardingChecklist, OnboardingChecklistItem, 
 from app.models.career_page import CareerPage
 from app.models.saved_search import SavedSearch, SearchType
 from app.models.email_sequence import EmailSequence, EmailSequenceStep, EmailSequenceEnrollment, SequenceTriggerEvent
+from app.models.saved_job import SavedJob
+from app.models.job_alert import JobAlert
 
 __all__ = [
     "Agency",
@@ -113,4 +115,6 @@ __all__ = [
     "EmailSequenceStep",
     "EmailSequenceEnrollment",
     "SequenceTriggerEvent",
+    "SavedJob",
+    "JobAlert",
 ]
