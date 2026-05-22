@@ -62,6 +62,21 @@ async def list_saved_jobs(
     return result.scalars().all()
 
 
+# NOTE: /saved-jobs/ids MUST be registered before /saved-jobs/{job_id} so
+# FastAPI doesn't try to parse "ids" as a UUID path parameter.
+@router.get("/saved-jobs/ids", response_model=List[str])
+async def list_saved_job_ids(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return just the job IDs the candidate has saved (for UI state)."""
+    _require_candidate(current_user)
+    result = await db.execute(
+        select(SavedJob.job_id).where(SavedJob.candidate_user_id == current_user.id)
+    )
+    return [str(r) for r in result.scalars().all()]
+
+
 @router.post("/saved-jobs/{job_id}", status_code=201)
 async def save_job(
     job_id: UUID,
@@ -100,19 +115,6 @@ async def unsave_job(
     )
     await db.commit()
     return {"message": "Job removed from saved"}
-
-
-@router.get("/saved-jobs/ids", response_model=List[str])
-async def list_saved_job_ids(
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Return just the job IDs the candidate has saved (for UI state)."""
-    _require_candidate(current_user)
-    result = await db.execute(
-        select(SavedJob.job_id).where(SavedJob.candidate_user_id == current_user.id)
-    )
-    return [str(r) for r in result.scalars().all()]
 
 
 # ─── Job Alerts ───────────────────────────────────────────────────────────────

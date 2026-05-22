@@ -185,18 +185,24 @@ class JobBrief(BaseModel):
     id: UUID
     reference: str
     title: str
+    description: Optional[str] = None
     location: str
+    city: Optional[str] = None
+    province: Optional[str] = None
     employment_type: EmploymentType
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
+    salary_currency: Optional[str] = None
     show_salary: bool
     status: JobStatus
     is_urgent: bool
     is_remote: bool
+    skills: Optional[List[str]] = None
+    views_count: int = 0
     applications_count: int
     created_at: datetime
     closing_date: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
