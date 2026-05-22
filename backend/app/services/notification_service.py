@@ -110,3 +110,6 @@ class NotificationService:
             await db.commit()
             return True
         return False
+
+
+notification_service = NotificationService()
