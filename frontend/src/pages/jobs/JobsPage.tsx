@@ -231,8 +231,9 @@ export default function JobsPage() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                            <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors text-[15px]">
+                          {/* Title + urgency badges */}
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors text-[15px] leading-snug">
                               {job.title}
                             </h3>
                             {isClosingSoon && !isClosed && (
@@ -242,7 +243,8 @@ export default function JobsPage() {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
+                          {/* Meta row */}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-2">
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
                               {job.location || `${job.city || ''}${job.province ? ', ' + job.province : ''}`}
@@ -263,24 +265,30 @@ export default function JobsPage() {
                             {job.closing_date && (
                               <span className={`flex items-center gap-1 ${isClosed ? 'text-red-500' : isClosingSoon ? 'text-orange-500' : ''}`}>
                                 <CalendarDays className="w-3 h-3" />
-                                {isClosed
-                                  ? 'Closed'
-                                  : `Closes ${format(new Date(job.closing_date), 'dd MMM yyyy')}`}
+                                {isClosed ? 'Closed' : `Closes ${format(new Date(job.closing_date), 'dd MMM yyyy')}`}
                               </span>
                             )}
                           </div>
 
+                          {/* Description snippet */}
+                          {job.description && (
+                            <p className="text-xs text-gray-500 leading-relaxed mb-2.5 line-clamp-2">
+                              {job.description.slice(0, 200)}{job.description.length > 200 ? '…' : ''}
+                            </p>
+                          )}
+
+                          {/* Type badge + skills */}
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${typeColors[job.employment_type] || 'bg-gray-50 text-gray-600 border-gray-100'}`}>
                               {employmentTypeLabels[job.employment_type]}
                             </span>
-                            {job.skills?.filter(s => s.trim()).slice(0, 4).map((skill) => (
-                              <span key={skill} className="text-[10px] font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                            {job.skills?.filter(s => s.trim()).slice(0, 5).map((skill) => (
+                              <span key={skill} className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
                                 {skill}
                               </span>
                             ))}
-                            {(job.skills?.length ?? 0) > 4 && (
-                              <span className="text-[10px] text-gray-400">+{(job.skills?.length ?? 0) - 4} more</span>
+                            {(job.skills?.length ?? 0) > 5 && (
+                              <span className="text-[10px] text-gray-400 font-medium">+{(job.skills?.length ?? 0) - 5} more</span>
                             )}
                           </div>
                         </div>

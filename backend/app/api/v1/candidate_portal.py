@@ -32,7 +32,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _require_candidate(current_user: User):
-    if current_user.role not in [UserRole.CANDIDATE, UserRole.SUPER_ADMIN]:
+    if current_user.role not in [UserRole.candidate, UserRole.super_admin]:
         raise HTTPException(status_code=403, detail="Candidate access required")
     return current_user
 
