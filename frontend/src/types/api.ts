@@ -43,7 +43,7 @@ export interface Job {
     location: string;
     city: string | null;
     province: string | null;
-    country: string;
+    country: string | null;
     is_remote: boolean;
     remote_type: string | null;
     employment_type: EmploymentType;
@@ -54,13 +54,16 @@ export interface Job {
     skills: string[];
     salary_min: number | null;
     salary_max: number | null;
-    salary_currency: string;
+    salary_currency: string | null;
+    salary_period: string | null;
     status: JobStatus;
     applications_count: number;
     views_count: number;
     created_at: string;
     updated_at: string;
     expires_at: string | null;
+    closing_date: string | null;
+    published_at: string | null;
 }
 
 export type EmploymentType = 'full_time' | 'part_time' | 'contract' | 'temporary' | 'internship' | 'freelance';

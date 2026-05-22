@@ -153,9 +153,9 @@ class JobResponse(JobBase):
     status: JobStatus
     
     # Computed fields
-    country: str
-    salary_currency: str
-    salary_period: str
+    country: Optional[str] = None
+    salary_currency: Optional[str] = None
+    salary_period: Optional[str] = None
     
     # Multi-board IDs
     pnet_job_id: Optional[str] = None

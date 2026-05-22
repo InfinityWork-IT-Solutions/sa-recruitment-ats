@@ -30,6 +30,10 @@ export interface CreateJobData {
     skills?: string[];
     salary_min?: number;
     salary_max?: number;
+    show_salary?: boolean;
+    is_remote?: boolean;
+    remote_type?: string;
+    closing_date?: string;
     // Integration platforms
     post_to_pnet?: boolean;
     post_to_indeed?: boolean;
