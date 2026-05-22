@@ -41,6 +41,12 @@ from app.models.subscription import (
 )
 from app.models.notification import Notification
 from app.models.notification_preference import NotificationPreference
+from app.models.comment import ApplicationComment
+from app.models.scorecard import InterviewScorecard, ScorecardRecommendation
+from app.models.onboarding import OnboardingChecklist, OnboardingChecklistItem, ChecklistItemCategory
+from app.models.career_page import CareerPage
+from app.models.saved_search import SavedSearch, SearchType
+from app.models.email_sequence import EmailSequence, EmailSequenceStep, EmailSequenceEnrollment, SequenceTriggerEvent
 
 __all__ = [
     "Agency",
@@ -94,4 +100,17 @@ __all__ = [
     "PayFastWebhook",
     "Notification",
     "NotificationPreference",
+    "ApplicationComment",
+    "InterviewScorecard",
+    "ScorecardRecommendation",
+    "OnboardingChecklist",
+    "OnboardingChecklistItem",
+    "ChecklistItemCategory",
+    "CareerPage",
+    "SavedSearch",
+    "SearchType",
+    "EmailSequence",
+    "EmailSequenceStep",
+    "EmailSequenceEnrollment",
+    "SequenceTriggerEvent",
 ]

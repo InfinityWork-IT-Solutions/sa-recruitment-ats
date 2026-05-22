@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign, CheckCircle, XCircle, Clock, Briefcase, User,
-  Plus, X, TrendingUp, AlertCircle
+  Plus, X, TrendingUp, AlertCircle, ClipboardCheck
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -229,6 +229,15 @@ export default function OffersPage() {
                         >
                           <CheckCircle className="w-4 h-4" />
                           Mark Hired
+                        </button>
+                      )}
+                      {offer.status === 'hired' && (
+                        <button
+                          onClick={() => navigate(`/company/onboarding/${offer.id}`)}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-1.5"
+                        >
+                          <ClipboardCheck className="w-4 h-4" />
+                          Start Onboarding
                         </button>
                       )}
                       <button

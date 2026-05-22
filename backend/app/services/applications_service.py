@@ -139,7 +139,9 @@ class ApplicationService:
         if filters.candidate_id:
             query = query.where(Application.candidate_id == filters.candidate_id)
         
-        if filters.status:
+        if filters.statuses:
+            query = query.where(Application.status.in_(filters.statuses))
+        elif filters.status:
             query = query.where(Application.status == filters.status)
         
         if filters.assigned_to:
@@ -479,6 +481,74 @@ class ApplicationService:
             "avg_time_to_hire_days": None,  # TODO: Calculate
             "conversion_rates": conversion_rates
         }
+
+
+    @staticmethod
+    async def bulk_move_stage(
+        db: AsyncSession,
+        application_ids: List[UUID],
+        new_status: ApplicationStatus,
+        moved_by: UUID,
+    ) -> int:
+        """Move multiple applications to a new pipeline stage."""
+        result = await db.execute(
+            select(Application).where(Application.id.in_(application_ids))
+        )
+        applications = result.scalars().all()
+        for app in applications:
+            app.status = new_status
+            app.updated_at = datetime.utcnow()
+            app.add_status_change(new_status, moved_by)
+        await db.commit()
+        return len(applications)
+
+    @staticmethod
+    async def bulk_reject(
+        db: AsyncSession,
+        application_ids: List[UUID],
+        reason,
+        notes: str,
+        rejected_by: UUID,
+        send_email: bool = False,
+    ) -> int:
+        """Reject multiple applications at once."""
+        from app.models.application import RejectionReason
+        result = await db.execute(
+            select(Application).where(Application.id.in_(application_ids))
+        )
+        applications = result.scalars().all()
+        for app in applications:
+            if app.status not in (ApplicationStatus.hired, ApplicationStatus.rejected):
+                app.reject(reason, notes, rejected_by)
+                app.add_status_change(ApplicationStatus.rejected, rejected_by)
+        await db.commit()
+        return len(applications)
+
+    @staticmethod
+    async def bulk_email(
+        db: AsyncSession,
+        application_ids: List[UUID],
+        subject: str,
+        body: str,
+        sender_id: UUID,
+    ) -> int:
+        """Send a custom email to candidates of multiple applications."""
+        result = await db.execute(
+            select(Application).where(Application.id.in_(application_ids))
+        )
+        applications = result.scalars().all()
+        # Log in communication_log; actual email sending handled by email_service
+        for app in applications:
+            log = app.communication_log or []
+            log.append({
+                "date": datetime.utcnow().isoformat(),
+                "type": "email",
+                "subject": subject,
+                "from": str(sender_id),
+            })
+            app.communication_log = log
+        await db.commit()
+        return len(applications)
 
 
 # Create service instance

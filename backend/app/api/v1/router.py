@@ -21,7 +21,15 @@ from app.api.v1 import (
     my_assessments,
     subscription,
     notifications,
-    templates
+    templates,
+    ai_tools,
+    comments,
+    scorecards,
+    onboarding,
+    career_page,
+    saved_searches,
+    email_sequences,
+    team,
 )
 
 # Create main API router
@@ -149,6 +157,58 @@ api_router.include_router(
     templates.router,
     prefix="/templates",
     tags=["Email Templates"]
+)
+
+# AI Tools (JD generation, interview questions, salary benchmark)
+api_router.include_router(
+    ai_tools.router,
+    prefix="/ai",
+    tags=["AI Tools"]
+)
+
+# Application Comments
+api_router.include_router(
+    comments.router,
+    prefix="/applications",
+    tags=["Application Comments"]
+)
+
+# Interview Scorecards
+api_router.include_router(
+    scorecards.router,
+    prefix="/applications",
+    tags=["Interview Scorecards"]
+)
+
+# Onboarding Checklists
+api_router.include_router(
+    onboarding.router,
+    prefix="/applications",
+    tags=["Onboarding"]
+)
+
+# Career Page (includes public /p/{slug} route — no prefix)
+api_router.include_router(
+    career_page.router,
+    tags=["Career Page"]
+)
+
+# Saved Searches (no prefix — routes are /saved-searches)
+api_router.include_router(
+    saved_searches.router,
+    tags=["Saved Searches"]
+)
+
+# Email Sequences (no prefix — routes are /email-sequences)
+api_router.include_router(
+    email_sequences.router,
+    tags=["Email Sequences"]
+)
+
+# Team members + bulk application actions
+api_router.include_router(
+    team.router,
+    tags=["Team & Bulk Actions"]
 )
 
 

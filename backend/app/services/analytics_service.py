@@ -427,5 +427,144 @@ class AnalyticsService:
         return output.getvalue()
 
 
+    # ============= Custom Reports & Predictions =============
+
+    @staticmethod
+    async def get_custom_report(
+        db: AsyncSession,
+        agency_id: UUID,
+        metrics: List[str],
+        group_by: str = "month",
+        period_days: int = 90,
+        company_id: Optional[UUID] = None,
+    ) -> Dict:
+        """Dynamic custom report builder. Supported metrics: applications, hires, rejections, interviews, offers, time_to_hire, source_breakdown."""
+        period_start = datetime.utcnow() - timedelta(days=period_days)
+        base_filters = [Application.agency_id == agency_id, Application.created_at >= period_start]
+        if company_id:
+            base_filters.append(Application.client_company_id == company_id)
+
+        results = {}
+
+        if "applications" in metrics:
+            r = await db.execute(select(func.count(Application.id)).where(*base_filters))
+            results["applications"] = r.scalar() or 0
+
+        if "hires" in metrics:
+            r = await db.execute(select(func.count(Application.id)).where(*base_filters, Application.status == ApplicationStatus.hired))
+            results["hires"] = r.scalar() or 0
+
+        if "rejections" in metrics:
+            r = await db.execute(select(func.count(Application.id)).where(*base_filters, Application.status == ApplicationStatus.rejected))
+            results["rejections"] = r.scalar() or 0
+
+        if "interviews" in metrics:
+            r = await db.execute(select(func.count(Application.id)).where(*base_filters, Application.status.in_([ApplicationStatus.interview_scheduled, ApplicationStatus.interviewed])))
+            results["interviews"] = r.scalar() or 0
+
+        if "offers" in metrics:
+            r = await db.execute(select(func.count(Application.id)).where(*base_filters, Application.status.in_([ApplicationStatus.offer_made, ApplicationStatus.offer_accepted])))
+            results["offers"] = r.scalar() or 0
+
+        if "source_breakdown" in metrics:
+            r = await db.execute(
+                select(Application.source, func.count(Application.id)).where(*base_filters).group_by(Application.source)
+            )
+            results["source_breakdown"] = {row[0].value: row[1] for row in r.all()}
+
+        # Group by month if requested
+        if group_by == "month":
+            r = await db.execute(
+                select(
+                    func.date_trunc('month', Application.created_at).label("month"),
+                    func.count(Application.id).label("count"),
+                ).where(*base_filters).group_by(func.date_trunc('month', Application.created_at)).order_by("month")
+            )
+            results["by_month"] = [
+                {"month": row.month.strftime("%Y-%m"), "count": row.count}
+                for row in r.all()
+            ]
+
+        return {
+            "period_days": period_days,
+            "metrics": metrics,
+            "group_by": group_by,
+            "data": results,
+        }
+
+    @staticmethod
+    async def get_predictions(
+        db: AsyncSession,
+        agency_id: UUID,
+        company_id: Optional[UUID] = None,
+    ) -> Dict:
+        """AI-powered predictive analytics using historical hiring data."""
+        import json, os
+        import openai
+
+        # Gather historical data
+        period_start = datetime.utcnow() - timedelta(days=180)
+        base = [Application.agency_id == agency_id, Application.created_at >= period_start]
+        if company_id:
+            base.append(Application.client_company_id == company_id)
+
+        total_r = await db.execute(select(func.count(Application.id)).where(*base))
+        hired_r = await db.execute(select(func.count(Application.id)).where(*base, Application.status == ApplicationStatus.hired))
+        rejected_r = await db.execute(select(func.count(Application.id)).where(*base, Application.status == ApplicationStatus.rejected))
+
+        total = total_r.scalar() or 0
+        hired = hired_r.scalar() or 0
+        rejected = rejected_r.scalar() or 0
+        hire_rate = round((hired / total) * 100, 1) if total > 0 else 0
+
+        source_r = await db.execute(
+            select(Application.source, func.count(Application.id).label("cnt"))
+            .where(*base).group_by(Application.source).order_by(func.count(Application.id).desc()).limit(1)
+        )
+        top_source_row = source_r.first()
+        top_source = top_source_row[0].value if top_source_row else "direct"
+
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key:
+            return {
+                "hire_rate": hire_rate,
+                "top_source": top_source,
+                "predictions": {"message": "AI predictions require OpenAI API key"},
+            }
+
+        client = openai.AsyncOpenAI(api_key=api_key)
+        prompt = f"""You are a South African recruitment analytics expert. Based on this hiring data from the last 6 months, provide actionable predictions:
+
+Data:
+- Total applications: {total}
+- Hired: {hired} ({hire_rate}% hire rate)
+- Rejected: {rejected}
+- Top performing source: {top_source}
+
+Return JSON with:
+{{
+  "estimated_time_to_fill_days": <integer>,
+  "best_candidate_source": "{top_source}",
+  "salary_competitiveness": "competitive | below_market | above_market",
+  "hiring_velocity_trend": "increasing | stable | decreasing",
+  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"],
+  "risk_factors": ["risk 1", "risk 2"]
+}}
+"""
+        response = await client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4"),
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+        )
+        predictions = json.loads(response.choices[0].message.content)
+        return {
+            "hire_rate": hire_rate,
+            "top_source": top_source,
+            "total_applications_6mo": total,
+            "predictions": predictions,
+        }
+
+
 # Create service instance
 analytics_service = AnalyticsService()

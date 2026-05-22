@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApplication, useScreenApplication, useScheduleInterview, useCompleteInterview, useMakeOffer, useHireCandidate, useRejectApplication } from '@/hooks/use-applications';
 import {
@@ -15,11 +15,23 @@ import {
     Award,
     Mail,
     Sparkles,
+    Send,
+    Trash2,
+    ClipboardList,
 } from 'lucide-react';
 import EmailCandidateModal from '@/components/EmailCandidateModal';
 import { format } from 'date-fns';
 import { ApplicationStatus } from '@/types/api';
 import { useAuthStore } from '@/store/auth';
+import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
+
+const RECOMMENDATION_LABELS: Record<string, { label: string; color: string }> = {
+    strong_hire: { label: 'Strong Hire', color: 'bg-green-100 text-green-800' },
+    hire: { label: 'Hire', color: 'bg-blue-100 text-blue-800' },
+    maybe: { label: 'Maybe', color: 'bg-yellow-100 text-yellow-800' },
+    no_hire: { label: 'No Hire', color: 'bg-red-100 text-red-800' },
+};
 
 const statusColors: Record<ApplicationStatus, string> = {
     applied: 'bg-gray-100 text-gray-800',
@@ -49,6 +61,12 @@ export default function ApplicationDetailPage() {
     const navigate = useNavigate();
     const [activeModal, setActiveModal] = useState<ActionModal>(null);
     const [emailModalOpen, setEmailModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'scorecards'>('details');
+    const [comments, setComments] = useState<any[]>([]);
+    const [scorecards, setScorecards] = useState<any[]>([]);
+    const [newComment, setNewComment] = useState('');
+    const [commentLoading, setCommentLoading] = useState(false);
+    const commentEndRef = useRef<HTMLDivElement>(null);
 
     // Form states
     const [screenData, setScreenData] = useState({ passed: true, score: 0, notes: '' });
@@ -58,6 +76,37 @@ export default function ApplicationDetailPage() {
     const [rejectData, setRejectData] = useState({ reason: '', notes: '' });
 
     const { data: application, isLoading } = useApplication(id!);
+
+    useEffect(() => {
+        if (!id) return;
+        apiClient.get(`/applications/${id}/comments`).then(r => setComments(r.data || [])).catch(() => {});
+        apiClient.get(`/applications/${id}/scorecards`).then(r => setScorecards(r.data || [])).catch(() => {});
+    }, [id]);
+
+    const handleAddComment = async () => {
+        if (!newComment.trim()) return;
+        setCommentLoading(true);
+        try {
+            const res = await apiClient.post(`/applications/${id}/comments`, { content: newComment });
+            setComments(prev => [...prev, res.data]);
+            setNewComment('');
+            setTimeout(() => commentEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        } catch {
+            toast.error('Failed to add comment');
+        } finally {
+            setCommentLoading(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        try {
+            await apiClient.delete(`/applications/${id}/comments/${commentId}`);
+            setComments(prev => prev.filter(c => c.id !== commentId));
+        } catch {
+            toast.error('Failed to delete comment');
+        }
+    };
+
     const screenMutation = useScreenApplication();
     const scheduleInterviewMutation = useScheduleInterview();
     const completeInterviewMutation = useCompleteInterview();
@@ -382,6 +431,134 @@ export default function ApplicationDetailPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Comments & Scorecards Tabs */}
+            <div className="card">
+                <div className="flex border-b border-gray-200 mb-5 gap-1">
+                    {(['details', 'comments', 'scorecards'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors ${
+                                activeTab === tab
+                                    ? 'border-blue-600 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            {tab === 'comments' && <MessageSquare className="w-4 h-4" />}
+                            {tab === 'scorecards' && <ClipboardList className="w-4 h-4" />}
+                            {tab === 'details' && <User className="w-4 h-4" />}
+                            <span className="capitalize">{tab}</span>
+                            {tab === 'comments' && comments.length > 0 && (
+                                <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{comments.length}</span>
+                            )}
+                            {tab === 'scorecards' && scorecards.length > 0 && (
+                                <span className="bg-purple-100 text-purple-700 text-xs px-1.5 py-0.5 rounded-full">{scorecards.length}</span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {activeTab === 'details' && (
+                    <p className="text-sm text-gray-500">Full application details shown above.</p>
+                )}
+
+                {activeTab === 'comments' && (
+                    <div>
+                        <div className="space-y-4 max-h-80 overflow-y-auto mb-4">
+                            {comments.length === 0 ? (
+                                <div className="text-center py-8 text-gray-400">
+                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                                    <p className="text-sm">No internal comments yet. Add one below.</p>
+                                </div>
+                            ) : (
+                                comments.map((c: any) => (
+                                    <div key={c.id} className="flex gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold flex-shrink-0">
+                                            {(c.author_name || c.author_email || 'U').slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-sm font-semibold text-gray-900">{c.author_name || c.author_email}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-gray-400">{c.created_at ? format(new Date(c.created_at), 'MMM d, HH:mm') : ''}</span>
+                                                    {(user?.id === c.user_id) && (
+                                                        <button onClick={() => handleDeleteComment(c.id)} className="text-gray-300 hover:text-red-400 transition-colors">
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.content}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                            <div ref={commentEndRef} />
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                value={newComment}
+                                onChange={e => setNewComment(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
+                                placeholder="Add internal comment..."
+                                className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                onClick={handleAddComment}
+                                disabled={commentLoading || !newComment.trim()}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'scorecards' && (
+                    <div className="space-y-4">
+                        {scorecards.length === 0 ? (
+                            <div className="text-center py-8 text-gray-400">
+                                <ClipboardList className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                                <p className="text-sm">No scorecards submitted yet. Complete an interview to add one.</p>
+                            </div>
+                        ) : (
+                            scorecards.map((sc: any) => {
+                                const rec = RECOMMENDATION_LABELS[sc.recommendation] ?? { label: sc.recommendation, color: 'bg-gray-100 text-gray-700' };
+                                return (
+                                    <div key={sc.id} className="border border-gray-200 rounded-xl p-5">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div>
+                                                <span className="font-semibold text-gray-900 text-sm">{sc.scorer_name}</span>
+                                                <span className="text-gray-400 text-xs ml-2">{sc.created_at ? format(new Date(sc.created_at), 'MMM d, yyyy') : ''}</span>
+                                            </div>
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${rec.color}`}>{rec.label}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 mb-3">
+                                            {[1,2,3,4,5].map(s => (
+                                                <Star key={s} className={`w-4 h-4 ${s <= sc.overall_rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} />
+                                            ))}
+                                            <span className="text-sm text-gray-600 ml-1">{sc.overall_rating}/5</span>
+                                        </div>
+                                        {sc.criteria_scores && (
+                                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                                {Object.entries(sc.criteria_scores).map(([k, v]: [string, any]) => (
+                                                    <div key={k} className="text-xs">
+                                                        <span className="text-gray-500 capitalize">{k.replace('_', ' ')}: </span>
+                                                        <span className="font-medium text-gray-800">{v}/5</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {sc.strengths && <p className="text-xs text-green-700 mb-1"><strong>Strengths:</strong> {sc.strengths}</p>}
+                                        {sc.concerns && <p className="text-xs text-red-700"><strong>Concerns:</strong> {sc.concerns}</p>}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Action Modals */}

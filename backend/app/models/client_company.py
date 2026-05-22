@@ -67,10 +67,11 @@ class ClientCompany(Base):
     agency = relationship("Agency", back_populates="client_companies")
     user = relationship("User", back_populates="client_company")
     jobs = relationship("Job", back_populates="client_company")
-    applications = relationship("Application", 
-                                back_populates="client_company", 
+    applications = relationship("Application",
+                                back_populates="client_company",
                                 cascade="all, delete-orphan",
                                 primaryjoin="ClientCompany.id == Application.client_company_id")
+    career_page = relationship("CareerPage", back_populates="company", uselist=False, cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ClientCompany {self.name}>"

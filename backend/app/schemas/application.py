@@ -193,6 +193,7 @@ class ApplicationFilter(BaseModel):
     job_id: Optional[UUID] = None
     candidate_id: Optional[UUID] = None
     status: Optional[ApplicationStatus] = None
+    statuses: Optional[List[ApplicationStatus]] = None
     assigned_to: Optional[UUID] = None
     
     # Date filters

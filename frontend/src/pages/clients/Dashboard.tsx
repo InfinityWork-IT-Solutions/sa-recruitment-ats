@@ -24,12 +24,16 @@ export default function CompleteDashboard() {
   const [recentJobs, setRecentJobs] = useState<any[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_dismissed'));
   const [companyProfile, setCompanyProfile] = useState<any>(null);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamStats, setTeamStats] = useState({ used: 0, total: 5, available: 5, plan: 'Professional' });
+  const [salaryBenchmark, setSalaryBenchmark] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboardData();
     fetchIntegrations();
     fetchPendingDecisions();
     fetchRecentJobs();
+    fetchTeamMembers();
     apiClient.get('/client-companies/me/profile').then(r => setCompanyProfile(r.data)).catch(() => {});
   }, []);
 
@@ -63,6 +67,29 @@ export default function CompleteDashboard() {
     }
   };
 
+  const fetchTeamMembers = async () => {
+    try {
+      const res = await apiClient.get('/team/members');
+      const members = Array.isArray(res.data) ? res.data : (res.data.members || []);
+      setTeamMembers(members);
+      const total = res.data.seats_total ?? 5;
+      const used = members.length;
+      setTeamStats({
+        used,
+        total,
+        available: Math.max(0, total - used),
+        plan: res.data.plan ?? 'Professional',
+      });
+      // fetch salary benchmark for the most in-demand skill if we have jobs
+      if (res.data.top_skill) {
+        apiClient.get(`/ai/salary-benchmark?job_title=${encodeURIComponent(res.data.top_skill)}&location=South Africa&experience_years=3`)
+          .then(r => setSalaryBenchmark(r.data)).catch(() => {});
+      }
+    } catch {
+      // leave defaults
+    }
+  };
+
   const fetchIntegrations = async () => {
     try {
       const response = await apiClient.get('/integrations/');
@@ -89,25 +116,7 @@ export default function CompleteDashboard() {
     offered: dashboardData?.offered ?? 0,
   };
 
-  const teamSeats = {
-    used: 4,
-    total: 5,
-    available: 1,
-    plan: 'Professional',
-    members: [
-      { id: 1, name: 'John Doe', email: 'john@company.com', role: 'Admin', avatar: 'JD' },
-      { id: 2, name: 'Sarah Smith', email: 'sarah@company.com', role: 'Recruiter', avatar: 'SS' },
-      { id: 3, name: 'Mike Johnson', email: 'mike@company.com', role: 'Recruiter', avatar: 'MJ' },
-      { id: 4, name: 'Lisa Brown', email: 'lisa@company.com', role: 'Hiring Manager', avatar: 'LB' },
-    ],
-  };
-
-  const recentActivity = [
-    { id: 1, type: 'match', candidate: 'Sizwe Khoza', job: 'Senior Developer', score: 98, time: '10 min ago' },
-    { id: 2, type: 'application', candidate: 'Lerato Mokoena', job: 'Fullstack Engineer', time: '1 hour ago' },
-    { id: 3, type: 'interview', candidate: 'David Smith', job: 'Product Manager', time: '2 hours ago' },
-    { id: 4, type: 'shortlist', candidate: 'Emma Wilson', job: 'UX Designer', time: '3 hours ago' },
-  ];
+  const recentActivity: any[] = dashboardData?.recent_activity || [];
 
   const topCandidates = decisions?.all_decisions?.slice(0, 4).map((d: any, idx: number) => ({
     id: d.decision_id,
@@ -402,35 +411,47 @@ export default function CompleteDashboard() {
             {/* Recent Activity */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-              
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      activity.type === 'match' ? 'bg-green-100' :
-                      activity.type === 'application' ? 'bg-blue-100' :
-                      activity.type === 'interview' ? 'bg-purple-100' :
-                      'bg-yellow-100'
-                    }`}>
-                      {activity.type === 'match' && <CheckCircle className="w-5 h-5 text-green-600" />}
-                      {activity.type === 'application' && <Users className="w-5 h-5 text-blue-600" />}
-                      {activity.type === 'interview' && <Calendar className="w-5 h-5 text-purple-600" />}
-                      {activity.type === 'shortlist' && <Clock className="w-5 h-5 text-yellow-600" />}
+
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Clock className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm">Activity will appear here as your hiring progresses.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((activity: any, i: number) => (
+                    <div key={activity.id ?? i} className="flex items-start space-x-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        activity.type === 'match' ? 'bg-green-100' :
+                        activity.type === 'application' ? 'bg-blue-100' :
+                        activity.type === 'interview' ? 'bg-purple-100' :
+                        'bg-yellow-100'
+                      }`}>
+                        {activity.type === 'match' && <CheckCircle className="w-5 h-5 text-green-600" />}
+                        {activity.type === 'application' && <Users className="w-5 h-5 text-blue-600" />}
+                        {activity.type === 'interview' && <Calendar className="w-5 h-5 text-purple-600" />}
+                        {activity.type === 'shortlist' && <Clock className="w-5 h-5 text-yellow-600" />}
+                        {!['match','application','interview','shortlist'].includes(activity.type) && <XCircle className="w-5 h-5 text-gray-400" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-900">
+                          {activity.message || (
+                            <>
+                              <strong>{activity.candidate}</strong>{' '}
+                              {activity.type === 'match' ? `matched ${activity.score ?? ''}% for` :
+                               activity.type === 'application' ? 'applied for' :
+                               activity.type === 'interview' ? 'scheduled interview for' :
+                               'shortlisted for'}{' '}
+                              <strong>{activity.job}</strong>
+                            </>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">{activity.time ?? activity.created_at}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">
-                        <strong>{activity.candidate}</strong> {
-                          activity.type === 'match' ? `matched ${activity.score}% for` :
-                          activity.type === 'application' ? 'applied for' :
-                          activity.type === 'interview' ? 'scheduled interview for' :
-                          'shortlisted for'
-                        } <strong>{activity.job}</strong>
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -440,51 +461,59 @@ export default function CompleteDashboard() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-gray-900">Team Seats</h3>
-                <span className="text-sm text-gray-600">{teamSeats.plan}</span>
+                <span className="text-sm text-gray-600">{teamStats.plan}</span>
               </div>
 
               {/* Seat Progress */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600">
-                    <strong className="text-gray-900">{teamSeats.used}</strong> of{' '}
-                    <strong className="text-gray-900">{teamSeats.total}</strong> seats used
+                    <strong className="text-gray-900">{teamStats.used}</strong> of{' '}
+                    <strong className="text-gray-900">{teamStats.total}</strong> seats used
                   </span>
                   <span className={`text-sm font-semibold ${
-                    teamSeats.available > 0 ? 'text-green-600' : 'text-red-600'
+                    teamStats.available > 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {teamSeats.available} available
+                    {teamStats.available} available
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full transition-all ${
-                      teamSeats.used / teamSeats.total < 0.8 ? 'bg-green-500' :
-                      teamSeats.used / teamSeats.total < 1 ? 'bg-yellow-500' :
+                      teamStats.used / teamStats.total < 0.8 ? 'bg-green-500' :
+                      teamStats.used / teamStats.total < 1 ? 'bg-yellow-500' :
                       'bg-red-500'
                     }`}
-                    style={{ width: `${(teamSeats.used / teamSeats.total) * 100}%` }}
+                    style={{ width: `${teamStats.total > 0 ? (teamStats.used / teamStats.total) * 100 : 0}%` }}
                   />
                 </div>
               </div>
 
               {/* Team Members */}
               <div className="space-y-3 mb-4">
-                {teamSeats.members.map((member) => (
-                  <div key={member.id} className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {member.avatar}
+                {teamMembers.slice(0, 4).map((member: any) => {
+                  const initials = member.full_name
+                    ? member.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                    : (member.email?.[0] ?? '?').toUpperCase();
+                  return (
+                    <div key={member.id} className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{member.full_name || member.email}</p>
+                        <p className="text-xs text-gray-500 capitalize">{(member.role || 'member').replace('_', ' ')}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{member.name}</p>
-                      <p className="text-xs text-gray-500">{member.role}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {teamMembers.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-2">No team members yet</p>
+                )}
               </div>
 
               {/* Action Buttons */}
-              {teamSeats.available > 0 ? (
+              {teamStats.available > 0 ? (
                 <button
                   onClick={() => setShowInviteModal(true)}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center space-x-2"
@@ -560,18 +589,28 @@ export default function CompleteDashboard() {
               </div>
             </div>
 
-            {/* Platform Suggestion */}
+            {/* Platform Suggestion — salary benchmark */}
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
               <div className="flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-bold text-purple-900 mb-2">Platform Suggestion</h3>
-                  <p className="text-sm text-purple-800 mb-3">
-                    Candidates with <strong>React</strong> skills are in high demand. 
-                    Consider adjusting salary for Senior Developer role.
-                  </p>
-                  <button className="text-purple-600 hover:text-purple-700 font-semibold text-sm">
-                    Apply Recommendation →
+                  <h3 className="font-bold text-purple-900 mb-2">Market Insight</h3>
+                  {salaryBenchmark ? (
+                    <p className="text-sm text-purple-800 mb-3">
+                      Market median for <strong>{salaryBenchmark.job_title || 'this role'}</strong> in SA is{' '}
+                      <strong>R{Number(salaryBenchmark.median_monthly || 0).toLocaleString()}/mo</strong>.{' '}
+                      {salaryBenchmark.competitiveness_tip}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-purple-800 mb-3">
+                      Get real-time salary benchmarks for your open roles to stay competitive.
+                    </p>
+                  )}
+                  <button
+                    onClick={() => navigate('/company/jobs')}
+                    className="text-purple-600 hover:text-purple-700 font-semibold text-sm"
+                  >
+                    View Jobs →
                   </button>
                 </div>
               </div>
@@ -598,7 +637,7 @@ export default function CompleteDashboard() {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         onSubmit={handleInviteTeamMember}
-        availableSeats={teamSeats.available}
+        availableSeats={teamStats.available}
       />
     </div>
   );

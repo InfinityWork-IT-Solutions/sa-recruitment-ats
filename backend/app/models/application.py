@@ -130,12 +130,15 @@ class Application(Base):
     agency = relationship("Agency", back_populates="applications")
     job = relationship("Job", back_populates="applications")
     candidate = relationship("Candidate", back_populates="applications")
-    client_company = relationship("ClientCompany", 
+    client_company = relationship("ClientCompany",
                                   back_populates="applications",
                                   primaryjoin="Application.client_company_id == ClientCompany.id")
     recruiter = relationship("User", foreign_keys="Application.assigned_to")
     screener = relationship("User", foreign_keys="Application.screened_by")
     rejecter = relationship("User", foreign_keys="Application.rejected_by")
+    comments = relationship("ApplicationComment", back_populates="application", cascade="all, delete-orphan", order_by="ApplicationComment.created_at")
+    scorecards = relationship("InterviewScorecard", back_populates="application", cascade="all, delete-orphan")
+    onboarding_checklist = relationship("OnboardingChecklist", back_populates="application", uselist=False, cascade="all, delete-orphan")
     
     # Indexes
     __table_args__ = (

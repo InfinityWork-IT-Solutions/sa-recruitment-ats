@@ -62,6 +62,13 @@ import CompanyProfile from './pages/clients/CompanyProfile';
 import AIDecisionDashboard from './pages/clients/AIDecisionDashboard';
 import InterviewsPage from './pages/clients/InterviewsPage';
 import OffersPage from './pages/clients/OffersPage';
+import TalentPoolPage from './pages/clients/TalentPoolPage';
+import JobTemplatesPage from './pages/clients/JobTemplatesPage';
+import OnboardingChecklistPage from './pages/clients/OnboardingChecklistPage';
+import CareerPageSettingsPage from './pages/clients/CareerPageSettingsPage';
+import EmailSequencesPage from './pages/clients/EmailSequencesPage';
+import CustomReportsPage from './pages/analytics/CustomReportsPage';
+import PublicCareerPage from './pages/public/PublicCareerPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -138,6 +145,7 @@ function App() {
           <Route path="/job-board" element={<PublicJobsPage />} />
           <Route path="/job-board/:jobId" element={<PublicJobDetailPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/p/:slug" element={<PublicCareerPage />} />
 
           {/* Email verification (public — no auth needed) */}
           <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -191,8 +199,14 @@ function App() {
             <Route path="/company/settings/integrations" element={<ClientIntegrationsSettingsPage />} />
             <Route path="/company/settings/billing" element={<SubscriptionSettings />} />
             <Route path="/company/analytics" element={<AnalyticsPage />} />
+            <Route path="/company/analytics/reports" element={<CustomReportsPage />} />
             <Route path="/company/interviews" element={<InterviewsPage />} />
             <Route path="/company/offers" element={<OffersPage />} />
+            <Route path="/company/talent-pool" element={<TalentPoolPage />} />
+            <Route path="/company/templates" element={<JobTemplatesPage />} />
+            <Route path="/company/onboarding/:appId" element={<OnboardingChecklistPage />} />
+            <Route path="/company/settings/career-page" element={<CareerPageSettingsPage />} />
+            <Route path="/company/settings/email-sequences" element={<EmailSequencesPage />} />
             {/* Legacy redirect */}
             <Route path="/client-dashboard" element={<Navigate to="/company/dashboard" replace />} />
           </Route>

@@ -75,6 +75,7 @@ class User(Base):
     activities = relationship("Activity", back_populates="user")
     candidate = relationship("Candidate", foreign_keys="Candidate.user_id", back_populates="user", uselist=False)
     client_company = relationship("ClientCompany", back_populates="user", uselist=False)
+    saved_searches = relationship("SavedSearch", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User {self.email}>"

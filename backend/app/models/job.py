@@ -114,6 +114,9 @@ class Job(Base):
     linkedin_job_id = Column(String(100))
     indeed_job_id = Column(String(100))
     
+    # Template flag — saved job templates reused as new postings
+    is_template = Column(Boolean, default=False, nullable=False, index=True)
+
     # Metrics
     views_count = Column(Integer, default=0)
     applications_count = Column(Integer, default=0)

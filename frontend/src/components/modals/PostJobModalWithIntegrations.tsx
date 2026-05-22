@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Briefcase, MapPin, DollarSign, Clock, Building, CheckCircle } from 'lucide-react';
+import { X, Briefcase, MapPin, DollarSign, Clock, Building, CheckCircle, Sparkles, TrendingUp, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
 
 const jobSchema = z.object({
   title: z.string().min(3, 'Job title must be at least 3 characters'),
@@ -31,6 +33,7 @@ interface PostJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: JobFormData) => Promise<void>;
+  isTemplate?: boolean;
   integrations?: {
     pnet: { connected: boolean; enabled: boolean };
     indeed: { connected: boolean; enabled: boolean };
@@ -41,12 +44,17 @@ interface PostJobModalProps {
 export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }: PostJobModalProps) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [salaryBenchmark, setSalaryBenchmark] = useState<any>(null);
+  const [salaryLoading, setSalaryLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     watch,
+    setValue,
+    getValues,
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
@@ -54,11 +62,59 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
       work_mode: 'hybrid',
       experience_min: 0,
       experience_max: 5,
-      post_to_pnet: true, // Default checked
-      post_to_indeed: true, // Default checked
+      post_to_pnet: true,
+      post_to_indeed: true,
       post_to_linkedin: false,
     },
   });
+
+  const handleGenerateJD = async (andAdvance = false) => {
+    const title = getValues('title');
+    if (!title?.trim()) return toast.error('Enter a job title first');
+    setAiGenerating(true);
+    try {
+      const res = await apiClient.post('/ai/generate-job-description', {
+        title,
+        skills: getValues('skills') || '',
+        experience_level: (getValues('experience_min') ?? 0) >= 6 ? 'senior' : (getValues('experience_min') ?? 0) >= 3 ? 'mid' : 'junior',
+        location: getValues('location') || 'South Africa',
+      });
+      const d = res.data;
+      if (d.description) setValue('description', d.description, { shouldValidate: true });
+      if (d.requirements) setValue('requirements', d.requirements, { shouldValidate: true });
+      if (d.benefits) setValue('benefits', d.benefits);
+      if (d.skills) setValue('skills', d.skills, { shouldValidate: true });
+      toast.success('Job description generated — review and edit below');
+      if (andAdvance) setStep(2);
+    } catch {
+      toast.error('AI generation failed — try again');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleGetMarketRate = async () => {
+    const title = getValues('title');
+    if (!title?.trim()) return toast.error('Enter a job title first');
+    setSalaryLoading(true);
+    try {
+      const res = await apiClient.get('/ai/salary-benchmark', {
+        params: {
+          job_title: title,
+          location: getValues('location') || 'South Africa',
+          experience_years: getValues('experience_min') ?? 0,
+        },
+      });
+      setSalaryBenchmark(res.data);
+      if (res.data.min_annual) setValue('salary_min', Math.round(res.data.min_annual / 12), { shouldValidate: true });
+      if (res.data.max_annual) setValue('salary_max', Math.round(res.data.max_annual / 12), { shouldValidate: true });
+      toast.success('Salary benchmark loaded!');
+    } catch {
+      toast.error('Failed to fetch salary data');
+    } finally {
+      setSalaryLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -112,14 +168,25 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
 
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-            {/* Step 1: Basic Information */}
+            {/* Step 1: Quick Setup + AI Generation */}
             {step === 1 && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Basic Information</h3>
+              <div className="space-y-5">
+                {/* AI Banner */}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-purple-900">AI Job Description Generator</p>
+                      <p className="text-xs text-purple-700 mt-0.5">
+                        Fill in the title, company and location below — then click <strong>"Generate with AI"</strong> and our AI will write the full description, requirements and skills for you. You can edit everything before posting.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-                {/* Job Title */}
+                {/* Job Title — most prominent */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
                     Job Title <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -127,36 +194,33 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                     <input
                       {...register('title')}
                       type="text"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      autoFocus
+                      className="w-full pl-10 pr-4 py-3 text-lg border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
                       placeholder="e.g. Senior Software Engineer"
                     />
                   </div>
-                  {errors.title && (
-                    <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-                  )}
+                  {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
                 </div>
 
-                {/* Company Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Company Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      {...register('company_name')}
-                      type="text"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Your company name"
-                    />
-                  </div>
-                  {errors.company_name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.company_name.message}</p>
-                  )}
-                </div>
-
-                {/* Location & Work Mode */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Company Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        {...register('company_name')}
+                        type="text"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Your company name"
+                      />
+                    </div>
+                    {errors.company_name && <p className="mt-1 text-sm text-red-600">{errors.company_name.message}</p>}
+                  </div>
+
+                  {/* Location */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location <span className="text-red-500">*</span>
@@ -170,48 +234,51 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         placeholder="e.g. Cape Town, Western Cape"
                       />
                     </div>
-                    {errors.location && (
-                      <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
-                    )}
+                    {errors.location && <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>}
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Work Mode */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Work Mode <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      {...register('work_mode')}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Work Mode</label>
+                    <select {...register('work_mode')} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                       <option value="remote">Remote</option>
                       <option value="hybrid">Hybrid</option>
                       <option value="on-site">On-site</option>
                     </select>
                   </div>
-                </div>
 
-                {/* Job Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Job Type <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {['full-time', 'part-time', 'contract', 'internship'].map((type) => (
-                      <label
-                        key={type}
-                        className="cursor-pointer flex items-center space-x-2 border-2 border-gray-200 rounded-lg p-3 hover:border-blue-500 transition-all"
-                      >
-                        <input
-                          type="radio"
-                          value={type}
-                          {...register('job_type')}
-                          className="text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium capitalize">{type}</span>
-                      </label>
-                    ))}
+                  {/* Job Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+                    <select {...register('job_type')} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                      <option value="full-time">Full-time</option>
+                      <option value="part-time">Part-time</option>
+                      <option value="contract">Contract</option>
+                      <option value="internship">Internship</option>
+                    </select>
                   </div>
                 </div>
+
+                {/* Primary CTA — AI Generate */}
+                <button
+                  type="button"
+                  onClick={() => handleGenerateJD(true)}
+                  disabled={aiGenerating || !watch('title')?.trim()}
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-base hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg shadow-purple-200 transition-all"
+                >
+                  {aiGenerating
+                    ? <><Loader2 className="w-5 h-5 animate-spin" />Writing your job description...</>
+                    : <><Sparkles className="w-5 h-5" />Generate Job Description with AI</>
+                  }
+                </button>
+                <p className="text-center text-xs text-gray-400">
+                  — or —{' '}
+                  <button type="button" onClick={() => setStep(2)} className="text-blue-600 hover:underline font-medium">
+                    fill in manually
+                  </button>
+                </p>
               </div>
             )}
 
@@ -222,9 +289,26 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
 
                 {/* Salary Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Salary Range (ZAR) <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Salary Range (ZAR/month) <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGetMarketRate}
+                      disabled={salaryLoading}
+                      className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-60"
+                    >
+                      {salaryLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <TrendingUp className="w-3 h-3" />}
+                      {salaryLoading ? 'Loading...' : 'Get Market Rate'}
+                    </button>
+                  </div>
+                  {salaryBenchmark && (
+                    <div className="mb-3 bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-xs text-green-800">
+                      Market range: <strong>R{Number(salaryBenchmark.min_monthly || 0).toLocaleString()} – R{Number(salaryBenchmark.max_monthly || 0).toLocaleString()}/mo</strong>
+                      {salaryBenchmark.competitiveness_tip && <span className="ml-1 text-green-600">· {salaryBenchmark.competitiveness_tip}</span>}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -284,9 +368,20 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
 
                 {/* Job Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Job Description <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Job Description <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateJD(false)}
+                      disabled={aiGenerating}
+                      className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors disabled:opacity-60"
+                    >
+                      {aiGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      {aiGenerating ? 'Generating...' : 'Regenerate with AI'}
+                    </button>
+                  </div>
                   <textarea
                     {...register('description')}
                     rows={6}
@@ -537,6 +632,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
               </button>
 
               {step < 4 ? (
+                step === 1 ? null : (
                 <button
                   type="button"
                   onClick={() => setStep(step + 1)}
@@ -544,6 +640,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                 >
                   Next Step →
                 </button>
+                )
               ) : (
                 <button
                   type="submit"

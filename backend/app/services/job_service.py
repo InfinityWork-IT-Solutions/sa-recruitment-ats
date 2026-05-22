@@ -415,5 +415,140 @@ class JobService:
         return reference
 
 
+    # ── Templates ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    async def create_template(
+        db: AsyncSession,
+        job_data: dict,
+        agency_id: UUID,
+        user_id: UUID,
+        client_company_id: Optional[UUID] = None,
+    ) -> Job:
+        """Save a job as a reusable template (is_template=True, status=draft)."""
+        reference = await JobService._generate_job_reference(db, agency_id)
+        template = Job(
+            **{k: v for k, v in job_data.items() if hasattr(Job, k)},
+            agency_id=agency_id,
+            created_by=user_id,
+            client_company_id=client_company_id,
+            reference=reference,
+            status=JobStatus.draft,
+            is_template=True,
+        )
+        db.add(template)
+        await db.commit()
+        await db.refresh(template)
+        return template
+
+    @staticmethod
+    async def get_templates(
+        db: AsyncSession,
+        agency_id: UUID,
+        company_id: Optional[UUID] = None,
+    ) -> List[Job]:
+        query = select(Job).where(Job.agency_id == agency_id, Job.is_template == True)
+        if company_id:
+            query = query.where(Job.client_company_id == company_id)
+        query = query.order_by(Job.created_at.desc())
+        result = await db.execute(query)
+        return result.scalars().all()
+
+    @staticmethod
+    async def create_from_template(
+        db: AsyncSession,
+        template_id: UUID,
+        agency_id: UUID,
+        user_id: UUID,
+        overrides: Optional[dict] = None,
+    ) -> Job:
+        """Clone a template into a real job posting."""
+        result = await db.execute(
+            select(Job).where(Job.id == template_id, Job.agency_id == agency_id, Job.is_template == True)
+        )
+        template = result.scalar_one_or_none()
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        reference = await JobService._generate_job_reference(db, agency_id)
+        skip = {'id', 'reference', 'is_template', 'created_at', 'updated_at',
+                'published_at', 'closed_at', 'views_count', 'applications_count', 'search_vector'}
+        job_dict = {
+            col.key: getattr(template, col.key)
+            for col in template.__table__.columns
+            if col.key not in skip
+        }
+        if overrides:
+            job_dict.update(overrides)
+
+        job = Job(
+            **job_dict,
+            reference=reference,
+            is_template=False,
+            status=JobStatus.draft,
+            created_by=user_id,
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+        return job
+
+    # ── Repost & Auto-expire ─────────────────────────────────────────────────
+
+    @staticmethod
+    async def repost_job(
+        db: AsyncSession,
+        job_id: UUID,
+        agency_id: UUID,
+        user_id: UUID,
+    ) -> Job:
+        """Clone a closed/expired job as a new draft posting."""
+        result = await db.execute(
+            select(Job).where(Job.id == job_id, Job.agency_id == agency_id)
+        )
+        original = result.scalar_one_or_none()
+        if not original:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+        reference = await JobService._generate_job_reference(db, agency_id)
+        skip = {'id', 'reference', 'is_template', 'created_at', 'updated_at',
+                'published_at', 'closed_at', 'views_count', 'applications_count', 'search_vector'}
+        job_dict = {
+            col.key: getattr(original, col.key)
+            for col in original.__table__.columns
+            if col.key not in skip
+        }
+        new_job = Job(
+            **job_dict,
+            reference=reference,
+            status=JobStatus.draft,
+            is_template=False,
+            closing_date=None,
+            created_by=user_id,
+        )
+        db.add(new_job)
+        await db.commit()
+        await db.refresh(new_job)
+        return new_job
+
+    @staticmethod
+    async def auto_expire_jobs(db: AsyncSession) -> int:
+        """Mark jobs as expired when their closing_date has passed. Run daily via Celery."""
+        now = datetime.utcnow()
+        result = await db.execute(
+            select(Job).where(
+                Job.status == JobStatus.active,
+                Job.closing_date.isnot(None),
+                Job.closing_date < now,
+            )
+        )
+        expired = result.scalars().all()
+        for job in expired:
+            job.status = JobStatus.expired
+            job.closed_at = now
+        await db.commit()
+        return len(expired)
+
+
 # Create service instance
 job_service = JobService()

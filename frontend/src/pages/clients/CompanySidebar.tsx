@@ -1,7 +1,9 @@
 // frontend/src/components/CompanySidebar.tsx
 import {
   Home, Briefcase, FileText, Users, Settings, LogOut,
-  Building, DollarSign, Calendar, Gift
+  Building, DollarSign, Calendar, Gift, BarChart2,
+  Globe, Mail, LayoutTemplate, UserSquare2, Puzzle,
+  Video, Cpu, Link2
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -16,33 +18,67 @@ interface CompanySidebarProps {
   };
 }
 
-export default function CompanySidebar({ 
-  companyLogo, 
-  companyName, 
+const SECTIONS = [
+  {
+    label: null,
+    items: [
+      { name: 'Dashboard', href: '/company/dashboard', icon: Home },
+      { name: 'Company Profile', href: '/company/profile', icon: Building },
+    ],
+  },
+  {
+    label: 'Recruitment',
+    items: [
+      { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
+      { name: 'Templates', href: '/company/templates', icon: LayoutTemplate },
+      { name: 'Applications', href: '/company/applications', icon: FileText },
+      { name: 'Candidates', href: '/company/candidates', icon: UserSquare2 },
+      { name: 'Talent Pool', href: '/company/talent-pool', icon: Users },
+      { name: 'Interviews', href: '/company/interviews', icon: Calendar },
+      { name: 'Offers', href: '/company/offers', icon: Gift },
+    ],
+  },
+  {
+    label: 'AI & Screening',
+    items: [
+      { name: 'Video Reviews', href: '/company/video-screening', icon: Video },
+      { name: 'AI Decision Queue', href: '/company/ai-decisions', icon: Cpu },
+    ],
+  },
+  {
+    label: 'Analytics',
+    items: [
+      { name: 'Analytics', href: '/company/analytics', icon: BarChart2 },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { name: 'Integrations', href: '/company/settings/integrations', icon: Link2 },
+      { name: 'Career Page', href: '/company/settings/career-page', icon: Globe },
+      { name: 'Email Sequences', href: '/company/settings/email-sequences', icon: Mail },
+      { name: 'Team', href: '/company/team', icon: Users },
+      { name: 'Billing', href: '/company/settings/billing', icon: DollarSign },
+      { name: 'Settings', href: '/company/settings', icon: Settings },
+    ],
+  },
+];
+
+export default function CompanySidebar({
+  companyLogo,
+  companyName,
   companyEmail,
-  subscription 
+  subscription
 }: CompanySidebarProps) {
   const location = useLocation();
-  
-  const navigation = [
-    { name: 'Company Profile', href: '/company/profile', icon: Building },
-    { name: 'Dashboard', href: '/company/dashboard', icon: Home },
-    { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
-    { name: 'Applications', href: '/company/applications', icon: FileText },
-    { name: 'Interviews', href: '/company/interviews', icon: Calendar },
-    { name: 'Offers', href: '/company/offers', icon: Gift },
-    { name: 'Team', href: '/company/team', icon: Users },
-    { name: 'Billing', href: '/company/billing', icon: DollarSign },
-  ];
-  
-  // Get company initials for fallback
+
   const getInitials = () => {
     const words = companyName.split(' ');
     return words.slice(0, 2).map(w => w[0]).join('').toUpperCase();
   };
-  
-  const isActive = (path: string) => location.pathname === path;
-  
+
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+
   return (
     <div className="flex flex-col h-screen w-64 bg-white border-r border-gray-200">
       {/* Logo */}
@@ -52,26 +88,37 @@ export default function CompanySidebar({
         </div>
         <span className="text-xl font-bold text-gray-900">RecruitPro</span>
       </div>
-      
+
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-        {navigation.map((item) => (
-          <Link
-            key={item.name}
-            to={item.href}
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-              isActive(item.href)
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.name}</span>
-          </Link>
+      <nav className="flex-1 px-4 py-4 overflow-y-auto space-y-4">
+        {SECTIONS.map((section, si) => (
+          <div key={si}>
+            {section.label && (
+              <p className="px-4 mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {section.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all text-sm ${
+                    isActive(item.href)
+                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      : 'text-gray-700 hover:bg-gray-50 font-medium'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
-      
-      {/* Company Profile Section - Logo appears here! */}
+
+      {/* Footer */}
       <div className="border-t border-gray-200 p-4">
         {/* Subscription Info */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-3 border border-blue-200">
@@ -80,16 +127,15 @@ export default function CompanySidebar({
             <span className="text-xs text-gray-600">{subscription.seatsUsed}/{subscription.seatsTotal} seats</span>
           </div>
           <div className="w-full bg-white rounded-full h-1.5">
-            <div 
+            <div
               className="bg-blue-600 h-1.5 rounded-full"
               style={{ width: `${(subscription.seatsUsed / subscription.seatsTotal) * 100}%` }}
             />
           </div>
         </div>
-        
+
         {/* Company Info with Logo */}
         <div className="flex items-center space-x-3 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-          {/* Company Logo - appears in sidebar */}
           {companyLogo ? (
             <img
               src={companyLogo}
@@ -102,13 +148,13 @@ export default function CompanySidebar({
               {getInitials()}
             </div>
           )}
-          
+
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{companyName}</p>
             <p className="text-xs text-gray-500 truncate">{companyEmail}</p>
           </div>
         </div>
-        
+
         <button className="w-full flex items-center space-x-2 px-4 py-2 mt-2 text-red-600 hover:bg-red-50 rounded-lg transition-all">
           <LogOut className="w-4 h-4" />
           <span className="text-sm font-medium">Logout</span>

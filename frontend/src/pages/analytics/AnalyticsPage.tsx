@@ -16,11 +16,13 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, Users, Briefcase, Target, Clock, Download } from 'lucide-react';
+import { TrendingUp, Users, Briefcase, Target, Clock, Download, Sparkles, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import apiClient from '@/lib/api-client';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function AnalyticsPage() {
+    const [activeTab, setActiveTab] = useState<'overview' | 'predictions'>('overview');
     const [periodDays, setPeriodDays] = useState(30);
 
     const { data: dashboard } = useQuery({
@@ -46,6 +48,13 @@ export default function AnalyticsPage() {
     const { data: sourceEffectiveness } = useQuery({
         queryKey: ['source-effectiveness'],
         queryFn: () => analyticsService.getSourceEffectiveness(),
+    });
+
+    const { data: predictions, isLoading: predictionsLoading } = useQuery({
+        queryKey: ['analytics-predictions'],
+        queryFn: () => apiClient.get('/analytics/predictions').then(r => r.data),
+        enabled: activeTab === 'predictions',
+        retry: false,
     });
 
     const handleExportApplications = async () => {
@@ -83,33 +92,55 @@ export default function AnalyticsPage() {
                     <p className="text-gray-600 mt-1">Insights and performance metrics</p>
                 </div>
                 <div className="flex items-center space-x-3">
-                    <select
-                        value={periodDays}
-                        onChange={(e) => setPeriodDays(Number(e.target.value))}
-                        className="input"
-                    >
-                        <option value={7}>Last 7 days</option>
-                        <option value={30}>Last 30 days</option>
-                        <option value={90}>Last 90 days</option>
-                        <option value={365}>Last year</option>
-                    </select>
-                    <button
-                        onClick={handleExportApplications}
-                        className="btn-secondary flex items-center space-x-2"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span>Export CSV</span>
-                    </button>
-                    <button
-                        onClick={handleExportCandidates}
-                        className="btn-secondary flex items-center space-x-2"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span>Export Excel</span>
-                    </button>
+                    {activeTab === 'overview' && (
+                        <>
+                            <select
+                                value={periodDays}
+                                onChange={(e) => setPeriodDays(Number(e.target.value))}
+                                className="input"
+                            >
+                                <option value={7}>Last 7 days</option>
+                                <option value={30}>Last 30 days</option>
+                                <option value={90}>Last 90 days</option>
+                                <option value={365}>Last year</option>
+                            </select>
+                            <button
+                                onClick={handleExportApplications}
+                                className="btn-secondary flex items-center space-x-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Export CSV</span>
+                            </button>
+                            <button
+                                onClick={handleExportCandidates}
+                                className="btn-secondary flex items-center space-x-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Export Excel</span>
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+                <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'overview' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Overview
+                </button>
+                <button
+                    onClick={() => setActiveTab('predictions')}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'predictions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    AI Predictions
+                </button>
+            </div>
+
+            {activeTab === 'overview' && (<>
             {/* Key Metrics */}
             {dashboard && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -317,6 +348,92 @@ export default function AnalyticsPage() {
                             {dashboard.active_jobs} active
                         </p>
                     </div>
+                </div>
+            )}
+            </>)}
+
+            {/* Predictions Tab */}
+            {activeTab === 'predictions' && (
+                <div className="space-y-6">
+                    {/* Banner */}
+                    <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 text-white">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Sparkles className="w-6 h-6" />
+                            <h2 className="text-xl font-bold">AI-Powered Predictions</h2>
+                        </div>
+                        <p className="text-purple-100 text-sm">
+                            Based on your historical data, our AI forecasts key recruitment outcomes to help you plan ahead.
+                        </p>
+                    </div>
+
+                    {predictionsLoading ? (
+                        <div className="flex items-center justify-center py-20 gap-3">
+                            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                            <span className="text-gray-500">Generating AI predictions...</span>
+                        </div>
+                    ) : predictions ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Time to Fill */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <Clock className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900">Time to Fill</h3>
+                                </div>
+                                <p className="text-4xl font-bold text-blue-600 mb-1">
+                                    {predictions.time_to_fill_days ?? '—'}<span className="text-lg text-gray-400 ml-1">days</span>
+                                </p>
+                                <p className="text-xs text-gray-500 mb-4">Estimated for current open roles</p>
+                                <p className="text-sm text-gray-600 bg-blue-50 rounded-lg p-3">{predictions.time_to_fill_rationale || 'Based on your historical hiring velocity.'}</p>
+                            </div>
+
+                            {/* Salary Recommendation */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <TrendingUp className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900">Salary Competitiveness</h3>
+                                </div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    {predictions.salary_competitive ? (
+                                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                                    ) : (
+                                        <AlertCircle className="w-6 h-6 text-yellow-500" />
+                                    )}
+                                    <p className={`text-xl font-bold ${predictions.salary_competitive ? 'text-green-600' : 'text-yellow-600'}`}>
+                                        {predictions.salary_competitive ? 'Competitive' : 'Below Market'}
+                                    </p>
+                                </div>
+                                {predictions.salary_adjustment_pct && (
+                                    <p className="text-sm text-gray-500 mb-4">Suggested adjustment: <strong>+{predictions.salary_adjustment_pct}%</strong></p>
+                                )}
+                                <p className="text-sm text-gray-600 bg-green-50 rounded-lg p-3">{predictions.salary_rationale || 'Based on SA market benchmarks for your role types.'}</p>
+                            </div>
+
+                            {/* Best Source */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <Target className="w-5 h-5 text-purple-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900">Best Performing Source</h3>
+                                </div>
+                                <p className="text-3xl font-bold text-purple-600 mb-1 capitalize">
+                                    {predictions.best_source ?? '—'}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-4">Highest quality-to-hire ratio</p>
+                                <p className="text-sm text-gray-600 bg-purple-50 rounded-lg p-3">{predictions.best_source_rationale || 'Based on your hire outcomes by source channel.'}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-xl border border-gray-200 p-16 text-center">
+                            <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Not enough data yet</h3>
+                            <p className="text-gray-500 text-sm">Complete more hires and interviews to unlock AI predictions.</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

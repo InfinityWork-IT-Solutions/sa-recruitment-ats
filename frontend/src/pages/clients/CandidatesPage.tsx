@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   Search, Filter, Users, MapPin, Briefcase, Award, Mail,
   Phone, Linkedin, Calendar, DollarSign, Star, ChevronDown,
-  X, Download, Eye, CheckCircle, ExternalLink, Clock
+  X, Download, Eye, CheckCircle, ExternalLink, Clock, Bookmark, BookmarkCheck
 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface Candidate {
   id: string;
@@ -46,9 +47,12 @@ export default function CandidatesPage() {
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [minMatchScore, setMinMatchScore] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [showSavedDropdown, setShowSavedDropdown] = useState(false);
 
   useEffect(() => {
     fetchCandidates();
+    apiClient.get('/saved-searches?search_type=candidates').then(r => setSavedSearches(r.data || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -169,6 +173,43 @@ export default function CandidatesPage() {
     setMinMatchScore(0);
   };
 
+  const saveCurrentSearch = async () => {
+    const name = prompt('Name this search:');
+    if (!name?.trim()) return;
+    try {
+      const res = await apiClient.post('/saved-searches', {
+        name,
+        search_type: 'candidates',
+        filters: { searchQuery, selectedSkills, selectedProvinces, experienceRange, salaryRange, selectedStatus, minMatchScore },
+      });
+      setSavedSearches(prev => [...prev, res.data]);
+      toast.success('Search saved!');
+    } catch {
+      toast.error('Failed to save search');
+    }
+  };
+
+  const loadSavedSearch = (s: any) => {
+    const f = s.filters || {};
+    if (f.searchQuery !== undefined) setSearchQuery(f.searchQuery);
+    if (f.selectedSkills) setSelectedSkills(f.selectedSkills);
+    if (f.selectedProvinces) setSelectedProvinces(f.selectedProvinces);
+    if (f.experienceRange) setExperienceRange(f.experienceRange);
+    if (f.salaryRange) setSalaryRange(f.salaryRange);
+    if (f.selectedStatus) setSelectedStatus(f.selectedStatus);
+    if (f.minMatchScore !== undefined) setMinMatchScore(f.minMatchScore);
+    setShowSavedDropdown(false);
+  };
+
+  const deleteSavedSearch = async (id: string) => {
+    try {
+      await apiClient.delete(`/saved-searches/${id}`);
+      setSavedSearches(prev => prev.filter(s => s.id !== id));
+    } catch {
+      toast.error('Failed to delete saved search');
+    }
+  };
+
   const handleShortlist = async (candidateId: string) => {
     try {
       // Mock API call since shortlist status is tracked on Applications rather than Candidate model
@@ -236,18 +277,59 @@ export default function CandidatesPage() {
                 {filteredCandidates.length} of {candidates.length} candidates
               </p>
             </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center space-x-2"
-            >
-              <Filter className="w-5 h-5" />
-              <span>Filters</span>
-              {(selectedSkills.length + selectedProvinces.length + selectedStatus.length) > 0 && (
-                <span className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                  {selectedSkills.length + selectedProvinces.length + selectedStatus.length}
-                </span>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Saved Searches */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowSavedDropdown(v => !v)}
+                  className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all flex items-center space-x-2 bg-white"
+                >
+                  <Bookmark className="w-4 h-4" />
+                  <span>Saved</span>
+                  {savedSearches.length > 0 && (
+                    <span className="bg-blue-100 text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                      {savedSearches.length}
+                    </span>
+                  )}
+                </button>
+                {showSavedDropdown && (
+                  <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-1">
+                    {savedSearches.length === 0 ? (
+                      <p className="text-sm text-gray-400 px-4 py-3">No saved searches yet</p>
+                    ) : (
+                      savedSearches.map(s => (
+                        <div key={s.id} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 group">
+                          <button onClick={() => loadSavedSearch(s)} className="text-sm text-gray-700 font-medium flex-1 text-left">
+                            {s.name}
+                          </button>
+                          <button onClick={() => deleteSavedSearch(s.id)} className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button onClick={() => { saveCurrentSearch(); setShowSavedDropdown(false); }} className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 font-medium flex items-center gap-1.5">
+                        <BookmarkCheck className="w-3.5 h-3.5" />
+                        Save current search
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center space-x-2"
+              >
+                <Filter className="w-5 h-5" />
+                <span>Filters</span>
+                {(selectedSkills.length + selectedProvinces.length + selectedStatus.length) > 0 && (
+                  <span className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                    {selectedSkills.length + selectedProvinces.length + selectedStatus.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}

@@ -2,12 +2,26 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Calendar, Clock, User, Briefcase, CheckCircle, Star, ChevronDown,
-  Plus, X, MessageSquare, Video, MapPin
+  Calendar, Clock, Briefcase, CheckCircle, Star,
+  Plus, X, MessageSquare, ClipboardList, ChevronRight
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
+
+const CRITERIA = ['technical', 'culture_fit', 'communication', 'problem_solving'] as const;
+const CRITERIA_LABELS: Record<string, string> = {
+  technical: 'Technical Skills',
+  culture_fit: 'Culture Fit',
+  communication: 'Communication',
+  problem_solving: 'Problem Solving',
+};
+const RECOMMENDATION_OPTIONS = [
+  { value: 'strong_hire', label: 'Strong Hire', color: 'text-green-700 bg-green-100' },
+  { value: 'hire', label: 'Hire', color: 'text-blue-700 bg-blue-100' },
+  { value: 'maybe', label: 'Maybe', color: 'text-yellow-700 bg-yellow-100' },
+  { value: 'no_hire', label: 'No Hire', color: 'text-red-700 bg-red-100' },
+];
 
 interface InterviewApplication {
   id: string;
@@ -49,6 +63,15 @@ export default function InterviewsPage() {
   const [rating, setRating] = useState(3);
   const [feedback, setFeedback] = useState('');
 
+  // Scorecard state
+  const [scorecardStep, setScorecardStep] = useState<'prompt' | 'form' | null>(null);
+  const [scorecardApp, setScorecardApp] = useState<InterviewApplication | null>(null);
+  const [criteria, setCriteria] = useState({ technical: 3, culture_fit: 3, communication: 3, problem_solving: 3 });
+  const [recommendation, setRecommendation] = useState('hire');
+  const [strengths, setStrengths] = useState('');
+  const [concerns, setConcerns] = useState('');
+  const [scorecardNotes, setScorecardNotes] = useState('');
+
   const { data, isLoading } = useQuery({
     queryKey: ['interviews'],
     queryFn: async () => {
@@ -73,15 +96,51 @@ export default function InterviewsPage() {
   const completeMutation = useMutation({
     mutationFn: ({ id, rating, feedback }: { id: string; rating: number; feedback: string }) =>
       apiClient.post(`/applications/${id}/complete-interview`, { rating, feedback }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       toast.success('Interview marked as completed!');
       queryClient.invalidateQueries({ queryKey: ['interviews'] });
+      const app = completeModal;
       setCompleteModal(null);
       setRating(3);
       setFeedback('');
+      setScorecardApp(app);
+      setScorecardStep('prompt');
     },
     onError: () => toast.error('Failed to complete interview'),
   });
+
+  const scorecardMutation = useMutation({
+    mutationFn: (data: any) => apiClient.post(`/applications/${scorecardApp?.id}/scorecards`, data),
+    onSuccess: () => {
+      toast.success('Scorecard submitted!');
+      resetScorecard();
+    },
+    onError: () => toast.error('Failed to submit scorecard'),
+  });
+
+  const resetScorecard = () => {
+    setScorecardStep(null);
+    setScorecardApp(null);
+    setCriteria({ technical: 3, culture_fit: 3, communication: 3, problem_solving: 3 });
+    setRecommendation('hire');
+    setStrengths('');
+    setConcerns('');
+    setScorecardNotes('');
+  };
+
+  const overallRating = Math.round(Object.values(criteria).reduce((a, b) => a + b, 0) / CRITERIA.length);
+
+  const submitScorecard = () => {
+    scorecardMutation.mutate({
+      application_id: scorecardApp?.id,
+      overall_rating: overallRating,
+      criteria_scores: criteria,
+      recommendation,
+      strengths,
+      concerns,
+      notes: scorecardNotes,
+    });
+  };
 
   const interviews = data || [];
   const groups = groupByDate(interviews);
@@ -318,6 +377,133 @@ export default function InterviewsPage() {
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-60"
               >
                 {completeMutation.isPending ? 'Saving...' : 'Mark Complete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scorecard Prompt */}
+      {scorecardStep === 'prompt' && scorecardApp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ClipboardList className="w-7 h-7 text-blue-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Add Interview Scorecard?</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Rate <strong>{scorecardApp.candidate_name}</strong> across key criteria for a structured evaluation record.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={resetScorecard}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+              >
+                Skip
+              </button>
+              <button
+                onClick={() => setScorecardStep('form')}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center gap-2"
+              >
+                Add Scorecard <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scorecard Form */}
+      {scorecardStep === 'form' && scorecardApp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 my-4">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Interview Scorecard</h2>
+                <p className="text-sm text-gray-500 mt-0.5">{scorecardApp.candidate_name} — {scorecardApp.job_title}</p>
+              </div>
+              <button onClick={resetScorecard} className="p-1.5 rounded-full hover:bg-gray-100">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Criteria sliders */}
+            <div className="space-y-4 mb-5">
+              <p className="text-sm font-semibold text-gray-700">Criteria Scores</p>
+              {CRITERIA.map(key => (
+                <div key={key}>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-sm text-gray-600">{CRITERIA_LABELS[key]}</label>
+                    <span className="text-sm font-bold text-blue-600">{criteria[key]}/5</span>
+                  </div>
+                  <input
+                    type="range" min={1} max={5} step={1}
+                    value={criteria[key]}
+                    onChange={e => setCriteria(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                    className="w-full accent-blue-600"
+                  />
+                </div>
+              ))}
+              <div className="flex items-center justify-between bg-blue-50 rounded-lg px-4 py-2">
+                <span className="text-sm font-semibold text-blue-700">Overall Rating</span>
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map(n => (
+                    <Star key={n} className={`w-4 h-4 ${n <= overallRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                  ))}
+                  <span className="text-sm font-bold text-blue-700 ml-1">{overallRating}/5</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-gray-700 mb-2">Recommendation</p>
+              <div className="grid grid-cols-2 gap-2">
+                {RECOMMENDATION_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRecommendation(opt.value)}
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${recommendation === opt.value ? `${opt.color} border-current` : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Strengths & Concerns */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
+                <textarea value={strengths} onChange={e => setStrengths(e.target.value)} rows={3}
+                  placeholder="Key strengths observed..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Concerns</label>
+                <textarea value={concerns} onChange={e => setConcerns(e.target.value)} rows={3}
+                  placeholder="Any concerns or gaps..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+              <textarea value={scorecardNotes} onChange={e => setScorecardNotes(e.target.value)} rows={2}
+                placeholder="Any other observations..."
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setScorecardStep('prompt')} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200">
+                Back
+              </button>
+              <button
+                disabled={scorecardMutation.isPending}
+                onClick={submitScorecard}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                <ClipboardList className="w-4 h-4" />
+                {scorecardMutation.isPending ? 'Submitting...' : 'Submit Scorecard'}
               </button>
             </div>
           </div>

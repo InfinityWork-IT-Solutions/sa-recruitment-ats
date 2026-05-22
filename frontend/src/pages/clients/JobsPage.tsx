@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Search, Plus, Briefcase, MapPin, Users, TrendingUp, Eye,
   Edit, Copy, Trash2, Pause, Play, DollarSign,
-  Calendar, CheckCircle, X, LayoutTemplate
+  Calendar, CheckCircle, X, LayoutTemplate, Bookmark, BookmarkCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
 import apiClient from '@/lib/api-client';
 import EditJobModal from '@/components/modals/EditJobModal';
+import toast from 'react-hot-toast';
 
 interface Job {
   id: string;
@@ -42,11 +43,66 @@ export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+
+  // Saved searches
+  const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [showSavedDropdown, setShowSavedDropdown] = useState(false);
+  const savedDropdownRef = useRef<HTMLDivElement>(null);
+
   const [integrations, setIntegrations] = useState({
     pnet: { connected: false, enabled: false },
     indeed: { connected: false, enabled: false },
     linkedin: { connected: false, enabled: false }
   });
+
+  useEffect(() => {
+    apiClient.get('/saved-searches?search_type=jobs')
+      .then(r => setSavedSearches(r.data || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (savedDropdownRef.current && !savedDropdownRef.current.contains(e.target as Node))
+        setShowSavedDropdown(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const saveCurrentSearch = async () => {
+    const name = window.prompt('Name this saved search:');
+    if (!name?.trim()) return;
+    try {
+      const res = await apiClient.post('/saved-searches', {
+        name: name.trim(),
+        search_type: 'jobs',
+        filters: { searchQuery, statusFilter, typeFilter },
+      });
+      setSavedSearches(prev => [...prev, res.data]);
+      toast.success('Search saved!');
+    } catch {
+      toast.error('Failed to save search');
+    }
+  };
+
+  const loadSavedSearch = (s: any) => {
+    const f = s.filters || {};
+    setSearchQuery(f.searchQuery || '');
+    setStatusFilter(f.statusFilter || 'all');
+    setTypeFilter(f.typeFilter || 'all');
+    setShowSavedDropdown(false);
+  };
+
+  const deleteSavedSearch = async (id: string) => {
+    try {
+      await apiClient.delete(`/saved-searches/${id}`);
+      setSavedSearches(prev => prev.filter(s => s.id !== id));
+      toast.success('Search deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
 
   useEffect(() => {
     const fetchIntegrations = async () => {
@@ -302,6 +358,36 @@ export default function JobsPage() {
               <option value="contract">Contract</option>
               <option value="internship">Internship</option>
             </select>
+
+            {/* Saved searches */}
+            <div className="relative" ref={savedDropdownRef}>
+              <button
+                onClick={() => setShowSavedDropdown(v => !v)}
+                className={`h-full px-4 py-3 border rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${savedSearches.length > 0 ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100' : 'border-gray-300 text-gray-600 bg-white hover:bg-gray-50'}`}
+              >
+                {savedSearches.length > 0 ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                {savedSearches.length > 0 ? `${savedSearches.length} Saved` : 'Save Search'}
+              </button>
+              {showSavedDropdown && (
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl border border-gray-200 shadow-xl z-30 py-1">
+                  {savedSearches.length > 0 && (
+                    <>
+                      <p className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">Saved Searches</p>
+                      {savedSearches.map(s => (
+                        <div key={s.id} className="flex items-center gap-1 px-3 py-2 hover:bg-gray-50">
+                          <button onClick={() => loadSavedSearch(s)} className="flex-1 text-left text-sm text-gray-700 truncate">{s.name}</button>
+                          <button onClick={() => deleteSavedSearch(s.id)} className="text-gray-300 hover:text-red-500 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ))}
+                      <div className="border-t border-gray-100 mt-1" />
+                    </>
+                  )}
+                  <button onClick={() => { saveCurrentSearch(); setShowSavedDropdown(false); }} className="w-full text-left px-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 flex items-center gap-2">
+                    <Bookmark className="w-4 h-4" />Save current search
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -185,11 +185,21 @@ async def list_applications(
     - Sorting support
     """
     from app.models.application import ApplicationStatus
-    
+
+    status_values = [s.strip() for s in status_filter.split(",")] if status_filter else []
+    parsed_statuses = []
+    for sv in status_values:
+        try:
+            parsed_statuses.append(ApplicationStatus(sv))
+        except ValueError:
+            from fastapi import HTTPException as _HTTPException
+            raise _HTTPException(status_code=422, detail=f"'{sv}' is not a valid ApplicationStatus")
+
     filters = ApplicationFilter(
         job_id=job_id,
         candidate_id=candidate_id,
-        status=ApplicationStatus(status_filter) if status_filter else None,
+        status=parsed_statuses[0] if len(parsed_statuses) == 1 else None,
+        statuses=parsed_statuses if len(parsed_statuses) > 1 else None,
         assigned_to=assigned_to,
         skip=skip,
         limit=limit,
