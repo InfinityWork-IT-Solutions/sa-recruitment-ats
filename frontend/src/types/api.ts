@@ -37,9 +37,10 @@ export interface Job {
     title: string;
     reference: string;
     description: string;
-    requirements: string | null;
-    responsibilities: string | null;
-    benefits: string | null;
+    requirements: string[] | string | null;
+    responsibilities: string[] | string | null;
+    qualifications: string[] | string | null;
+    benefits: string[] | string | null;
     location: string;
     city: string | null;
     province: string | null;

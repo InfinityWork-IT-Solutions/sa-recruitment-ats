@@ -431,7 +431,7 @@ export default function JobDetailPage() {
             <div className="bg-white rounded-2xl p-5 shadow-sm">
               <h2 className="font-semibold text-gray-900 mb-3">Required Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {job.skills.filter(s => s.trim()).map((skill) => (
+                {job.skills.filter((s: string) => s.trim()).map((skill: string) => (
                   <span key={skill} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-100">
                     {skill}
                   </span>
@@ -449,26 +449,59 @@ export default function JobDetailPage() {
           )}
 
           {/* Requirements */}
-          {job.requirements && (
+          {job.requirements && (Array.isArray(job.requirements) ? job.requirements.length > 0 : job.requirements) && (
             <div className="bg-white rounded-2xl p-5 shadow-sm">
               <h2 className="font-semibold text-gray-900 mb-3">Requirements</h2>
-              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.requirements}</div>
+              {Array.isArray(job.requirements) ? (
+                <ul className="space-y-2">
+                  {(job.requirements as string[]).map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                      <span className="leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.requirements as string}</div>
+              )}
             </div>
           )}
 
           {/* Responsibilities */}
-          {job.responsibilities && (
+          {job.responsibilities && (Array.isArray(job.responsibilities) ? job.responsibilities.length > 0 : job.responsibilities) && (
             <div className="bg-white rounded-2xl p-5 shadow-sm">
               <h2 className="font-semibold text-gray-900 mb-3">Responsibilities</h2>
-              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.responsibilities}</div>
+              {Array.isArray(job.responsibilities) ? (
+                <ul className="space-y-2">
+                  {(job.responsibilities as string[]).map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                      <span className="leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.responsibilities as string}</div>
+              )}
             </div>
           )}
 
           {/* Benefits */}
-          {job.benefits && (
+          {job.benefits && (Array.isArray(job.benefits) ? job.benefits.length > 0 : job.benefits) && (
             <div className="bg-white rounded-2xl p-5 shadow-sm">
               <h2 className="font-semibold text-gray-900 mb-3">Benefits &amp; Perks</h2>
-              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.benefits}</div>
+              {Array.isArray(job.benefits) ? (
+                <ul className="space-y-2">
+                  {(job.benefits as string[]).map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-2" />
+                      <span className="leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.benefits as string}</div>
+              )}
             </div>
           )}
 
@@ -724,9 +757,21 @@ export default function JobDetailPage() {
                 )}
               </div>
               {job.description && <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3><p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.description}</p></div>}
-              {job.requirements && <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Requirements</h3><p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.requirements}</p></div>}
-              {job.responsibilities && <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Responsibilities</h3><p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.responsibilities}</p></div>}
-              {job.benefits && <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Benefits</h3><p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.benefits}</p></div>}
+              {job.requirements && (Array.isArray(job.requirements) ? (job.requirements as string[]).length > 0 : true) && (
+                <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Requirements</h3>
+                  {Array.isArray(job.requirements) ? <ul className="space-y-1.5">{(job.requirements as string[]).map((r,i)=><li key={i} className="flex items-start gap-2 text-sm text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-2"/><span>{r}</span></li>)}</ul> : <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.requirements as string}</p>}
+                </div>
+              )}
+              {job.responsibilities && (Array.isArray(job.responsibilities) ? (job.responsibilities as string[]).length > 0 : true) && (
+                <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Responsibilities</h3>
+                  {Array.isArray(job.responsibilities) ? <ul className="space-y-1.5">{(job.responsibilities as string[]).map((r,i)=><li key={i} className="flex items-start gap-2 text-sm text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0 mt-2"/><span>{r}</span></li>)}</ul> : <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.responsibilities as string}</p>}
+                </div>
+              )}
+              {job.benefits && (Array.isArray(job.benefits) ? (job.benefits as string[]).length > 0 : true) && (
+                <div className="card"><h3 className="text-lg font-semibold text-gray-900 mb-4">Benefits</h3>
+                  {Array.isArray(job.benefits) ? <ul className="space-y-1.5">{(job.benefits as string[]).map((r,i)=><li key={i} className="flex items-start gap-2 text-sm text-gray-700"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-2"/><span>{r}</span></li>)}</ul> : <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{job.benefits as string}</p>}
+                </div>
+              )}
               {applicationsData && applicationsData.applications.length > 0 && (
                 <div className="card">
                   <div className="flex items-center justify-between mb-4">
