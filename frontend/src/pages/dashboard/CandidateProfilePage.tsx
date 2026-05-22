@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useQueryClient } from '@tanstack/react-query';
@@ -38,13 +38,51 @@ export default function CandidateProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [editTab, setEditTab] = useState('Basic Info');
     const [editForm, setEditForm] = useState(profileData);
-    
+
+    // Completeness from backend (single source of truth shared with dashboard)
+    const [completionScore, setCompletionScore] = useState(0);
+    const [missingItems, setMissingItems] = useState<string[]>([]);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
-    
+
     // Cropper State
     const [cropperModalOpen, setCropperModalOpen] = useState(false);
     const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+
+    const fetchCompleteness = useCallback(async () => {
+        try {
+            const res = await apiClient.get('/candidate-portal/profile-completeness');
+            setCompletionScore(res.data.score ?? 0);
+            setMissingItems(res.data.missing ?? []);
+        } catch {
+            // fallback: stay at 0
+        }
+    }, []);
+
+    // On mount: sync localStorage profile to backend once, then fetch completeness
+    useEffect(() => {
+        const syncAndFetch = async () => {
+            const saved = localStorage.getItem('candidate_profile');
+            if (saved) {
+                try {
+                    const pd = JSON.parse(saved);
+                    await apiClient.patch('/candidate-portal/profile', {
+                        summary: pd.summary || null,
+                        skills: pd.skills || [],
+                        work_history: pd.workHistory || [],
+                        education_level: pd.qualification || null,
+                        current_job_title: pd.title || null,
+                        current_company: pd.company || null,
+                    });
+                } catch {
+                    // non-blocking
+                }
+            }
+            await fetchCompleteness();
+        };
+        syncAndFetch();
+    }, [fetchCompleteness]);
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -87,6 +125,7 @@ export default function CandidateProfilePage() {
             toast.success('Profile photo uploaded!');
             await useAuthStore.getState().refreshUser();
             setAvatarUrl(response.data.avatar_url);
+            await fetchCompleteness();
         } catch (error) {
             toast.error('Failed to upload photo');
             console.error('Upload error:', error);
@@ -97,7 +136,6 @@ export default function CandidateProfilePage() {
         setProfileData(editForm);
         localStorage.setItem('candidate_profile', JSON.stringify(editForm));
         setIsEditing(false);
-        // Persist to backend so completeness score stays in sync
         try {
             await apiClient.patch('/candidate-portal/profile', {
                 summary: editForm.summary || null,
@@ -107,28 +145,12 @@ export default function CandidateProfilePage() {
                 current_job_title: editForm.title || null,
                 current_company: editForm.company || null,
             });
+            // Refresh score so profile page and dashboard both update
+            await fetchCompleteness();
         } catch {
-            // Non-blocking — local state already updated
+            // local state already updated
         }
     };
-
-    const calculateCompletion = () => {
-        let score = 0;
-        if (avatarUrl) score += 20;
-        if (profileData.summary && profileData.summary.length >= 50) score += 20;
-        if (profileData.skills && profileData.skills.length >= 5) score += 20;
-        if (profileData.workHistory && profileData.workHistory.length > 0) score += 20;
-        if (profileData.educationHistory && profileData.educationHistory.length > 0) score += 20;
-        return score;
-    };
-
-    const completionScore = calculateCompletion();
-    const missingItems = [];
-    if (!avatarUrl) missingItems.push("Photo");
-    if (!profileData.summary || profileData.summary.length < 50) missingItems.push("Summary");
-    if (!profileData.skills || profileData.skills.length < 5) missingItems.push("5+ Skills");
-    if (!profileData.workHistory || profileData.workHistory.length === 0) missingItems.push("Experience");
-    if (!profileData.educationHistory || profileData.educationHistory.length === 0) missingItems.push("Education");
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
