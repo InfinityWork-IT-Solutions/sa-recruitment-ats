@@ -752,6 +752,22 @@ export default function CandidateProfilePage() {
 
     // On mount: load real candidate data + stats, sync localStorage, fetch completeness
     useEffect(() => {
+        // One-time migration: wipe old fake default data so it doesn't block auto-fill.
+        // Detected by checking for the old hardcoded fake company name.
+        const saved = localStorage.getItem('candidate_profile');
+        if (saved) {
+            try {
+                const pd = JSON.parse(saved);
+                const isFakeDefault = pd.company === 'TechCorp South Africa'
+                    || (pd.workHistory && pd.workHistory[0]?.company === 'TechCorp South Africa')
+                    || (pd.workHistory && pd.workHistory[0]?.company === 'StartApp Solutions');
+                if (isFakeDefault) {
+                    localStorage.removeItem('candidate_profile');
+                    setProfileData({ experience: '', qualification: '', company: '', noticePeriod: '30 days', skills: [], summary: '', title: '', phone: '', city: '', province: '', workHistory: [], educationHistory: [], certifications: [] });
+                }
+            } catch { /* ignore */ }
+        }
+
         const syncAndFetch = async () => {
             // Load real candidate profile from backend
             try {
@@ -1167,11 +1183,13 @@ export default function CandidateProfilePage() {
                         <CVUploadPanel
                             externalInputRef={cvInputRef}
                             onUploaded={async () => {
-                                const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
-                                if (profileRes) {
+                                // Small delay so backend has committed the update
+                                await new Promise(r => setTimeout(r, 400));
+                                try {
+                                    const profileRes = await apiClient.get('/candidate-portal/profile');
                                     setCandidateData(profileRes.data);
                                     mergeBackendProfile(profileRes.data);
-                                }
+                                } catch { /* 401 or network error — user will see toast result */ }
                                 await fetchCompleteness();
                             }}
                         />

@@ -103,10 +103,10 @@ def parse_resume_text(text: str) -> dict:
     if emails:
         result["email"] = emails[0].lower()
 
-    # ── Phone (SA formats) ──────────────────────────────────────────────────────
+    # ── Phone (SA formats — handles +27-7XX-XXX-XXXX, 0XX XXX XXXX, etc.) ────
     phones = re.findall(
-        r'(?:\+27|0)[6-8]\d[\s.\-]?\d{3}[\s.\-]?\d{4}'
-        r'|(?:\+27|0)\d{2}[\s.\-]?\d{3}[\s.\-]?\d{4}',
+        r'(?:\+27[\s\-]?|0)[6-8]\d[\s.\-]?\d{3}[\s.\-]?\d{4}'
+        r'|(?:\+27[\s\-]?|0)\d{2}[\s.\-]?\d{3}[\s.\-]?\d{4}',
         full_text
     )
     if phones:
