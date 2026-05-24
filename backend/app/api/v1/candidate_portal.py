@@ -312,46 +312,55 @@ async def upload_my_cv(
     if resume_text:
         candidate.resume_text = resume_text
 
-    # Rule-based profile auto-fill — only populate fields that are currently empty
+    # Rule-based profile auto-fill — CV upload always updates extracted fields
     filled_fields: List[str] = []
     if resume_text:
         try:
             from app.services.resume_parser import parse_resume_text
             parsed = parse_resume_text(resume_text)
 
+            # CV is authoritative: always apply extracted data
+            if parsed.get("skills"):
+                candidate.skills = parsed["skills"]
+                filled_fields.append(f"Skills ({len(parsed['skills'])} detected)")
+            if parsed.get("summary"):
+                candidate.summary = parsed["summary"]
+                filled_fields.append("Professional summary")
+            if parsed.get("work_history"):
+                candidate.work_history = parsed["work_history"]
+                filled_fields.append(f"Work history ({len(parsed['work_history'])} roles)")
+            if parsed.get("current_job_title"):
+                candidate.current_job_title = parsed["current_job_title"]
+                filled_fields.append("Job title")
+            if parsed.get("education_level"):
+                candidate.education_level = parsed["education_level"]
+                filled_fields.append("Education level")
+            # Contact details: only fill if not already set by user
             if parsed.get("phone") and not candidate.phone:
                 candidate.phone = parsed["phone"]
                 filled_fields.append("Phone number")
-            if parsed.get("skills") and not (candidate.skills and len(candidate.skills) >= 3):
-                candidate.skills = parsed["skills"]
-                filled_fields.append(f"Skills ({len(parsed['skills'])} detected)")
             if parsed.get("city") and not candidate.city:
                 candidate.city = parsed["city"]
                 filled_fields.append("City")
             if parsed.get("province") and not candidate.province:
                 candidate.province = parsed["province"]
                 filled_fields.append("Province")
-            if parsed.get("education_level") and not candidate.education_level:
-                candidate.education_level = parsed["education_level"]
-                filled_fields.append("Education level")
-            if parsed.get("current_job_title") and not candidate.current_job_title:
-                candidate.current_job_title = parsed["current_job_title"]
-                filled_fields.append("Job title")
-            if parsed.get("summary") and not candidate.summary:
-                candidate.summary = parsed["summary"]
-                filled_fields.append("Professional summary")
-            if parsed.get("work_history") and not candidate.work_history:
-                candidate.work_history = parsed["work_history"]
-                filled_fields.append(f"Work history ({len(parsed['work_history'])} roles)")
-        except Exception:
-            pass
+        except Exception as e:
+            # Log the error so it's visible in server logs
+            import logging
+            logging.getLogger(__name__).error(f"CV parse error: {e}", exc_info=True)
 
     await db.commit()
 
-    msg = "CV uploaded and profile auto-filled." if filled_fields else "CV uploaded successfully."
+    if filled_fields:
+        msg = f"CV uploaded and profile auto-filled: {', '.join(filled_fields)}."
+    elif resume_text:
+        msg = "CV uploaded. Text extracted but no new fields detected — try editing your profile manually."
+    else:
+        msg = "CV uploaded. Could not extract text (try PDF or DOCX format)."
     return CVParseResult(
         message=msg,
-        parsed_data=None,
+        parsed_data={"text_extracted": bool(resume_text), "chars": len(resume_text)} if resume_text else None,
         resume_url=resume_url,
         filled_fields=filled_fields if filled_fields else None,
     )

@@ -22,37 +22,69 @@ class AIResumeParser:
     
     async def extract_text_from_file(self, file_path: str) -> str:
         """
-        Extract text from resume file (PDF, DOC, DOCX)
-        
-        Args:
-            file_path: Path to resume file
-            
-        Returns:
-            Extracted text content
+        Extract text from resume file (PDF, DOC, DOCX).
+        Uses pdfplumber for PDFs (handles complex layouts better than PyPDF2).
         """
         file_ext = Path(file_path).suffix.lower()
-        
         if file_ext == '.pdf':
             return self._extract_from_pdf(file_path)
         elif file_ext in ['.doc', '.docx']:
             return self._extract_from_docx(file_path)
         else:
             raise ValueError(f"Unsupported file type: {file_ext}")
-    
+
     def _extract_from_pdf(self, file_path: str) -> str:
-        """Extract text from PDF"""
-        text = ""
-        with open(file_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            for page in pdf_reader.pages:
-                text += page.extract_text()
-        return text
-    
+        """Extract text from PDF using pdfplumber (primary) with PyPDF2 fallback."""
+        # Primary: pdfplumber handles multi-column and complex layouts well
+        try:
+            import pdfplumber
+            text_parts = []
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text(x_tolerance=2, y_tolerance=2)
+                    if page_text:
+                        text_parts.append(page_text)
+            text = "\n".join(text_parts)
+            if text.strip():
+                return text
+        except Exception:
+            pass
+
+        # Fallback: PyPDF2
+        try:
+            import PyPDF2
+            text = ""
+            with open(file_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                for page in reader.pages:
+                    extracted = page.extract_text()
+                    if extracted:
+                        text += extracted + "\n"
+            if text.strip():
+                return text
+        except Exception:
+            pass
+
+        return ""
+
     def _extract_from_docx(self, file_path: str) -> str:
-        """Extract text from DOCX"""
-        doc = docx.Document(file_path)
-        text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
-        return text
+        """Extract text from DOCX including tables."""
+        try:
+            import docx as docx_lib
+            doc = docx_lib.Document(file_path)
+            parts = []
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    parts.append(para.text)
+            # Also extract text from tables
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+                    if row_text:
+                        parts.append(row_text)
+            return "\n".join(parts)
+        except Exception:
+            return ""
     
     async def parse_resume_with_ai(self, resume_text: str) -> Dict:
         """

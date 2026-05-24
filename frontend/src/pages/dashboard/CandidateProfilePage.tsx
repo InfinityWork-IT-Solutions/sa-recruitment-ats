@@ -118,11 +118,14 @@ function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => voi
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             const filled: string[] = res.data?.filled_fields || [];
+            const parsed = res.data?.parsed_data;
             setUploadResult({ name: file.name, filledFields: filled });
             if (filled.length > 0) {
-                toast.success(`CV uploaded! ${filled.length} profile fields auto-filled.`);
+                toast.success(`CV uploaded! ${filled.length} fields auto-filled from your CV.`);
+            } else if (parsed?.text_extracted) {
+                toast('CV uploaded. Text read but no new fields detected — profile may already be filled.', { icon: '📄' });
             } else {
-                toast.success('CV uploaded successfully!');
+                toast.error('CV uploaded but text could not be read. Try a PDF or DOCX file.');
             }
             onUploaded();
         } catch {
@@ -680,21 +683,19 @@ export default function CandidateProfilePage() {
     const [profileData, setProfileData] = useState(() => {
         const saved = localStorage.getItem('candidate_profile');
         return saved ? JSON.parse(saved) : {
-            experience: '3-5 years',
-            qualification: 'BSc Computer Science',
-            company: 'TechCorp South Africa',
+            experience: '',
+            qualification: '',
+            company: '',
             noticePeriod: '30 days',
-            skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Python', 'AWS', 'Docker'],
+            skills: [],
             summary: '',
-            title: 'Software Developer',
-            workHistory: [
-               { id: '1', title: 'Software Developer', company: 'TechCorp South Africa', timeline: 'Jan 2022 - Present', description: '• Developed fully responsive React applications.\n• Engineered high-performance backend APIs.' },
-               { id: '2', title: 'Junior Frontend Engineer', company: 'StartApp Solutions', timeline: 'Mar 2020 - Dec 2021', description: '• Assisted in refactoring legacy codebase to modern React.' }
-            ],
-            educationHistory: [
-               { id: '1', degree: 'BSc Computer Science', institution: 'University of Cape Town', year: '2016 - 2019' }
-            ],
-            certifications: []
+            title: '',
+            phone: '',
+            city: '',
+            province: '',
+            workHistory: [],
+            educationHistory: [],
+            certifications: [],
         };
     });
     
@@ -773,19 +774,27 @@ export default function CandidateProfilePage() {
                 setRealStats({ applied: apps.length, interviews, saved: savedIds.length });
             } catch { /* non-blocking */ }
 
-            // Sync localStorage profile to backend once
+            // Sync localStorage profile to backend — only if user has real (non-empty) data
             const saved = localStorage.getItem('candidate_profile');
             if (saved) {
                 try {
                     const pd = JSON.parse(saved);
-                    await apiClient.patch('/candidate-portal/profile', {
-                        summary: pd.summary || null,
-                        skills: pd.skills || [],
-                        work_history: pd.workHistory || [],
-                        education_level: pd.qualification || null,
-                        current_job_title: pd.title || null,
-                        current_company: pd.company || null,
-                    });
+                    const hasRealData = (pd.summary && pd.summary.length > 10)
+                        || (pd.skills && pd.skills.length > 0)
+                        || (pd.workHistory && pd.workHistory.length > 0 && pd.workHistory[0].company);
+                    if (hasRealData) {
+                        await apiClient.patch('/candidate-portal/profile', {
+                            summary: pd.summary || null,
+                            skills: pd.skills || [],
+                            work_history: pd.workHistory || [],
+                            education_level: pd.qualification || null,
+                            current_job_title: pd.title || null,
+                            current_company: pd.company || null,
+                            phone: pd.phone || null,
+                            city: pd.city || null,
+                            province: pd.province || null,
+                        });
+                    }
                 } catch { /* non-blocking */ }
             }
             await fetchCompleteness();
