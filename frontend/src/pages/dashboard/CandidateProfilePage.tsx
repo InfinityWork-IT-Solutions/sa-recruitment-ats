@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera, Eye, RefreshCw, Trash2, Upload, Award } from 'lucide-react';
+import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera, Eye, RefreshCw, Trash2, Upload, Award, Phone, X, User, Briefcase, GraduationCap, Search } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
@@ -193,6 +193,356 @@ function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => voi
     );
 }
 
+// ── Location autocomplete (OpenStreetMap Nominatim, SA only, no key needed) ───
+
+function LocationAutocomplete({ city, province, onChange }: {
+    city: string;
+    province: string;
+    onChange: (city: string, province: string, fullAddress: string) => void;
+}) {
+    const [query, setQuery] = useState(city ? `${city}${province ? ', ' + province : ''}` : '');
+    const [results, setResults] = useState<any[]>([]);
+    const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const search = async (q: string) => {
+        if (q.length < 3) { setResults([]); setOpen(false); return; }
+        setLoading(true);
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=za&addressdetails=1&limit=6`,
+                { headers: { 'Accept-Language': 'en' } }
+            );
+            const data = await res.json();
+            setResults(data);
+            setOpen(data.length > 0);
+        } catch { /* silent */ } finally { setLoading(false); }
+    };
+
+    const handleInput = (v: string) => {
+        setQuery(v);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => search(v), 500);
+    };
+
+    const select = (item: any) => {
+        const addr = item.address || {};
+        const cityVal = addr.city || addr.town || addr.suburb || addr.village || addr.municipality || '';
+        const provVal = addr.state || '';
+        const full = item.display_name || '';
+        setQuery(`${cityVal}${provVal ? ', ' + provVal : ''}`);
+        setResults([]);
+        setOpen(false);
+        onChange(cityVal, provVal, full);
+    };
+
+    return (
+        <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                    className="input w-full pl-9"
+                    placeholder="Type suburb, city, or province…"
+                    value={query}
+                    onChange={e => handleInput(e.target.value)}
+                    onFocus={() => results.length > 0 && setOpen(true)}
+                    onBlur={() => setTimeout(() => setOpen(false), 200)}
+                />
+                {loading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
+            </div>
+            {open && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                    {results.map((item: any, i: number) => {
+                        const addr = item.address || {};
+                        const label = [addr.suburb || addr.city || addr.town, addr.state].filter(Boolean).join(', ');
+                        return (
+                            <button key={i} type="button"
+                                className="w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                                onClick={() => select(item)}
+                            >
+                                <p className="text-sm font-medium text-gray-900 truncate">{label || item.display_name}</p>
+                                <p className="text-xs text-gray-400 truncate">{item.display_name}</p>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Attachments tab (CV + certificates in one place) ──────────────────────────
+
+const CAT_COLOR: Record<string, string> = {
+    matric: 'bg-green-100 text-green-700 border-green-200',
+    tertiary: 'bg-blue-100 text-blue-700 border-blue-200',
+    professional: 'bg-purple-100 text-purple-700 border-purple-200',
+    other: 'bg-gray-100 text-gray-600 border-gray-200',
+};
+const CAT_LABEL: Record<string, string> = {
+    matric: 'Matric', tertiary: 'Tertiary', professional: 'Professional', other: 'Other',
+};
+
+function AttachmentsTabContent({ candidateData, cvInputRef, onCertDeleted }: {
+    candidateData: any;
+    cvInputRef: React.RefObject<HTMLInputElement>;
+    onCertDeleted: (id: string) => void;
+}) {
+    const certs: any[] = candidateData?.certificate_files || [];
+    return (
+        <div className="space-y-6">
+            {/* CV / Resume */}
+            <div>
+                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" /> CV / Resume
+                </h3>
+                {candidateData?.resume_url ? (
+                    <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="w-10 h-12 bg-white border border-blue-200 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <FileText className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                                {candidateData.resume_filename
+                                    || candidateData.resume_url.split('/').pop()?.replace(/^[a-f0-9-]+_/, '')
+                                    || 'resume.pdf'}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">CV / Resume · Visible to recruiters</p>
+                        </div>
+                        <a
+                            href={`http://localhost:8000${candidateData.resume_url}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg px-2.5 py-1.5 hover:bg-blue-50 transition-colors"
+                        >
+                            <Eye className="w-3 h-3" /> View
+                        </a>
+                        <a
+                            href={`http://localhost:8000${candidateData.resume_url}`}
+                            download={candidateData.resume_filename || 'cv.pdf'}
+                            className="flex items-center gap-1 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                        >
+                            <Download className="w-3 h-3" /> Download
+                        </a>
+                        <button
+                            className="flex items-center gap-1 text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                            onClick={() => cvInputRef.current?.click()}
+                        >
+                            <RefreshCw className="w-3 h-3" /> Replace
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-200 rounded-xl">
+                        <FileText className="w-9 h-9 text-gray-300 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-500">No CV uploaded yet</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Upload your CV in the panel on the right</p>
+                        </div>
+                        <button
+                            className="btn-primary text-xs px-3 py-1.5"
+                            onClick={() => cvInputRef.current?.click()}
+                        >
+                            Upload CV
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Certificates */}
+            <div>
+                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-yellow-500" /> Certificates & Qualifications
+                    <span className="text-xs font-normal text-gray-400">({certs.length})</span>
+                </h3>
+                {certs.length === 0 ? (
+                    <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
+                        <Award className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-400">No certificates uploaded</p>
+                        <p className="text-xs text-gray-300 mt-0.5">Use <strong>Edit Profile → Certifications</strong> to upload</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {certs.map((cert: any) => (
+                            <div key={cert.id} className="border border-gray-200 p-3.5 rounded-xl flex items-center gap-3 bg-white hover:shadow-sm transition-shadow">
+                                <div className="w-9 h-10 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <FileText className="w-4 h-4 text-red-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{cert.name}</p>
+                                    {cert.issuer && <p className="text-xs text-gray-500 truncate">{cert.issuer}</p>}
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className={`text-[10px] font-bold border px-1.5 py-0.5 rounded ${CAT_COLOR[cert.category] || CAT_COLOR.other}`}>
+                                            {CAT_LABEL[cert.category] || 'Other'}
+                                        </span>
+                                        {cert.date && <span className="text-[10px] text-gray-400">{cert.date}</span>}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <a href={`http://localhost:8000${cert.file_url}`} target="_blank" rel="noopener noreferrer"
+                                        className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="View">
+                                        <Eye className="w-3.5 h-3.5" />
+                                    </a>
+                                    <button onClick={() => onCertDeleted(cert.id)}
+                                        className="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors" title="Delete">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ── Profile preview modal (how recruiters see the candidate) ──────────────────
+
+function ProfilePreviewModal({ open, onClose, user, candidateData, profileData, avatarUrl }: {
+    open: boolean;
+    onClose: () => void;
+    user: any;
+    candidateData: any;
+    profileData: any;
+    avatarUrl: string | null;
+}) {
+    if (!open) return null;
+    const skills: string[] = candidateData?.skills?.length ? candidateData.skills : profileData?.skills || [];
+    const workHistory = candidateData?.work_history?.length ? candidateData.work_history : profileData?.workHistory || [];
+    const eduHistory = profileData?.educationHistory || [];
+    const certs: any[] = candidateData?.certificate_files || [];
+    const summary = candidateData?.summary || profileData?.summary || '';
+    const title = candidateData?.current_job_title || profileData?.title || '';
+    const phone = candidateData?.phone || profileData?.phone || '';
+    const city = candidateData?.city || '';
+    const province = candidateData?.province || '';
+    const location = [city, province].filter(Boolean).join(', ');
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+                {/* Top bar */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 uppercase tracking-wider">Recruiter View</span>
+                        <span className="text-xs text-gray-400">This is how your profile appears to recruiters</span>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    {/* Header */}
+                    <div className="flex items-start gap-5">
+                        <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 overflow-hidden shadow-md">
+                            {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : `${user?.first_name?.[0]}${user?.last_name?.[0]}`}
+                        </div>
+                        <div className="flex-1">
+                            <h2 className="text-2xl font-bold text-gray-900">{user?.first_name} {user?.last_name}</h2>
+                            {title && <p className="text-blue-600 font-semibold mt-0.5">{title}</p>}
+                            <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+                                <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{user?.email}</span>
+                                {phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{phone}</span>}
+                                {location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{location}</span>}
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                                <span className="text-xs font-bold bg-green-100 text-green-700 border border-green-200 px-2.5 py-1 rounded-full">ACTIVE</span>
+                                <span className="text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">AVAILABLE</span>
+                                {profileData?.noticePeriod && <span className="text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-full">Notice: {profileData.noticePeriod}</span>}
+                            </div>
+                        </div>
+                        {candidateData?.resume_url && (
+                            <a href={`http://localhost:8000${candidateData.resume_url}`} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-2 btn-primary text-sm flex-shrink-0">
+                                <Download className="w-4 h-4" /> Download CV
+                            </a>
+                        )}
+                    </div>
+
+                    {/* Summary */}
+                    {summary && (
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><User className="w-4 h-4" /> Professional Summary</h3>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{summary}</p>
+                        </div>
+                    )}
+
+                    {/* Skills */}
+                    {skills.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-700 mb-3">Skills</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {skills.map((s: string) => (
+                                    <span key={s} className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-xs font-semibold">{s}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Work Experience */}
+                    {workHistory.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><Briefcase className="w-4 h-4" /> Work Experience</h3>
+                            <div className="space-y-3">
+                                {workHistory.map((w: any) => (
+                                    <div key={w.id} className="border-l-2 border-blue-400 pl-4 py-1">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
+                                                {w.company && <p className="text-blue-600 text-sm font-medium">{w.company}</p>}
+                                            </div>
+                                            {w.timeline && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded flex-shrink-0 ml-2">{w.timeline}</span>}
+                                        </div>
+                                        {w.description && <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed">{w.description}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Education */}
+                    {eduHistory.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><GraduationCap className="w-4 h-4" /> Education</h3>
+                            <div className="space-y-2">
+                                {eduHistory.map((e: any) => (
+                                    <div key={e.id} className="border-l-2 border-green-400 pl-4 py-1">
+                                        <p className="font-semibold text-gray-900 text-sm">{e.degree}</p>
+                                        {e.institution && <p className="text-green-600 text-sm">{e.institution}</p>}
+                                        {e.year && <p className="text-xs text-gray-400 mt-0.5">{e.year}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Certificates */}
+                    {certs.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><Award className="w-4 h-4 text-yellow-500" /> Certificates</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                {certs.map((cert: any) => (
+                                    <div key={cert.id} className="flex items-center gap-2 p-2.5 border border-gray-200 rounded-lg bg-gray-50">
+                                        <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-semibold text-gray-900 truncate">{cert.name}</p>
+                                            <p className="text-[10px] text-gray-400">{CAT_LABEL[cert.category] || 'Other'}{cert.date ? ` · ${cert.date}` : ''}</p>
+                                        </div>
+                                        <a href={`http://localhost:8000${cert.file_url}`} target="_blank" rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 flex-shrink-0">
+                                            <Eye className="w-3.5 h-3.5" />
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Certifications upload tab ─────────────────────────────────────────────────
 
 const CERT_CATEGORIES = [
@@ -360,6 +710,26 @@ export default function CandidateProfilePage() {
     // Real candidate data from backend
     const [candidateData, setCandidateData] = useState<any>(null);
     const [realStats, setRealStats] = useState({ applied: 0, interviews: 0, saved: 0 });
+    const [profilePreviewOpen, setProfilePreviewOpen] = useState(false);
+
+    // Merge backend auto-filled data into profileData state + localStorage
+    const mergeBackendProfile = useCallback((fresh: any) => {
+        if (!fresh) return;
+        setProfileData((prev: any) => {
+            const merged = {
+                ...prev,
+                skills: fresh.skills?.length >= 1 ? fresh.skills : prev.skills,
+                summary: fresh.summary || prev.summary,
+                workHistory: fresh.work_history?.length ? fresh.work_history : prev.workHistory,
+                title: fresh.current_job_title || prev.title,
+                company: fresh.current_company || prev.company,
+                qualification: fresh.education_level || prev.qualification,
+                phone: fresh.phone || prev.phone,
+            };
+            localStorage.setItem('candidate_profile', JSON.stringify(merged));
+            return merged;
+        });
+    }, []);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cvInputRef = useRef<HTMLInputElement>(null);
@@ -386,6 +756,7 @@ export default function CandidateProfilePage() {
             try {
                 const profileRes = await apiClient.get('/candidate-portal/profile');
                 setCandidateData(profileRes.data);
+                mergeBackendProfile(profileRes.data);
             } catch { /* non-blocking */ }
 
             // Load real stats
@@ -420,7 +791,7 @@ export default function CandidateProfilePage() {
             await fetchCompleteness();
         };
         syncAndFetch();
-    }, [fetchCompleteness]);
+    }, [fetchCompleteness, mergeBackendProfile]);
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -482,8 +853,13 @@ export default function CandidateProfilePage() {
                 education_level: editForm.qualification || null,
                 current_job_title: editForm.title || null,
                 current_company: editForm.company || null,
+                phone: editForm.phone || null,
+                city: editForm.city || null,
+                province: editForm.province || null,
             });
-            // Refresh score so profile page and dashboard both update
+            // Refresh candidateData and completeness
+            const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
+            if (profileRes) setCandidateData(profileRes.data);
             await fetchCompleteness();
         } catch {
             // local state already updated
@@ -557,25 +933,12 @@ export default function CandidateProfilePage() {
                             </div>
                             
                             <div className="flex flex-col gap-2">
-                                {candidateData?.resume_url ? (
-                                    <a
-                                        href={`http://localhost:8000${candidateData.resume_url}`}
-                                        download={candidateData.resume_filename || 'cv.pdf'}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="btn-secondary flex items-center gap-2"
-                                    >
-                                        <Download className="w-4 h-4" /> Download CV
-                                    </a>
-                                ) : (
-                                    <button
-                                        className="btn-secondary flex items-center gap-2 opacity-50 cursor-not-allowed"
-                                        title="Upload a CV first"
-                                        disabled
-                                    >
-                                        <Download className="w-4 h-4" /> No CV uploaded
-                                    </button>
-                                )}
+                                <button
+                                    className="btn-primary flex items-center gap-2"
+                                    onClick={() => setProfilePreviewOpen(true)}
+                                >
+                                    <Eye className="w-4 h-4" /> View Profile
+                                </button>
                                 <button className="btn-secondary flex items-center gap-2" onClick={() => { setEditForm(profileData); setIsEditing(true); }}>
                                     <Edit className="w-4 h-4" /> Edit Profile
                                 </button>
@@ -618,7 +981,7 @@ export default function CandidateProfilePage() {
                     <div className="card">
                         <div className="border-b border-gray-200 mb-6">
                             <nav className="-mb-px flex space-x-6">
-                                {['Overview', 'Experience', 'Education', 'Applications', 'Matches'].map((tab) => (
+                                {['Overview', 'Experience', 'Education', 'Applications', 'Matches', 'Attachments'].map((tab) => (
                                     <button
                                         key={tab}
                                         className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
@@ -743,56 +1106,18 @@ export default function CandidateProfilePage() {
                                         ))}
                                     </div>
                                     
-                                    <h3 className="text-lg font-bold text-gray-900 mt-8 pt-6 border-t border-gray-200 flex items-center gap-2">
-                                        <Award className="w-5 h-5 text-yellow-500" /> Certificates & Qualifications
-                                    </h3>
-                                    {(!candidateData?.certificate_files || candidateData.certificate_files.length === 0) ? (
-                                        <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
-                                            <Award className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-sm text-gray-400">No certificates uploaded yet</p>
-                                            <p className="text-xs text-gray-300 mt-0.5">Use <strong>Edit Profile → Certifications</strong> to upload</p>
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {candidateData.certificate_files.map((cert: any) => {
-                                                const catColors: Record<string, string> = {
-                                                    matric: 'bg-green-100 text-green-700 border-green-200',
-                                                    tertiary: 'bg-blue-100 text-blue-700 border-blue-200',
-                                                    professional: 'bg-purple-100 text-purple-700 border-purple-200',
-                                                    other: 'bg-gray-100 text-gray-600 border-gray-200',
-                                                };
-                                                const catLabel: Record<string, string> = {
-                                                    matric: 'Matric', tertiary: 'Tertiary', professional: 'Professional', other: 'Other',
-                                                };
-                                                return (
-                                                    <div key={cert.id} className="border border-gray-200 p-3.5 rounded-xl flex items-center gap-3 shadow-sm bg-white hover:shadow-md transition-shadow">
-                                                        <div className="w-9 h-10 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                            <FileText className="w-4 h-4 text-red-500" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900 truncate">{cert.name}</p>
-                                                            {cert.issuer && <p className="text-xs text-gray-500 truncate">{cert.issuer}</p>}
-                                                            <div className="flex items-center gap-1.5 mt-1">
-                                                                <span className={`text-[10px] font-bold border px-1.5 py-0.5 rounded ${catColors[cert.category] || catColors.other}`}>
-                                                                    {catLabel[cert.category] || 'Other'}
-                                                                </span>
-                                                                {cert.date && <span className="text-[10px] text-gray-400">{cert.date}</span>}
-                                                            </div>
-                                                        </div>
-                                                        <a
-                                                            href={`http://localhost:8000${cert.file_url}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex-shrink-0"
-                                                            title="View Certificate"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </a>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                                    <div className="mt-6 pt-6 border-t border-gray-200">
+                                        <button
+                                            className="w-full flex items-center justify-between p-4 border border-yellow-200 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-colors"
+                                            onClick={() => setActiveTab('Attachments')}
+                                        >
+                                            <span className="flex items-center gap-2 text-sm font-semibold text-yellow-800">
+                                                <Award className="w-5 h-5 text-yellow-500" />
+                                                Certificates & Qualifications ({(candidateData?.certificate_files || []).length} uploaded)
+                                            </span>
+                                            <span className="text-xs text-yellow-600 font-medium">View in Attachments tab →</span>
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -803,80 +1128,66 @@ export default function CandidateProfilePage() {
                             {activeTab === 'Matches' && (
                                 <MatchesTabContent />
                             )}
+
+                            {activeTab === 'Attachments' && (
+                                <AttachmentsTabContent
+                                    candidateData={candidateData}
+                                    cvInputRef={cvInputRef}
+                                    onCertDeleted={async (certId) => {
+                                        try {
+                                            await apiClient.delete(`/candidate-portal/certificates/${certId}`);
+                                            const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
+                                            if (profileRes) setCandidateData(profileRes.data);
+                                            toast.success('Certificate removed');
+                                        } catch { toast.error('Failed to remove certificate'); }
+                                    }}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column: CV Attachment + Resume Upload */}
+                {/* Right Column: Upload zone only (viewer is in Attachments tab) */}
                 <div className="space-y-6">
-                    {/* CV Attachment Viewer */}
-                    <div className="card">
-                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                            Attached CV / Resume
-                        </h3>
-                        {candidateData?.resume_url ? (
-                            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                                {/* Document icon thumbnail */}
-                                <div className="w-10 h-12 bg-white border border-blue-200 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-                                    <FileText className="w-5 h-5 text-blue-500" />
-                                </div>
-                                {/* Filename + type */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900 truncate">
-                                        {candidateData.resume_filename
-                                            || candidateData.resume_url.split('/').pop()?.replace(/^[a-f0-9-]+_/, '')
-                                            || 'resume.pdf'}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-0.5">CV / Resume document</p>
-                                </div>
-                                {/* Action buttons */}
-                                <div className="flex flex-col gap-1.5 flex-shrink-0">
-                                    <a
-                                        href={`http://localhost:8000${candidateData.resume_url}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-white border border-blue-200 rounded-lg px-2.5 py-1.5 hover:bg-blue-50 transition-colors"
-                                    >
-                                        <Eye className="w-3 h-3" /> View
-                                    </a>
-                                    <button
-                                        className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
-                                        onClick={() => cvInputRef.current?.click()}
-                                    >
-                                        <RefreshCw className="w-3 h-3" /> Replace
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-5 border-2 border-dashed border-gray-200 rounded-xl">
-                                <FileText className="w-9 h-9 text-gray-300 mx-auto mb-2" />
-                                <p className="text-sm font-medium text-gray-400">No CV uploaded yet</p>
-                                <p className="text-xs text-gray-300 mt-0.5">Upload your CV below</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Resume Upload */}
                     <div className="card bg-slate-50 border-blue-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                            <Upload className="w-4 h-4 text-blue-600" />
                             {candidateData?.resume_url ? 'Replace CV' : 'Upload Your CV'}
                         </h3>
-
+                        <p className="text-xs text-gray-400 mb-4">View your uploaded CV in the <button className="text-blue-600 hover:underline font-medium" onClick={() => setActiveTab('Attachments')}>Attachments</button> tab.</p>
                         <CVUploadPanel
                             externalInputRef={cvInputRef}
                             onUploaded={async () => {
                                 const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
-                                if (profileRes) setCandidateData(profileRes.data);
+                                if (profileRes) {
+                                    setCandidateData(profileRes.data);
+                                    mergeBackendProfile(profileRes.data);
+                                }
                                 await fetchCompleteness();
                             }}
                         />
                     </div>
 
-                    {/* Notes Box */}
-                    <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg shadow-sm">
-                        <h4 className="font-bold text-yellow-800 text-sm mb-1">System Note</h4>
-                        <p className="text-xs text-yellow-700">Update your resume to let our AI parsing engine automatically match you to open roles. We support South African format parsings efficiently.</p>
+                    {/* Quick link to Attachments tab */}
+                    {candidateData?.resume_url && (
+                        <button
+                            className="w-full flex items-center gap-3 p-3.5 border border-blue-200 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors text-left"
+                            onClick={() => setActiveTab('Attachments')}
+                        >
+                            <FileText className="w-8 h-8 text-blue-500 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-blue-900 truncate">
+                                    {candidateData.resume_filename || candidateData.resume_url.split('/').pop()?.replace(/^[a-f0-9-]+_/, '') || 'resume.pdf'}
+                                </p>
+                                <p className="text-xs text-blue-600">Click to view in Attachments tab →</p>
+                            </div>
+                        </button>
+                    )}
+
+                    {/* Tip box */}
+                    <div className="p-4 border border-blue-100 bg-blue-50 rounded-lg">
+                        <h4 className="font-bold text-blue-800 text-sm mb-1">Auto-fill tip</h4>
+                        <p className="text-xs text-blue-700">Upload your CV and we'll automatically fill in your skills, location, education level, and work history where fields are empty.</p>
                     </div>
                 </div>
             </div>
@@ -928,6 +1239,17 @@ export default function CandidateProfilePage() {
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Highest Qualification</label>
                                             <input className="input w-full" value={editForm.qualification} onChange={(e) => setEditForm({...editForm, qualification: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400" />Phone Number</label>
+                                            <input className="input w-full" placeholder="+27 XX XXX XXXX" value={editForm.phone || ''} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <LocationAutocomplete
+                                                city={editForm.city || candidateData?.city || ''}
+                                                province={editForm.province || candidateData?.province || ''}
+                                                onChange={(city, province) => setEditForm({...editForm, city, province})}
+                                            />
                                         </div>
                                         <div className="col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period</label>
@@ -1049,6 +1371,16 @@ export default function CandidateProfilePage() {
                     </div>
                 </div>
             )}
+            {/* Profile Preview Modal */}
+            <ProfilePreviewModal
+                open={profilePreviewOpen}
+                onClose={() => setProfilePreviewOpen(false)}
+                user={user}
+                candidateData={candidateData}
+                profileData={profileData}
+                avatarUrl={avatarUrl}
+            />
+
             {/* Image Cropper Modal */}
             {selectedImageSrc && (
                 <ImageCropperModal
