@@ -91,6 +91,7 @@ class Candidate(Base):
     # Profile content
     summary = Column(Text)  # Professional summary written by candidate
     work_history = Column(JSONB)  # [{id, title, company, timeline, description}]
+    certificate_files = Column(JSONB, default=list)  # [{id, name, issuer, date, file_url, file_name, category}]
 
     # LinkedIn & Social
     linkedin_url = Column(String(255))

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera, Eye, RefreshCw } from 'lucide-react';
+import { FileText, CheckCircle, Edit, Download, Mail, MapPin, Camera, Eye, RefreshCw, Trash2, Upload, Award } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
@@ -104,7 +104,7 @@ function MatchesTabContent() {
 
 function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => void; externalInputRef?: React.RefObject<HTMLInputElement> }) {
     const [uploading, setUploading] = useState(false);
-    const [uploadedName, setUploadedName] = useState<string | null>(null);
+    const [uploadResult, setUploadResult] = useState<{ name: string; filledFields: string[] } | null>(null);
     const localInputRef = useRef<HTMLInputElement>(null);
     const inputRef = externalInputRef || localInputRef;
 
@@ -114,11 +114,16 @@ function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => voi
         const form = new FormData();
         form.append('file', file);
         try {
-            await apiClient.post('/candidate-portal/upload-cv', form, {
+            const res = await apiClient.post('/candidate-portal/upload-cv', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setUploadedName(file.name);
-            toast.success('CV uploaded successfully!');
+            const filled: string[] = res.data?.filled_fields || [];
+            setUploadResult({ name: file.name, filledFields: filled });
+            if (filled.length > 0) {
+                toast.success(`CV uploaded! ${filled.length} profile fields auto-filled.`);
+            } else {
+                toast.success('CV uploaded successfully!');
+            }
             onUploaded();
         } catch {
             toast.error('CV upload failed — try again');
@@ -143,7 +148,7 @@ function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => voi
             >
                 <FileText className={`w-10 h-10 mb-3 ${uploading ? 'text-blue-500 animate-pulse' : 'text-gray-400'}`} />
                 <p className="text-sm font-semibold text-gray-800">
-                    {uploading ? 'Uploading…' : 'Drag & Drop or Click to Upload'}
+                    {uploading ? 'Uploading & scanning…' : 'Drag & Drop or Click to Upload'}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX · Max 10 MB</p>
                 <input
@@ -161,15 +166,152 @@ function CVUploadPanel({ onUploaded, externalInputRef }: { onUploaded: () => voi
                 />
             </div>
 
-            {uploadedName && (
+            {uploadResult && (
                 <div className="flex items-start gap-3 p-3.5 border border-green-200 bg-green-50 rounded-xl">
                     <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <p className="text-sm font-semibold text-green-800">{uploadedName} — uploaded</p>
-                        <p className="text-xs text-green-600 mt-0.5">
-                            Stored and visible to recruiters. Add skills via <strong>Edit Profile</strong> to improve matches.
-                        </p>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-green-800">{uploadResult.name} — uploaded</p>
+                        {uploadResult.filledFields.length > 0 ? (
+                            <>
+                                <p className="text-xs text-green-700 mt-1 font-medium">Profile auto-filled from your CV:</p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {uploadResult.filledFields.map(f => (
+                                        <span key={f} className="text-[11px] bg-green-100 text-green-800 border border-green-200 px-2 py-0.5 rounded-full font-medium">{f}</span>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-green-600 mt-1.5">Review and adjust via <strong>Edit Profile</strong> if needed.</p>
+                            </>
+                        ) : (
+                            <p className="text-xs text-green-600 mt-0.5">
+                                Stored and visible to recruiters. Add skills via <strong>Edit Profile</strong>.
+                            </p>
+                        )}
                     </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Certifications upload tab ─────────────────────────────────────────────────
+
+const CERT_CATEGORIES = [
+    { value: 'matric',       label: 'Matric Certificate' },
+    { value: 'tertiary',     label: 'Tertiary / Degree / Transcript' },
+    { value: 'professional', label: 'Professional Certification' },
+    { value: 'other',        label: 'Other' },
+];
+
+function CertificationsUploadTab({
+    certFiles,
+    onUploaded,
+    onDeleted,
+}: {
+    certFiles: any[];
+    onUploaded: () => void;
+    onDeleted: (id: string) => void;
+}) {
+    const [uploading, setUploading] = useState(false);
+    const [form, setForm] = useState({ name: '', issuer: '', date: '', category: 'other' });
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+    const handleUpload = async () => {
+        if (!pendingFile || !form.name.trim()) {
+            toast.error('Please select a file and enter a certificate name');
+            return;
+        }
+        setUploading(true);
+        const fd = new FormData();
+        fd.append('file', pendingFile);
+        fd.append('name', form.name);
+        fd.append('issuer', form.issuer);
+        fd.append('date', form.date);
+        fd.append('category', form.category);
+        try {
+            await apiClient.post('/candidate-portal/upload-certificate', fd, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            toast.success('Certificate uploaded!');
+            setForm({ name: '', issuer: '', date: '', category: 'other' });
+            setPendingFile(null);
+            if (inputRef.current) inputRef.current.value = '';
+            onUploaded();
+        } catch {
+            toast.error('Upload failed — try again');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+                <p className="text-sm text-purple-800 font-medium">Upload your Matric certificate, degree certificates, academic transcripts, or professional certifications.</p>
+            </div>
+
+            {/* Upload form */}
+            <div className="border border-gray-200 rounded-xl p-4 space-y-3 bg-white shadow-sm">
+                <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2"><Upload className="w-4 h-4 text-purple-500" /> Upload New Certificate</h4>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                        <label className="block text-xs text-gray-500 mb-1">Certificate Name <span className="text-red-500">*</span></label>
+                        <input className="input w-full text-sm" placeholder="e.g. National Senior Certificate (Matric)" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">Category</label>
+                        <select className="input w-full text-sm" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                            {CERT_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">Year / Date</label>
+                        <input className="input w-full text-sm" placeholder="e.g. 2018 or Nov 2018" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-xs text-gray-500 mb-1">Issuing Institution (optional)</label>
+                        <input className="input w-full text-sm" placeholder="e.g. University of Johannesburg" value={form.issuer} onChange={e => setForm({...form, issuer: e.target.value})} />
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-xs text-gray-500 mb-1">File <span className="text-red-500">*</span></label>
+                        <div
+                            className={`border-2 border-dashed rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-colors ${pendingFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50'}`}
+                            onClick={() => inputRef.current?.click()}
+                        >
+                            <FileText className={`w-5 h-5 flex-shrink-0 ${pendingFile ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm truncate">{pendingFile ? pendingFile.name : 'Click to select file (PDF, DOC, JPG, PNG)'}</span>
+                            {pendingFile && <button className="ml-auto text-xs text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); setPendingFile(null); if (inputRef.current) inputRef.current.value = ''; }}>Remove</button>}
+                        </div>
+                        <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onClick={e => e.stopPropagation()} onChange={e => { const f = e.target.files?.[0]; if (f) setPendingFile(f); e.target.value = ''; }} />
+                    </div>
+                </div>
+                <button
+                    className={`w-full py-2.5 rounded-lg text-sm font-bold transition-colors ${uploading || !pendingFile || !form.name.trim() ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                    disabled={uploading || !pendingFile || !form.name.trim()}
+                    onClick={handleUpload}
+                >
+                    {uploading ? 'Uploading…' : 'Upload Certificate'}
+                </button>
+            </div>
+
+            {/* Existing certificates */}
+            {certFiles.length > 0 && (
+                <div className="space-y-2">
+                    <h4 className="text-sm font-bold text-gray-700">Uploaded Certificates ({certFiles.length})</h4>
+                    {certFiles.map((cert: any) => {
+                        const catLabel: Record<string, string> = { matric: 'Matric', tertiary: 'Tertiary', professional: 'Professional', other: 'Other' };
+                        return (
+                            <div key={cert.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-white">
+                                <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{cert.name}</p>
+                                    <p className="text-xs text-gray-400">{catLabel[cert.category] || 'Other'}{cert.date ? ` · ${cert.date}` : ''}</p>
+                                </div>
+                                <a href={`http://localhost:8000${cert.file_url}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="View"><Eye className="w-3.5 h-3.5" /></a>
+                                <button onClick={() => onDeleted(cert.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -601,23 +743,56 @@ export default function CandidateProfilePage() {
                                         ))}
                                     </div>
                                     
-                                    <h3 className="text-lg font-bold text-gray-900 mt-8 pt-6 border-t border-gray-200">Certifications</h3>
-                                    {(!profileData.certifications || profileData.certifications.length === 0) && <p className="text-gray-500">No certifications added yet.</p>}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {profileData.certifications?.map((cert: any) => (
-                                            <div key={cert.id} className="border border-gray-200 p-4 rounded-lg flex items-center justify-between shadow-sm">
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900">{cert.name}</h4>
-                                                    <p className="text-sm text-gray-500">Issued: {cert.date}</p>
-                                                </div>
-                                                {cert.fileUrl && (
-                                                    <a href="#" className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors" title="View Certificate">
-                                                        <FileText className="w-4 h-4" />
-                                                    </a>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mt-8 pt-6 border-t border-gray-200 flex items-center gap-2">
+                                        <Award className="w-5 h-5 text-yellow-500" /> Certificates & Qualifications
+                                    </h3>
+                                    {(!candidateData?.certificate_files || candidateData.certificate_files.length === 0) ? (
+                                        <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
+                                            <Award className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                            <p className="text-sm text-gray-400">No certificates uploaded yet</p>
+                                            <p className="text-xs text-gray-300 mt-0.5">Use <strong>Edit Profile → Certifications</strong> to upload</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {candidateData.certificate_files.map((cert: any) => {
+                                                const catColors: Record<string, string> = {
+                                                    matric: 'bg-green-100 text-green-700 border-green-200',
+                                                    tertiary: 'bg-blue-100 text-blue-700 border-blue-200',
+                                                    professional: 'bg-purple-100 text-purple-700 border-purple-200',
+                                                    other: 'bg-gray-100 text-gray-600 border-gray-200',
+                                                };
+                                                const catLabel: Record<string, string> = {
+                                                    matric: 'Matric', tertiary: 'Tertiary', professional: 'Professional', other: 'Other',
+                                                };
+                                                return (
+                                                    <div key={cert.id} className="border border-gray-200 p-3.5 rounded-xl flex items-center gap-3 shadow-sm bg-white hover:shadow-md transition-shadow">
+                                                        <div className="w-9 h-10 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <FileText className="w-4 h-4 text-red-500" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-gray-900 truncate">{cert.name}</p>
+                                                            {cert.issuer && <p className="text-xs text-gray-500 truncate">{cert.issuer}</p>}
+                                                            <div className="flex items-center gap-1.5 mt-1">
+                                                                <span className={`text-[10px] font-bold border px-1.5 py-0.5 rounded ${catColors[cert.category] || catColors.other}`}>
+                                                                    {catLabel[cert.category] || 'Other'}
+                                                                </span>
+                                                                {cert.date && <span className="text-[10px] text-gray-400">{cert.date}</span>}
+                                                            </div>
+                                                        </div>
+                                                        <a
+                                                            href={`http://localhost:8000${cert.file_url}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex-shrink-0"
+                                                            title="View Certificate"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </a>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -846,33 +1021,24 @@ export default function CandidateProfilePage() {
                             )}
 
                             {editTab === 'Certifications' && (
-                                <div className="space-y-4 animate-in fade-in duration-300">
-                                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 mb-4">
-                                        <p className="text-sm text-purple-800 font-medium">Have you completed any notable certifications? Upload and mention them here.</p>
-                                    </div>
-                                    {editForm.certifications?.map((cert: any, index: number) => (
-                                        <div key={cert.id} className="p-4 border border-gray-200 rounded-lg relative bg-white shadow-sm stack-item">
-                                            <button onClick={() => setEditForm({...editForm, certifications: editForm.certifications.filter((c: any) => c.id !== cert.id)})} className="absolute top-4 right-4 text-red-500 hover:bg-red-50 p-1 rounded transition-colors" title="Delete Certification">✕</button>
-                                            <div className="grid grid-cols-2 gap-4 pr-8">
-                                                <div><label className="block text-xs text-gray-500 mb-1">Certification Name</label><input className="input w-full text-sm" value={cert.name} onChange={(e) => { const newArr = [...editForm.certifications]; newArr[index].name = e.target.value; setEditForm({...editForm, certifications: newArr}) }} /></div>
-                                                <div><label className="block text-xs text-gray-500 mb-1">Issue Date</label><input className="input w-full text-sm" value={cert.date} onChange={(e) => { const newArr = [...editForm.certifications]; newArr[index].date = e.target.value; setEditForm({...editForm, certifications: newArr}) }} /></div>
-                                                <div className="col-span-2">
-                                                    <label className="block text-xs text-gray-500 mb-1">Upload Certificate (Optional)</label>
-                                                    <div className="flex items-center gap-3">
-                                                        <button 
-                                                            className={`text-sm px-4 py-2 border rounded font-medium ${cert.fileUrl ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white border-gray-300 hover:bg-gray-50'}`}
-                                                            onClick={() => { const newArr = [...editForm.certifications]; newArr[index].fileUrl = 'uploaded-doc.pdf'; setEditForm({...editForm, certifications: newArr}); }}
-                                                        >
-                                                            {cert.fileUrl ? '✓ Attached' : 'Attach File'}
-                                                        </button>
-                                                        {cert.fileUrl && <span className="text-xs text-gray-500 truncate">Document securely attached</span>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <button onClick={() => setEditForm({...editForm, certifications: [...(editForm.certifications||[]), {id: Date.now().toString(), name:'', date:'', fileUrl:''}]})} className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-500 font-medium rounded-lg hover:bg-gray-50 hover:text-purple-600 hover:border-purple-300 transition-colors">+ Add Certification</button>
-                                </div>
+                                <CertificationsUploadTab
+                                    certFiles={candidateData?.certificate_files || []}
+                                    onUploaded={async () => {
+                                        const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
+                                        if (profileRes) setCandidateData(profileRes.data);
+                                        await fetchCompleteness();
+                                    }}
+                                    onDeleted={async (certId: string) => {
+                                        try {
+                                            await apiClient.delete(`/candidate-portal/certificates/${certId}`);
+                                            const profileRes = await apiClient.get('/candidate-portal/profile').catch(() => null);
+                                            if (profileRes) setCandidateData(profileRes.data);
+                                            toast.success('Certificate removed');
+                                        } catch {
+                                            toast.error('Failed to remove certificate');
+                                        }
+                                    }}
+                                />
                             )}
                         </div>
 

@@ -5,7 +5,7 @@ All routes here are for the candidate themselves (current_user must have role=ca
 Prefix: /candidate-portal
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from uuid import UUID
@@ -29,6 +29,9 @@ router = APIRouter()
 
 UPLOAD_DIR = Path("uploads/resumes")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+CERT_DIR = Path("uploads/certificates")
+CERT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _require_candidate(current_user: User):
@@ -268,6 +271,7 @@ class CVParseResult(BaseModel):
     message: str
     parsed_data: Optional[dict] = None
     resume_url: Optional[str] = None
+    filled_fields: Optional[List[str]] = None
 
 
 @router.post("/upload-cv", response_model=CVParseResult)
@@ -295,8 +299,7 @@ async def upload_my_cv(
 
     resume_url = f"/static/uploads/resumes/{filename}"
 
-    # Extract raw text locally (free — no AI call) so the file is searchable.
-    # AI parsing is deferred to a future paid tier.
+    # Extract text locally (free, no AI)
     resume_text = ""
     try:
         from app.services.ai_resume_parser import ai_resume_parser
@@ -309,12 +312,150 @@ async def upload_my_cv(
     if resume_text:
         candidate.resume_text = resume_text
 
+    # Rule-based profile auto-fill — only populate fields that are currently empty
+    filled_fields: List[str] = []
+    if resume_text:
+        try:
+            from app.services.resume_parser import parse_resume_text
+            parsed = parse_resume_text(resume_text)
+
+            if parsed.get("phone") and not candidate.phone:
+                candidate.phone = parsed["phone"]
+                filled_fields.append("Phone number")
+            if parsed.get("skills") and not (candidate.skills and len(candidate.skills) >= 3):
+                candidate.skills = parsed["skills"]
+                filled_fields.append(f"Skills ({len(parsed['skills'])} detected)")
+            if parsed.get("city") and not candidate.city:
+                candidate.city = parsed["city"]
+                filled_fields.append("City")
+            if parsed.get("province") and not candidate.province:
+                candidate.province = parsed["province"]
+                filled_fields.append("Province")
+            if parsed.get("education_level") and not candidate.education_level:
+                candidate.education_level = parsed["education_level"]
+                filled_fields.append("Education level")
+            if parsed.get("current_job_title") and not candidate.current_job_title:
+                candidate.current_job_title = parsed["current_job_title"]
+                filled_fields.append("Job title")
+            if parsed.get("summary") and not candidate.summary:
+                candidate.summary = parsed["summary"]
+                filled_fields.append("Professional summary")
+            if parsed.get("work_history") and not candidate.work_history:
+                candidate.work_history = parsed["work_history"]
+                filled_fields.append(f"Work history ({len(parsed['work_history'])} roles)")
+        except Exception:
+            pass
+
     await db.commit()
+
+    msg = "CV uploaded and profile auto-filled." if filled_fields else "CV uploaded successfully."
     return CVParseResult(
-        message="CV uploaded successfully. Complete your profile to add skills and experience.",
+        message=msg,
         parsed_data=None,
         resume_url=resume_url,
+        filled_fields=filled_fields if filled_fields else None,
     )
+
+
+# ─── Certificate Upload ───────────────────────────────────────────────────────
+
+class CertificateOut(BaseModel):
+    id: str
+    name: str
+    issuer: Optional[str] = None
+    date: Optional[str] = None
+    category: str
+    file_url: str
+    file_name: str
+
+
+@router.post("/upload-certificate", response_model=CertificateOut, status_code=201)
+async def upload_certificate(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    issuer: str = Form(""),
+    date: str = Form(""),
+    category: str = Form("other"),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a certificate/qualification file and attach it to the candidate profile."""
+    _require_candidate(current_user)
+    cand_result = await db.execute(
+        select(Candidate).where(Candidate.user_id == current_user.id)
+    )
+    candidate = cand_result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+
+    ext = Path(file.filename or "cert.pdf").suffix.lower()
+    if ext not in [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"]:
+        raise HTTPException(status_code=422, detail="Supported: PDF, DOC, DOCX, JPG, PNG")
+
+    cert_id = str(uuid_mod.uuid4())
+    filename = f"{cert_id}{ext}"
+    dest = CERT_DIR / filename
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    file_url = f"/static/uploads/certificates/{filename}"
+
+    cert_entry = {
+        "id": cert_id,
+        "name": name.strip(),
+        "issuer": issuer.strip() or None,
+        "date": date.strip() or None,
+        "category": category,
+        "file_url": file_url,
+        "file_name": file.filename or filename,
+    }
+
+    existing = list(candidate.certificate_files or [])
+    existing.append(cert_entry)
+    candidate.certificate_files = existing
+    # Explicitly mark the JSONB column as modified so SQLAlchemy tracks the change
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(candidate, "certificate_files")
+
+    await db.commit()
+    return cert_entry
+
+
+@router.delete("/certificates/{cert_id}", status_code=200)
+async def delete_certificate(
+    cert_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a certificate from the candidate profile and delete the file."""
+    _require_candidate(current_user)
+    cand_result = await db.execute(
+        select(Candidate).where(Candidate.user_id == current_user.id)
+    )
+    candidate = cand_result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+
+    certs = list(candidate.certificate_files or [])
+    target = next((c for c in certs if c.get("id") == cert_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    # Delete file from disk
+    try:
+        fname = target["file_url"].split("/")[-1]
+        fpath = CERT_DIR / fname
+        if fpath.exists():
+            fpath.unlink()
+    except Exception:
+        pass
+
+    candidate.certificate_files = [c for c in certs if c.get("id") != cert_id]
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(candidate, "certificate_files")
+
+    await db.commit()
+    return {"message": "Certificate deleted"}
 
 
 # ─── Match Score ──────────────────────────────────────────────────────────────
@@ -468,6 +609,7 @@ async def get_my_profile(
         "work_history": candidate.work_history or [],
         "resume_url": candidate.resume_url,
         "resume_filename": candidate.resume_filename,
+        "certificate_files": candidate.certificate_files or [],
         "linkedin_url": candidate.linkedin_url,
         "portfolio_url": candidate.portfolio_url,
         "notice_period_days": candidate.notice_period_days,
