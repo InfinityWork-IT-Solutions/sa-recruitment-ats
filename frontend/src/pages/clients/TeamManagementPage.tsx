@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, UserPlus, Mail, Shield, Trash2, Edit, Phone, Building2,
+  Users, UserPlus, Mail, Shield, Trash2, Edit, Phone,
   CheckCircle, Clock, XCircle, CreditCard, AlertCircle, RefreshCw,
-  ShieldCheck, ShieldAlert, X, Briefcase, Eye, Save, User
+  ShieldCheck, ShieldAlert, X, Eye, Save, User
 } from 'lucide-react';
 import InviteTeamMemberModal from '@/components/modals/InviteTeamMemberModal';
 import ChangeRoleModal from '@/components/modals/ChangeRoleModal';
@@ -15,14 +15,12 @@ interface TeamMember {
   first_name: string;
   last_name: string;
   email: string;
-  phone?: string;
-  job_title?: string;
-  department?: string;
-  role: 'admin' | 'recruiter' | 'hiring_manager' | 'viewer';
+  phone: string;
+  role: string;
   status: 'active' | 'invited' | 'inactive';
-  is_verified?: boolean;
+  is_verified: boolean;
+  avatar_url?: string;
   last_active?: string;
-  invited_at?: string;
   joined_at?: string;
 }
 
@@ -36,7 +34,7 @@ interface TeamSeats {
 export default function TeamManagementPage() {
   const navigate = useNavigate();
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [seats, setSeats] = useState<TeamSeats>({ used: 0, total: 0, available: 0, plan: '' });
+  const [seats, setSeats] = useState<TeamSeats>({ used: 0, total: 5, available: 5, plan: 'Professional' });
   const [loading, setLoading] = useState(true);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -49,41 +47,20 @@ export default function TeamManagementPage() {
   // Detail / edit slide-over
   const [detailMember, setDetailMember] = useState<TeamMember | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({ phone: '', job_title: '', department: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', phone: '' });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchTeamData();
-  }, []);
+  useEffect(() => { fetchTeamData(); }, []);
 
   const fetchTeamData = async () => {
     try {
-      const response = await apiClient.get('/team/members');
-      const data = response.data;
-      // API may return { members: [...], seats: {...} } or a flat array
-      const rawMembers: any[] = Array.isArray(data) ? data : (data.members ?? []);
-      // Normalise fields so first_name / last_name are always strings
-      const normalised: TeamMember[] = rawMembers.map((m: any) => ({
-        id: m.id ?? m.user_id ?? '',
-        first_name: m.first_name ?? m.name?.split(' ')[0] ?? '',
-        last_name: m.last_name ?? m.name?.split(' ').slice(1).join(' ') ?? '',
-        email: m.email ?? '',
-        phone: m.phone ?? '',
-        job_title: m.job_title ?? '',
-        department: m.department ?? '',
-        role: m.role ?? 'viewer',
-        status: m.status ?? 'active',
-        is_verified: m.is_verified ?? m.is_email_verified ?? true,
-        last_active: m.last_active,
-        invited_at: m.invited_at,
-        joined_at: m.joined_at,
-      }));
-      setMembers(normalised.length > 0 ? normalised : mockMembers);
-      setSeats(data.seats ?? mockSeats);
+      const res = await apiClient.get('/team/members');
+      const data = res.data;
+      setMembers(data.members || []);
+      if (data.seats) setSeats(data.seats);
     } catch {
-      // Backend endpoint not yet live — use mock so UI remains testable
-      setMembers(mockMembers);
-      setSeats(mockSeats);
+      toast.error('Failed to load team members.');
+      setMembers([]);
     } finally {
       setLoading(false);
     }
@@ -92,20 +69,20 @@ export default function TeamManagementPage() {
   const handleInviteMember = async (data: any) => {
     try {
       await apiClient.post('/team/invite', data);
-      toast.success('Invitation sent successfully!');
+      toast.success('Invitation sent!');
       fetchTeamData();
     } catch {
-      toast.error('Failed to send invitation. Please try again.');
+      toast.error('Failed to send invitation.');
     }
   };
 
   const handleChangeRole = async (memberId: string, newRole: string) => {
     try {
       await apiClient.patch(`/team/members/${memberId}/role`, { role: newRole });
-      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole as any } : m));
-      toast.success('Role updated successfully!');
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+      toast.success('Role updated!');
     } catch {
-      toast.error('Failed to change role. Please try again.');
+      toast.error('Failed to change role.');
     }
   };
 
@@ -113,13 +90,12 @@ export default function TeamManagementPage() {
     if (!memberToRemove) return;
     try {
       await apiClient.delete(`/team/members/${memberToRemove}`);
-      setMembers(members.filter(m => m.id !== memberToRemove));
+      setMembers(prev => prev.filter(m => m.id !== memberToRemove));
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
       toast.success('Team member removed.');
-      fetchTeamData();
     } catch {
-      toast.error('Failed to remove member. Please try again.');
+      toast.error('Failed to remove member.');
     }
   };
 
@@ -143,7 +119,7 @@ export default function TeamManagementPage() {
 
   const openDetail = (member: TeamMember) => {
     setDetailMember(member);
-    setEditForm({ phone: member.phone || '', job_title: member.job_title || '', department: member.department || '' });
+    setEditForm({ first_name: member.first_name, last_name: member.last_name, phone: member.phone || '' });
     setEditMode(false);
   };
 
@@ -151,12 +127,17 @@ export default function TeamManagementPage() {
     if (!detailMember) return;
     setSaving(true);
     try {
-      await apiClient.patch(`/team/members/${detailMember.id}/profile`, editForm);
-      const updated = { ...detailMember, ...editForm };
-      setMembers(members.map(m => m.id === detailMember.id ? updated : m));
+      const res = await apiClient.patch(`/team/members/${detailMember.id}/profile`, editForm);
+      const updated: TeamMember = {
+        ...detailMember,
+        first_name: res.data.first_name ?? editForm.first_name,
+        last_name: res.data.last_name ?? editForm.last_name,
+        phone: res.data.phone ?? editForm.phone,
+      };
+      setMembers(prev => prev.map(m => m.id === detailMember.id ? updated : m));
       setDetailMember(updated);
       setEditMode(false);
-      toast.success('Profile updated.');
+      toast.success('Profile updated!');
     } catch {
       toast.error('Failed to save. Please try again.');
     } finally {
@@ -167,9 +148,11 @@ export default function TeamManagementPage() {
   const getRoleColor = (role: string) => {
     const colors: Record<string, string> = {
       admin: 'bg-red-100 text-red-700',
-      recruiter: 'bg-blue-100 text-blue-700',
-      hiring_manager: 'bg-purple-100 text-purple-700',
+      client: 'bg-blue-100 text-blue-700',
+      recruiter: 'bg-purple-100 text-purple-700',
+      agency_admin: 'bg-orange-100 text-orange-700',
       viewer: 'bg-gray-100 text-gray-700',
+      hiring_manager: 'bg-indigo-100 text-indigo-700',
     };
     return colors[role] || 'bg-gray-100 text-gray-700';
   };
@@ -181,18 +164,16 @@ export default function TeamManagementPage() {
   };
 
   const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: 'text-green-600',
-      invited: 'text-yellow-600',
-      inactive: 'text-gray-500',
-    };
+    const colors: Record<string, string> = { active: 'text-green-600', invited: 'text-yellow-600', inactive: 'text-gray-500' };
     return colors[status] || 'text-gray-500';
   };
 
+  const initials = (m: TeamMember) =>
+    `${m.first_name?.[0] ?? ''}${m.last_name?.[0] ?? ''}`.toUpperCase() || '?';
+
   const seatPercentage = seats.total > 0 ? (seats.used / seats.total) * 100 : 0;
   const progressColor = seatPercentage < 80 ? 'bg-green-500' : seatPercentage < 100 ? 'bg-yellow-500' : 'bg-red-500';
-
-  const unverifiedCount = members.filter(m => m.is_verified === false).length;
+  const unverifiedCount = members.filter(m => !m.is_verified).length;
 
   if (loading) {
     return (
@@ -216,7 +197,7 @@ export default function TeamManagementPage() {
         <button
           onClick={() => setShowInviteModal(true)}
           disabled={seats.available === 0}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <UserPlus className="w-5 h-5" />
           <span>Invite Member</span>
@@ -232,7 +213,7 @@ export default function TeamManagementPage() {
               {unverifiedCount} team member{unverifiedCount > 1 ? 's' : ''} not yet verified
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              All users must verify their email for security. Click "View Details" on each member to resend verification.
+              All users must verify their email for security. Click "Details" on each member to send a verification email.
             </p>
           </div>
         </div>
@@ -248,7 +229,6 @@ export default function TeamManagementPage() {
           <div className="text-3xl font-bold text-gray-900">{seats.total}</div>
           <p className="text-xs text-gray-500 mt-1">{seats.plan} Plan</p>
         </div>
-
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
@@ -257,7 +237,6 @@ export default function TeamManagementPage() {
           <div className="text-3xl font-bold text-gray-900">{seats.used}</div>
           <p className="text-xs text-gray-500 mt-1">{seatPercentage.toFixed(0)}% utilized</p>
         </div>
-
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-2">
             <UserPlus className="w-5 h-5 text-purple-600" />
@@ -266,18 +245,15 @@ export default function TeamManagementPage() {
           <div className={`text-3xl font-bold ${seats.available > 0 ? 'text-green-600' : 'text-red-600'}`}>
             {seats.available}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            {seats.available > 0 ? 'Ready to invite' : 'No seats left'}
-          </p>
+          <p className="text-xs text-gray-500 mt-1">{seats.available > 0 ? 'Ready to invite' : 'No seats left'}</p>
         </div>
-
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-2">
             <ShieldCheck className="w-5 h-5 text-green-600" />
             <span className="text-sm text-gray-600">Verified</span>
           </div>
           <div className="text-3xl font-bold text-gray-900">
-            {members.filter(m => m.is_verified !== false).length}
+            {members.filter(m => m.is_verified).length}
           </div>
           <p className="text-xs text-gray-500 mt-1">of {members.length} members</p>
         </div>
@@ -290,7 +266,7 @@ export default function TeamManagementPage() {
           <span className="text-sm text-gray-600">{seats.used} / {seats.total} seats</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
-          <div className={`h-3 rounded-full transition-all ${progressColor}`} style={{ width: `${seatPercentage}%` }} />
+          <div className={`h-3 rounded-full transition-all ${progressColor}`} style={{ width: `${Math.min(seatPercentage, 100)}%` }} />
         </div>
         {seats.available === 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-center gap-3">
@@ -314,119 +290,107 @@ export default function TeamManagementPage() {
       <div className="card p-0 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">Team Members</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{members.length} total members</p>
+          <p className="text-sm text-gray-500 mt-0.5">{members.length} total member{members.length !== 1 ? 's' : ''}</p>
         </div>
 
-        <div className="divide-y divide-gray-100">
-          {members.map((member) => (
-            <div key={member.id} className="px-6 py-5 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between gap-4">
-                {/* Avatar + info */}
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {member.first_name?.[0] ?? '?'}{member.last_name?.[0] ?? ''}
+        {members.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">No team members yet</p>
+            <p className="text-sm text-gray-400 mt-1">Invite colleagues to collaborate on hiring</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {members.map((member) => (
+              <div key={member.id} className="px-6 py-5 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between gap-4">
+                  {/* Avatar + info */}
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                        {member.avatar_url
+                          ? <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                          : initials(member)
+                        }
+                      </div>
+                      <div className="absolute -bottom-0.5 -right-0.5">
+                        {member.is_verified
+                          ? <ShieldCheck className="w-4 h-4 text-green-500 bg-white rounded-full" />
+                          : <ShieldAlert className="w-4 h-4 text-amber-500 bg-white rounded-full" />
+                        }
+                      </div>
                     </div>
-                    {/* Verification badge */}
-                    <div className="absolute -bottom-0.5 -right-0.5">
-                      {member.is_verified === false ? (
-                        <ShieldAlert className="w-4 h-4 text-amber-500 bg-white rounded-full" />
-                      ) : (
-                        <ShieldCheck className="w-4 h-4 text-green-500 bg-white rounded-full" />
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="font-semibold text-gray-900">{member.first_name} {member.last_name}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRoleColor(member.role)}`}>
-                        {member.role.replace(/_/g, ' ')}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {getStatusIcon(member.status)}
-                        <span className={`text-xs font-medium capitalize ${getStatusColor(member.status)}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-semibold text-gray-900">
+                          {member.first_name} {member.last_name}
+                        </h3>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRoleColor(member.role)}`}>
+                          {member.role.replace(/_/g, ' ')}
+                        </span>
+                        <span className={`flex items-center gap-1 text-xs font-medium capitalize ${getStatusColor(member.status)}`}>
+                          {getStatusIcon(member.status)}
                           {member.status}
                         </span>
+                        {!member.is_verified && (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3" />
+                            Unverified
+                          </span>
+                        )}
                       </div>
-                      {member.is_verified === false && (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
-                          <ShieldAlert className="w-3 h-3" />
-                          Unverified
-                        </span>
-                      )}
+
+                      <p className="text-sm text-gray-600 truncate">{member.email}</p>
+
+                      <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 flex-wrap">
+                        {member.phone
+                          ? <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{member.phone}</span>
+                          : <span className="text-amber-500">No phone number — click Details to add</span>
+                        }
+                        {member.last_active && <span>Last active {member.last_active}</span>}
+                      </div>
                     </div>
+                  </div>
 
-                    <p className="text-sm text-gray-600 truncate">{member.email}</p>
-
-                    <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 flex-wrap">
-                      {member.job_title && (
-                        <span className="flex items-center gap-1">
-                          <Briefcase className="w-3 h-3" />{member.job_title}
-                        </span>
-                      )}
-                      {member.department && (
-                        <span className="flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />{member.department}
-                        </span>
-                      )}
-                      {member.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />{member.phone}
-                        </span>
-                      )}
-                      {!member.job_title && !member.phone && (
-                        <span className="text-amber-500">Profile incomplete — contact details missing</span>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-gray-400 mt-1">
-                      {member.status === 'active' && member.last_active && `Last active ${member.last_active}`}
-                      {member.status === 'invited' && member.invited_at && `Invited ${member.invited_at}`}
-                    </p>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => openDetail(member)}
+                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-1.5"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Details
+                    </button>
+                    {member.status === 'invited' && (
+                      <button
+                        onClick={() => handleResendInvitation(member.id)}
+                        className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors flex items-center gap-1.5"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Resend
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setSelectedMember(member); setShowChangeRoleModal(true); }}
+                      className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-1.5"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Role
+                    </button>
+                    <button
+                      onClick={() => { setMemberToRemove(member.id); setShowRemoveConfirm(true); }}
+                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Remove
+                    </button>
                   </div>
                 </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => openDetail(member)}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-1.5"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Details
-                  </button>
-
-                  {member.status === 'invited' && (
-                    <button
-                      onClick={() => handleResendInvitation(member.id)}
-                      className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors flex items-center gap-1.5"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Resend
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => { setSelectedMember(member); setShowChangeRoleModal(true); }}
-                    className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-1.5"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Role
-                  </button>
-
-                  <button
-                    onClick={() => { setMemberToRemove(member.id); setShowRemoveConfirm(true); }}
-                    className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Remove
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Member Detail Slide-Over ── */}
@@ -434,7 +398,6 @@ export default function TeamManagementPage() {
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setDetailMember(null)} />
           <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
               <h2 className="text-lg font-bold text-gray-900">Member Details</h2>
               <button onClick={() => setDetailMember(null)} className="p-1.5 rounded-full hover:bg-gray-200 text-gray-500">
@@ -445,12 +408,15 @@ export default function TeamManagementPage() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               {/* Avatar + name */}
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                  {detailMember.first_name?.[0] ?? '?'}{detailMember.last_name?.[0] ?? ''}
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden">
+                  {detailMember.avatar_url
+                    ? <img src={detailMember.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : initials(detailMember)
+                  }
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">{detailMember.first_name} {detailMember.last_name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRoleColor(detailMember.role)}`}>
                       {detailMember.role.replace(/_/g, ' ')}
                     </span>
@@ -463,14 +429,14 @@ export default function TeamManagementPage() {
               </div>
 
               {/* Verification status */}
-              {detailMember.is_verified === false ? (
+              {!detailMember.is_verified ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <div className="flex items-start gap-3">
                     <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-amber-900">Email not verified</p>
                       <p className="text-xs text-amber-700 mt-0.5">
-                        This member must verify their email address before they can access all features. Send them a verification email.
+                        This member must verify their email before they can access all features.
                       </p>
                       <button
                         onClick={() => handleResendVerification(detailMember.id)}
@@ -507,6 +473,24 @@ export default function TeamManagementPage() {
                 {editMode ? (
                   <div className="space-y-3">
                     <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                      <input
+                        type="text"
+                        value={editForm.first_name}
+                        onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))}
+                        className="input text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                      <input
+                        type="text"
+                        value={editForm.last_name}
+                        onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))}
+                        className="input text-sm"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number</label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -515,32 +499,6 @@ export default function TeamManagementPage() {
                           value={editForm.phone}
                           onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
                           placeholder="+27 82 000 0000"
-                          className="input pl-9 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Job Title</label>
-                      <div className="relative">
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          value={editForm.job_title}
-                          onChange={e => setEditForm(f => ({ ...f, job_title: e.target.value }))}
-                          placeholder="e.g. Senior Recruiter"
-                          className="input pl-9 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Department</label>
-                      <div className="relative">
-                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          value={editForm.department}
-                          onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}
-                          placeholder="e.g. Human Resources"
                           className="input pl-9 text-sm"
                         />
                       </div>
@@ -572,16 +530,8 @@ export default function TeamManagementPage() {
                       <Phone className="w-4 h-4 text-gray-400 shrink-0" />
                       {detailMember.phone
                         ? <a href={`tel:${detailMember.phone}`} className="text-blue-600 hover:underline">{detailMember.phone}</a>
-                        : <span className="text-amber-500 text-xs">No phone — click Edit to add</span>
+                        : <span className="text-amber-500 text-xs">No phone number — click Edit to add</span>
                       }
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-600">
-                      <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
-                      {detailMember.job_title || <span className="text-amber-500 text-xs">No job title — click Edit to add</span>}
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-600">
-                      <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
-                      {detailMember.department || <span className="text-amber-500 text-xs">No department — click Edit to add</span>}
                     </div>
                   </div>
                 )}
@@ -595,16 +545,13 @@ export default function TeamManagementPage() {
                 {detailMember.last_active && (
                   <p>Last active: <span className="font-medium text-gray-700">{detailMember.last_active}</span></p>
                 )}
-                {detailMember.invited_at && (
-                  <p>Invited: <span className="font-medium text-gray-700">{detailMember.invited_at}</span></p>
-                )}
               </div>
 
-              {/* Note about self-edit */}
+              {/* Self-edit note */}
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
                 <User className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-blue-700">
-                  Team members can update their own contact details, profile photo, and password from their <strong>Settings</strong> page after logging in.
+                  Team members can update their own profile photo, password, and notification preferences from their <strong>Settings</strong> page.
                 </p>
               </div>
             </div>
@@ -629,7 +576,7 @@ export default function TeamManagementPage() {
             setShowChangeRoleModal(false);
             setSelectedMember(null);
           }}
-          currentRole={selectedMember.role}
+          currentRole={selectedMember.role as any}
           memberName={`${selectedMember.first_name} ${selectedMember.last_name}`}
         />
       )}
@@ -669,63 +616,3 @@ export default function TeamManagementPage() {
     </div>
   );
 }
-
-// ── Mock data (used as fallback while backend /team/members endpoint is pending) ──
-const mockSeats: TeamSeats = { used: 4, total: 5, available: 1, plan: 'Professional' };
-
-const mockMembers: TeamMember[] = [
-  {
-    id: '1',
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john.doe@company.com',
-    phone: '+27 82 123 4567',
-    job_title: 'Head of Recruitment',
-    department: 'Human Resources',
-    role: 'admin',
-    status: 'active',
-    is_verified: true,
-    last_active: '2 hours ago',
-    joined_at: '2026-01-15',
-  },
-  {
-    id: '2',
-    first_name: 'Sarah',
-    last_name: 'Smith',
-    email: 'sarah.smith@company.com',
-    phone: '+27 71 234 5678',
-    job_title: 'Senior Recruiter',
-    department: 'Human Resources',
-    role: 'recruiter',
-    status: 'active',
-    is_verified: true,
-    last_active: '1 day ago',
-    joined_at: '2026-02-01',
-  },
-  {
-    id: '3',
-    first_name: 'Mike',
-    last_name: 'Johnson',
-    email: 'mike.johnson@company.com',
-    job_title: '',
-    department: '',
-    role: 'recruiter',
-    status: 'active',
-    is_verified: false,
-    last_active: '3 hours ago',
-    joined_at: '2026-02-10',
-  },
-  {
-    id: '4',
-    first_name: 'Lisa',
-    last_name: 'Brown',
-    email: 'lisa.brown@company.com',
-    phone: '',
-    job_title: 'Engineering Manager',
-    department: 'Engineering',
-    role: 'hiring_manager',
-    status: 'invited',
-    is_verified: false,
-    invited_at: '2026-03-01',
-  },
-];

@@ -31,28 +31,84 @@ async def get_team_members(
     db: AsyncSession = Depends(get_db),
 ):
     """Get team members for the current user's company."""
-    company = await _get_company(current_user, db)
+    await _get_company(current_user, db)
     result = await db.execute(
         select(User).where(
             User.agency_id == current_user.agency_id,
             User.role.in_([UserRole.client, UserRole.recruiter, UserRole.agency_admin]),
-            User.is_active == True,
         )
     )
     members = result.scalars().all()
+
+    def _status(m: User) -> str:
+        if not m.is_active:
+            return "inactive"
+        if not m.is_verified and m.last_login_at is None:
+            return "invited"
+        return "active"
+
     return {
         "members": [
             {
                 "id": str(m.id),
-                "name": f"{m.first_name} {m.last_name}",
+                "first_name": m.first_name,
+                "last_name": m.last_name,
                 "email": m.email,
+                "phone": m.phone or "",
                 "role": m.role.value,
-                "avatar_url": m.avatar_url,
+                "avatar_url": m.avatar_url or m.profile_photo,
+                "is_verified": m.is_verified,
+                "status": _status(m),
+                "last_active": m.last_login_at.strftime("%-d %b %Y") if m.last_login_at else None,
+                "joined_at": m.created_at.strftime("%-d %b %Y") if m.created_at else None,
             }
             for m in members
         ],
         "total": len(members),
+        "seats": {
+            "used": len(members),
+            "total": max(len(members) + 1, 5),
+            "available": max(5 - len(members), 1),
+            "plan": "Professional",
+        },
     }
+
+
+class UpdateMemberProfileRequest(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    phone: str | None = None
+
+
+@router.patch("/team/members/{member_id}/profile")
+async def update_team_member_profile(
+    member_id: UUID,
+    body: UpdateMemberProfileRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a team member's basic profile info (name, phone)."""
+    await _get_company(current_user, db)
+    result = await db.execute(
+        select(User).where(
+            User.id == member_id,
+            User.agency_id == current_user.agency_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    if body.first_name is not None:
+        member.first_name = body.first_name
+    if body.last_name is not None:
+        member.last_name = body.last_name
+    if body.phone is not None:
+        member.phone = body.phone
+
+    await db.commit()
+    await db.refresh(member)
+    return {"id": str(member.id), "first_name": member.first_name, "last_name": member.last_name, "phone": member.phone}
 
 
 class BulkMoveRequest(BaseModel):
