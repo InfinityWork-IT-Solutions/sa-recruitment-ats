@@ -26,6 +26,7 @@ interface Candidate {
   education: string;
   linkedin_url?: string;
   resume_url?: string;
+  profile_photo?: string | null;
   applied_jobs: number;
   last_active: string;
   status: 'new' | 'shortlisted' | 'interviewed' | 'offered' | 'rejected';
@@ -82,6 +83,7 @@ export default function CandidatesPage() {
         applied_jobs: c.applications_count || 0,
         last_active: 'Recently',
         status: c.status === 'active' ? 'new' : c.status,
+        profile_photo: c.profile_photo || null,
       }));
       setCandidates(formatted.length > 0 ? formatted : mockCandidates);
       setFilteredCandidates(formatted.length > 0 ? formatted : mockCandidates);
@@ -504,8 +506,11 @@ export default function CandidatesPage() {
                     {/* CONTINUED IN PART 2... */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-4 flex-1">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                          {candidate.name.split(' ').map(n => n[0]).join('')}
+                        <div className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          {candidate.profile_photo
+                            ? <img src={candidate.profile_photo} alt={candidate.name} className="w-full h-full object-cover" />
+                            : <span className="text-white font-bold text-xl">{candidate.name.split(' ').map(n => n[0]).join('')}</span>
+                          }
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -613,8 +618,11 @@ export default function CandidatesPage() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               {/* Avatar + name */}
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                  {selectedCandidate.name.split(' ').map(n => n[0]).join('')}
+                <div className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  {selectedCandidate.profile_photo
+                    ? <img src={selectedCandidate.profile_photo} alt={selectedCandidate.name} className="w-full h-full object-cover" />
+                    : <span className="text-white font-bold text-xl">{selectedCandidate.name.split(' ').map(n => n[0]).join('')}</span>
+                  }
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xl font-bold text-gray-900">{selectedCandidate.name}</h3>

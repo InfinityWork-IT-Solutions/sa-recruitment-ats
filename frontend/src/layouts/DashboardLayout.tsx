@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { useThemeStore } from '@/store/theme';
 import {
     LayoutDashboard,
     Briefcase,
@@ -19,7 +20,8 @@ import {
     Gift,
     Bookmark,
     PartyPopper,
-    Bell,
+    Sun,
+    Moon,
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -37,7 +39,7 @@ const getNavigation = (role?: string) => {
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
-    
+
     if (role === 'client') {
         return [
             { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
@@ -70,7 +72,7 @@ const getNavigation = (role?: string) => {
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
-    
+
     return [];
 };
 
@@ -78,6 +80,7 @@ export default function DashboardLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
+    const { theme, cycleTheme } = useThemeStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const handleLogout = () => {
@@ -86,7 +89,7 @@ export default function DashboardLayout() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-transparent dark:bg-gray-900 transition-colors duration-200">
             {/* Mobile sidebar backdrop */}
             {sidebarOpen && (
                 <div
@@ -98,26 +101,27 @@ export default function DashboardLayout() {
             {/* Sidebar */}
             <aside
                 className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200
+          fixed inset-y-0 left-0 z-50 w-64 border-r border-white/20 dark:border-gray-700
+          bg-white/80 dark:bg-gray-800 backdrop-blur-xl
           transform transition-transform duration-300 ease-in-out lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
             >
                 <div className="flex flex-col h-full">
                     {/* Logo */}
-                    <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-                        <Link 
-                            to={user?.role === 'candidate' ? '/candidate-dashboard' : user?.role === 'client' ? '/company/dashboard' : '/admin/dashboard'} 
+                    <div className="flex items-center justify-between h-16 px-6 border-b border-white/20 dark:border-gray-700">
+                        <Link
+                            to={user?.role === 'candidate' ? '/candidate-dashboard' : user?.role === 'client' ? '/company/dashboard' : '/admin/dashboard'}
                             className="flex items-center space-x-2"
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-xl">R</span>
                             </div>
-                            <span className="text-xl font-bold text-gray-900">RecruitPro</span>
+                            <span className="text-xl font-bold text-gray-900 dark:text-white">RecruitPro</span>
                         </Link>
                         <button
                             onClick={() => setSidebarOpen(false)}
-                            className="lg:hidden text-gray-500 hover:text-gray-700"
+                            className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         >
                             <X className="w-6 h-6" />
                         </button>
@@ -137,8 +141,8 @@ export default function DashboardLayout() {
                                     className={`
                     flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
                     ${isActive
-                                            ? 'bg-blue-50 text-blue-600'
-                                            : 'text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-blue-600/10 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                            : 'text-gray-700 hover:bg-black/5 dark:text-gray-300 dark:hover:bg-gray-700/50'
                                         }
                   `}
                                 >
@@ -150,7 +154,7 @@ export default function DashboardLayout() {
                     </nav>
 
                     {/* User section */}
-                    <div className="border-t border-gray-200 p-4">
+                    <div className="border-t border-white/20 dark:border-gray-700 p-4">
                         <div className="flex items-center space-x-3 mb-3">
                             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
                                 {(user?.avatar_url || localStorage.getItem(`user_avatar_${user?.id}`)) ? (
@@ -162,15 +166,15 @@ export default function DashboardLayout() {
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                     {user?.first_name} {user?.last_name}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                             </div>
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Logout</span>
@@ -182,16 +186,27 @@ export default function DashboardLayout() {
             {/* Main content */}
             <div className="lg:pl-64">
                 {/* Top bar */}
-                <header className="sticky top-0 z-30 bg-white border-b border-gray-200 h-16 flex items-center px-6">
+                <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-800 backdrop-blur-xl border-b border-white/20 dark:border-gray-700 h-16 flex items-center px-6 transition-colors duration-200">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="lg:hidden text-gray-500 hover:text-gray-700 mr-4"
+                        className="lg:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mr-4"
                     >
                         <Menu className="w-6 h-6" />
                     </button>
 
                     <div className="flex-1" />
-                    
+
+                    {/* Theme cycle toggle */}
+                    <button
+                        onClick={cycleTheme}
+                        title={theme === 'light' ? 'Switch to dark mode' : theme === 'dark' ? 'Switch to glass mode' : 'Switch to light mode'}
+                        className="mr-3 p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        {theme === 'light'  && <Moon className="w-5 h-5" />}
+                        {theme === 'dark'   && <Sun className="w-5 h-5 text-amber-400" />}
+                        {theme === 'glass'  && <Sparkles className="w-5 h-5 text-purple-400" />}
+                    </button>
+
                     {/* Notifications */}
                     <div className="mr-4">
                         <NotificationCenter />
@@ -200,12 +215,12 @@ export default function DashboardLayout() {
                     {/* User badge (role) & Profile Link */}
                     <div className="flex items-center space-x-4">
                         {user?.role && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-bold">
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full font-bold">
                                 {user.role.replace('_', ' ').toUpperCase()}
                             </span>
                         )}
-                        
-                        <Link 
+
+                        <Link
                             to={user?.role === 'candidate' ? '/candidate/profile' : '/settings'}
                             className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:ring-2 hover:ring-blue-300 transition-all shadow-sm overflow-hidden"
                             title="My Profile"

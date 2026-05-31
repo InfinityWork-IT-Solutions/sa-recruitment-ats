@@ -294,8 +294,14 @@ export default function ApplicationsPage() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Link
                                                 to={`/candidates/${application.candidate_id}`}
-                                                className="text-sm font-medium text-blue-600 hover:underline"
+                                                className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline"
                                             >
+                                                <div className="w-7 h-7 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                    {(application as any).candidate_photo
+                                                        ? <img src={(application as any).candidate_photo} alt="" className="w-full h-full object-cover" />
+                                                        : <span className="text-xs font-bold text-blue-600">{application.candidate_name?.split(' ').map(n => n[0]).join('') || '?'}</span>
+                                                    }
+                                                </div>
                                                 {application.candidate_name}
                                             </Link>
                                         </td>

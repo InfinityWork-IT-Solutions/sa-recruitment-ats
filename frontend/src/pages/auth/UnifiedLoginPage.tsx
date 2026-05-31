@@ -220,13 +220,13 @@ export default function UnifiedLoginPage() {
 
           {/* User Type Selector */}
           {!urlType && !isAdminRoute && (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="flex justify-center gap-4">
               {userTypes.map((type) => {
                 const isSelected = selectedUserType === type.value;
                 return (
                   <label
                     key={type.value}
-                    className={`cursor-pointer rounded-2xl p-4 transition-all duration-300 border flex flex-col items-center gap-2 ${
+                    className={`cursor-pointer rounded-2xl p-4 transition-all duration-300 border flex flex-col items-center gap-2 w-36 ${
                       isSelected
                         ? 'bg-white/20 border-white/50 shadow-lg'
                         : 'bg-white/5 border-white/5 hover:bg-white/10'

@@ -256,8 +256,11 @@ export default function KanbanBoardPage() {
                                                                 : <Square className="w-4 h-4 opacity-0 group-hover:opacity-100" />
                                                             }
                                                         </button>
-                                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                            <User className="w-4 h-4 text-blue-600" />
+                                                        <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-blue-100 flex items-center justify-center">
+                                                            {app.candidate_photo
+                                                                ? <img src={app.candidate_photo} alt={app.candidate_name || ''} className="w-full h-full object-cover" />
+                                                                : <span className="text-xs font-bold text-blue-600">{app.candidate_name?.split(' ').map((n: string) => n[0]).join('') || '?'}</span>
+                                                            }
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-medium text-gray-900 truncate text-sm">

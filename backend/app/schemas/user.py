@@ -102,6 +102,7 @@ class UserResponse(UserBase):
     last_login_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    profile_photo: Optional[str] = None
 
     # Include agency info
     agency: Optional[AgencyBrief] = None

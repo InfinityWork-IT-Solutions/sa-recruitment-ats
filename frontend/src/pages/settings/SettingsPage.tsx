@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth';
-import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera, Mail, Briefcase, Star, Calendar, DollarSign, Info, SmartphoneNfc, CheckCircle2, XCircle } from 'lucide-react';
+import { User, Building2, Bell, Shield, Save, Key, ArrowRight, CreditCard, Camera, Mail, Briefcase, Star, Calendar, DollarSign, Info, SmartphoneNfc, CheckCircle2, XCircle, Sun, Moon, Sparkles, Palette } from 'lucide-react';
+import { useThemeStore, type Theme } from '@/store/theme';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 import { QRCodeSVG } from 'qrcode.react';
@@ -388,7 +389,8 @@ function TwoFactorCard({ mfaEnabled, onToggle }: { mfaEnabled: boolean; onToggle
 export default function SettingsPage() {
     const { user, refreshUser } = useAuthStore();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics' | 'billing' | 'templates'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'analytics' | 'billing' | 'templates' | 'appearance'>('profile');
+    const { theme, setTheme } = useThemeStore();
     const [isUpdating, setIsUpdating] = useState(false);
     
     // Avatar upload states
@@ -584,28 +586,18 @@ export default function SettingsPage() {
                                 <span className="font-medium">Profile Analytics</span>
                             </button>
                         )}
+                        <button
+                            onClick={() => setActiveTab('appearance')}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'appearance'
+                                    ? 'bg-blue-50 text-blue-600'
+                                    : 'text-gray-700 hover:bg-gray-50'
+                                }`}
+                        >
+                            <Palette className="w-5 h-5" />
+                            <span className="font-medium">Appearance</span>
+                        </button>
                     </div>
 
-                    {/* Agency Info */}
-                    <div className="card mt-6">
-                        <div className="flex items-center space-x-3 mb-4">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <Building2 className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Agency</p>
-                                <p className="font-medium text-gray-900">{user?.agency_name || 'Your Agency'}</p>
-                            </div>
-                        </div>
-                        <div className="text-sm text-gray-600 space-y-3">
-                            <div>
-                                <span className="font-medium text-gray-700">Role:</span>{' '}
-                                <span className="text-gray-900 font-bold">
-                                    {user?.role.replace(/_/g, ' ').toUpperCase()}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Main Content */}
@@ -862,6 +854,103 @@ export default function SettingsPage() {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    )}
+                    {/* Appearance Tab */}
+                    {activeTab === 'appearance' && (
+                        <div className="card space-y-8">
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-900 mb-1">Appearance</h2>
+                                <p className="text-sm text-gray-500">Choose how RecruitPro looks for you. Your preference is saved locally.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {/* Light */}
+                                <button
+                                    onClick={() => setTheme('light')}
+                                    className={`relative rounded-2xl border-2 overflow-hidden transition-all ${
+                                        theme === 'light' ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                >
+                                    {/* Preview */}
+                                    <div className="bg-gray-50 p-3 h-36">
+                                        <div className="flex gap-2 h-full">
+                                            <div className="w-10 bg-white rounded-lg border border-gray-200 flex flex-col gap-1.5 p-1.5">
+                                                {[1,2,3,4].map(i => <div key={i} className={`h-1.5 rounded-full ${i === 2 ? 'bg-blue-500 w-full' : 'bg-gray-200 w-4/5'}`} />)}
+                                            </div>
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <div className="bg-white rounded-lg border border-gray-200 h-6 w-full" />
+                                                <div className="bg-white rounded-lg border border-gray-200 flex-1" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-white border-t border-gray-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Sun className="w-4 h-4 text-amber-500" />
+                                            <span className="text-sm font-semibold text-gray-800">Light</span>
+                                        </div>
+                                        {theme === 'light' && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
+                                    </div>
+                                </button>
+
+                                {/* Dark */}
+                                <button
+                                    onClick={() => setTheme('dark')}
+                                    className={`relative rounded-2xl border-2 overflow-hidden transition-all ${
+                                        theme === 'dark' ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="bg-slate-900 p-3 h-36">
+                                        <div className="flex gap-2 h-full">
+                                            <div className="w-10 bg-slate-800 rounded-lg border border-slate-700 flex flex-col gap-1.5 p-1.5">
+                                                {[1,2,3,4].map(i => <div key={i} className={`h-1.5 rounded-full ${i === 2 ? 'bg-blue-500 w-full' : 'bg-slate-600 w-4/5'}`} />)}
+                                            </div>
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <div className="bg-slate-800 rounded-lg border border-slate-700 h-6 w-full" />
+                                                <div className="bg-slate-800 rounded-lg border border-slate-700 flex-1" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-slate-800 border-t border-slate-700 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Moon className="w-4 h-4 text-blue-400" />
+                                            <span className="text-sm font-semibold text-slate-200">Dark</span>
+                                        </div>
+                                        {theme === 'dark' && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
+                                    </div>
+                                </button>
+
+                                {/* Glass */}
+                                <button
+                                    onClick={() => setTheme('glass')}
+                                    className={`relative rounded-2xl border-2 overflow-hidden transition-all ${
+                                        theme === 'glass' ? 'border-purple-500 shadow-lg shadow-purple-500/20' : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="p-3 h-36" style={{ background: 'linear-gradient(135deg,#0f0c29,#302b63,#1a1a4e)' }}>
+                                        <div className="flex gap-2 h-full">
+                                            <div className="w-10 rounded-lg border flex flex-col gap-1.5 p-1.5" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
+                                                {[1,2,3,4].map(i => <div key={i} className={`h-1.5 rounded-full ${i === 2 ? 'bg-purple-400 w-full' : 'w-4/5'}`} style={i !== 2 ? { background: 'rgba(255,255,255,0.2)' } : {}} />)}
+                                            </div>
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <div className="rounded-lg border h-6 w-full" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.12)' }} />
+                                                <div className="rounded-lg border flex-1" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.12)' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 border-t flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.12)' }}>
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-purple-400" />
+                                            <span className="text-sm font-semibold text-white">Glass</span>
+                                        </div>
+                                        {theme === 'glass' && <CheckCircle2 className="w-4 h-4 text-purple-400" />}
+                                    </div>
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-gray-400">
+                                Glass mode applies a frosted glassmorphism effect over a deep gradient background.
+                            </p>
                         </div>
                     )}
                 </div>

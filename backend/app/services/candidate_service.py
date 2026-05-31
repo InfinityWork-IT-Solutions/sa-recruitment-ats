@@ -97,8 +97,8 @@ class CandidateService:
         Returns:
             Tuple of (candidates, total_count)
         """
-        # Base query
-        query = select(Candidate)
+        # Base query — load user to resolve profile_photo
+        query = select(Candidate).options(selectinload(Candidate.user))
         if agency_id:
             query = query.where(Candidate.agency_id == agency_id)
         

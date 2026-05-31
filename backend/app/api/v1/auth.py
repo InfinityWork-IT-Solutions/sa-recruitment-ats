@@ -377,14 +377,17 @@ async def upload_avatar(
         shutil.copyfileobj(file.file, buffer)
     
     # Update user record
-    # Prefix with /static to match the mount point in main.py
     avatar_url = f"http://localhost:8000/static/{filepath}"
-    current_user.avatar_url = avatar_url
-    
+    # profile_photo is the migrated column (guaranteed to exist in DB)
+    current_user.profile_photo = avatar_url
+    # avatar_url column may also exist if the DB was created from ORM models
+    if hasattr(current_user.__class__, 'avatar_url'):
+        current_user.avatar_url = avatar_url
+
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)
-    
+
     return {"avatar_url": avatar_url}
 
 

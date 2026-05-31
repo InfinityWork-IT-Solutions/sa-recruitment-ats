@@ -301,11 +301,14 @@ async def upload_my_cv(
 
     # Extract text locally (free, no AI)
     resume_text = ""
+    extract_error = None
     try:
         from app.services.ai_resume_parser import ai_resume_parser
         resume_text = await ai_resume_parser.extract_text_from_file(str(dest))
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Text extraction failed: {e}", exc_info=True)
+        extract_error = str(e)
 
     candidate.resume_filename = file.filename
     candidate.resume_url = resume_url
@@ -317,24 +320,49 @@ async def upload_my_cv(
     if resume_text:
         try:
             from app.services.resume_parser import parse_resume_text
+            from sqlalchemy.orm.attributes import flag_modified
             parsed = parse_resume_text(resume_text)
 
             # CV is authoritative: always apply extracted data
             if parsed.get("skills"):
-                candidate.skills = parsed["skills"]
+                candidate.skills = list(parsed["skills"])
+                flag_modified(candidate, "skills")
                 filled_fields.append(f"Skills ({len(parsed['skills'])} detected)")
             if parsed.get("summary"):
                 candidate.summary = parsed["summary"]
                 filled_fields.append("Professional summary")
             if parsed.get("work_history"):
-                candidate.work_history = parsed["work_history"]
+                candidate.work_history = list(parsed["work_history"])
+                flag_modified(candidate, "work_history")
                 filled_fields.append(f"Work history ({len(parsed['work_history'])} roles)")
-            if parsed.get("current_job_title"):
+                # Derive current title & company from most recent role
+                latest = parsed["work_history"][0]
+                if latest.get("title"):
+                    candidate.current_job_title = latest["title"]
+                if latest.get("company"):
+                    candidate.current_company = latest["company"]
+                # Calculate years of experience from earliest start year in work history
+                import re as _re
+                start_years = []
+                for job in parsed["work_history"]:
+                    timeline = job.get("timeline", "")
+                    years_found = _re.findall(r'\b(19|20)\d{2}\b', timeline)
+                    if years_found:
+                        start_years.append(int(years_found[0]))
+                if start_years:
+                    from datetime import datetime as _dt
+                    candidate.years_of_experience = _dt.now().year - min(start_years)
+                    filled_fields.append(f"Years of experience ({candidate.years_of_experience} yrs)")
+            elif parsed.get("current_job_title"):
                 candidate.current_job_title = parsed["current_job_title"]
                 filled_fields.append("Job title")
             if parsed.get("education_level"):
                 candidate.education_level = parsed["education_level"]
                 filled_fields.append("Education level")
+            if parsed.get("education_details"):
+                candidate.education_details = list(parsed["education_details"])
+                flag_modified(candidate, "education_details")
+                filled_fields.append(f"Education ({len(parsed['education_details'])} entries)")
             # Contact details: only fill if not already set by user
             if parsed.get("phone") and not candidate.phone:
                 candidate.phone = parsed["phone"]
@@ -356,11 +384,13 @@ async def upload_my_cv(
         msg = f"CV uploaded and profile auto-filled: {', '.join(filled_fields)}."
     elif resume_text:
         msg = "CV uploaded. Text extracted but no new fields detected — try editing your profile manually."
+    elif extract_error:
+        msg = f"CV uploaded. Text extraction failed: {extract_error}"
     else:
         msg = "CV uploaded. Could not extract text (try PDF or DOCX format)."
     return CVParseResult(
         message=msg,
-        parsed_data={"text_extracted": bool(resume_text), "chars": len(resume_text)} if resume_text else None,
+        parsed_data={"text_extracted": bool(resume_text), "chars": len(resume_text), "extract_error": extract_error} if (resume_text or extract_error) else None,
         resume_url=resume_url,
         filled_fields=filled_fields if filled_fields else None,
     )
@@ -665,8 +695,12 @@ async def update_my_profile(
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate profile not found")
 
+    from sqlalchemy.orm.attributes import flag_modified
+    _jsonb_fields = {"skills", "work_history", "education_details", "certifications"}
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(candidate, field, value)
+        if field in _jsonb_fields:
+            flag_modified(candidate, field)
 
     await db.commit()
     return {"message": "Profile updated"}
@@ -692,18 +726,29 @@ async def get_profile_completeness(
     if not candidate:
         return ProfileCompletenessOut(score=0, missing=["Complete your profile"])
 
-    has_photo = bool(current_user.avatar_url or getattr(candidate, 'avatar_url', None))
-    has_summary = bool(candidate.summary or candidate.resume_text)
-    has_experience = bool(candidate.work_history or candidate.current_company)
+    has_photo = bool(
+        current_user.profile_photo
+        or getattr(current_user, 'avatar_url', None)
+        or getattr(candidate, 'profile_photo', None)
+    )
+    has_summary = bool(candidate.summary and len(candidate.summary.strip()) > 20)
+    has_experience = bool(candidate.work_history and len(candidate.work_history) > 0)
+    has_skills = bool(candidate.skills and len(candidate.skills) >= 5)
+    has_education = bool(candidate.education_level or (candidate.education_details and len(candidate.education_details) > 0))
+    has_cv = bool(candidate.resume_url)
+    # Accept city OR province (province is often not in CVs)
+    has_location = bool(candidate.city or candidate.province)
+    has_phone = bool(candidate.phone)
+
     checks = [
-        ("Profile photo", has_photo),
+        ("CV / Resume", has_cv),
         ("Professional summary", has_summary),
-        ("At least 5 skills", bool(candidate.skills and len(candidate.skills) >= 5)),
+        ("At least 5 skills", has_skills),
         ("Work experience", has_experience),
-        ("Education", bool(candidate.education_level)),
-        ("CV / Resume", bool(candidate.resume_url)),
-        ("Location", bool(candidate.city and candidate.province)),
-        ("Phone number", bool(candidate.phone)),
+        ("Education", has_education),
+        ("Location", has_location),
+        ("Phone number", has_phone),
+        ("Profile photo", has_photo),
     ]
     passed = [label for label, ok in checks if ok]
     missing = [label for label, ok in checks if not ok]

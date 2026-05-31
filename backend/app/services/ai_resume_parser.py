@@ -5,8 +5,6 @@ import os
 from typing import Dict, Optional, List
 import openai
 from pathlib import Path
-import PyPDF2
-import docx
 import json
 from fastapi import UploadFile
 

@@ -234,8 +234,16 @@ async def list_applications(
         client_company_id=client_company_id
     )
     
+    def _app_brief(a):
+        d = ApplicationBrief.model_validate(a).model_dump()
+        if a.candidate and a.candidate.user:
+            d["candidate_photo"] = (
+                a.candidate.user.profile_photo or getattr(a.candidate.user, "avatar_url", None)
+            )
+        return d
+
     return {
-        "applications": [ApplicationBrief.model_validate(a) for a in applications],
+        "applications": [_app_brief(a) for a in applications],
         "total": total,
         "skip": skip,
         "limit": limit,

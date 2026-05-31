@@ -413,7 +413,7 @@ function ProfilePreviewModal({ open, onClose, user, candidateData, profileData, 
     if (!open) return null;
     const skills: string[] = candidateData?.skills?.length ? candidateData.skills : profileData?.skills || [];
     const workHistory = candidateData?.work_history?.length ? candidateData.work_history : profileData?.workHistory || [];
-    const eduHistory = profileData?.educationHistory || [];
+    const eduHistory = candidateData?.education_details?.length ? candidateData.education_details : profileData?.educationHistory || [];
     const certs: any[] = candidateData?.certificate_files || [];
     const summary = candidateData?.summary || profileData?.summary || '';
     const title = candidateData?.current_job_title || profileData?.title || '';
@@ -482,37 +482,46 @@ function ProfilePreviewModal({ open, onClose, user, candidateData, profileData, 
                         </div>
                     )}
 
-                    {/* Work Experience */}
-                    {workHistory.length > 0 && (
+                    {/* Education — always before Work Experience */}
+                    {eduHistory.length > 0 && (
                         <div>
-                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><Briefcase className="w-4 h-4" /> Work Experience</h3>
-                            <div className="space-y-3">
-                                {workHistory.map((w: any) => (
-                                    <div key={w.id} className="border-l-2 border-blue-400 pl-4 py-1">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
-                                                {w.company && <p className="text-blue-600 text-sm font-medium">{w.company}</p>}
-                                            </div>
-                                            {w.timeline && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded flex-shrink-0 ml-2">{w.timeline}</span>}
-                                        </div>
-                                        {w.description && <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed">{w.description}</p>}
+                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><GraduationCap className="w-4 h-4" /> Education</h3>
+                            <div className="space-y-2">
+                                {eduHistory.map((e: any) => (
+                                    <div key={e.id} className="border-l-2 border-green-400 pl-4 py-1.5">
+                                        <p className="font-semibold text-gray-900 text-sm">{e.degree}</p>
+                                        {e.institution && <p className="text-green-600 text-sm font-medium">{e.institution}</p>}
+                                        {e.year && <p className="text-xs text-gray-400 mt-0.5">{e.year}</p>}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Education */}
-                    {eduHistory.length > 0 && (
+                    {/* Work Experience */}
+                    {workHistory.length > 0 && (
                         <div>
-                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><GraduationCap className="w-4 h-4" /> Education</h3>
-                            <div className="space-y-2">
-                                {eduHistory.map((e: any) => (
-                                    <div key={e.id} className="border-l-2 border-green-400 pl-4 py-1">
-                                        <p className="font-semibold text-gray-900 text-sm">{e.degree}</p>
-                                        {e.institution && <p className="text-green-600 text-sm">{e.institution}</p>}
-                                        {e.year && <p className="text-xs text-gray-400 mt-0.5">{e.year}</p>}
+                            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><Briefcase className="w-4 h-4" /> Work Experience</h3>
+                            <div className="space-y-4">
+                                {workHistory.map((w: any) => (
+                                    <div key={w.id} className="border-l-2 border-blue-400 pl-4 py-1.5">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
+                                                {w.company && <p className="text-blue-600 text-sm font-medium mt-0.5">{w.company}</p>}
+                                            </div>
+                                            {w.timeline && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded flex-shrink-0 ml-2">{w.timeline}</span>}
+                                        </div>
+                                        {w.description && (
+                                            <ul className="mt-2 space-y-1">
+                                                {w.description.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                                                    <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                        <span>{line.trim()}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -679,7 +688,9 @@ export default function CandidateProfilePage() {
     const [uploadSla, setUploadSla] = useState(false);
     
     // Persistent Profile State
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url || (user ? localStorage.getItem(`user_avatar_${user.id}`) : null));
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(
+        user?.profile_photo || user?.avatar_url || (user ? localStorage.getItem(`user_avatar_${user.id}`) : null)
+    );
     const [profileData, setProfileData] = useState(() => {
         const saved = localStorage.getItem('candidate_profile');
         return saved ? JSON.parse(saved) : {
@@ -704,9 +715,21 @@ export default function CandidateProfilePage() {
     const [editTab, setEditTab] = useState('Basic Info');
     const [editForm, setEditForm] = useState(profileData);
 
-    // Completeness from backend (single source of truth shared with dashboard)
-    const [completionScore, setCompletionScore] = useState(0);
+    const openEditModal = (tab = 'Basic Info') => {
+        const latestJob = profileData.workHistory?.[0];
+        setEditForm({
+            ...profileData,
+            title: latestJob?.title || profileData.title || '',
+            company: latestJob?.company || profileData.company || '',
+        });
+        setEditTab(tab);
+        setIsEditing(true);
+    };
+
+    // Completeness from backend — null means "not yet loaded" (avoids 0% flash)
+    const [completionScore, setCompletionScore] = useState<number | null>(null);
     const [missingItems, setMissingItems] = useState<string[]>([]);
+    const [showCompleteBanner, setShowCompleteBanner] = useState(false);
 
     // Real candidate data from backend
     const [candidateData, setCandidateData] = useState<any>(null);
@@ -722,10 +745,13 @@ export default function CandidateProfilePage() {
                 skills: fresh.skills?.length >= 1 ? fresh.skills : prev.skills,
                 summary: fresh.summary || prev.summary,
                 workHistory: fresh.work_history?.length ? fresh.work_history : prev.workHistory,
+                educationHistory: fresh.education_details?.length ? fresh.education_details : prev.educationHistory,
                 title: fresh.current_job_title || prev.title,
                 company: fresh.current_company || prev.company,
                 qualification: fresh.education_level || prev.qualification,
                 phone: fresh.phone || prev.phone,
+                city: fresh.city || prev.city,
+                province: fresh.province || prev.province,
             };
             localStorage.setItem('candidate_profile', JSON.stringify(merged));
             return merged;
@@ -749,6 +775,14 @@ export default function CandidateProfilePage() {
             // fallback: stay at 0
         }
     }, []);
+
+    // Show the 100% banner for 2 minutes when the score first reaches 100
+    useEffect(() => {
+        if (completionScore === null || completionScore < 100) return;
+        setShowCompleteBanner(true);
+        const timer = setTimeout(() => setShowCompleteBanner(false), 2 * 60 * 1000);
+        return () => clearTimeout(timer);
+    }, [completionScore]);
 
     // On mount: load real candidate data + stats, sync localStorage, fetch completeness
     useEffect(() => {
@@ -803,6 +837,7 @@ export default function CandidateProfilePage() {
                             summary: pd.summary || null,
                             skills: pd.skills || [],
                             work_history: pd.workHistory || [],
+                            education_details: pd.educationHistory || [],
                             education_level: pd.qualification || null,
                             current_job_title: pd.title || null,
                             current_company: pd.company || null,
@@ -875,6 +910,7 @@ export default function CandidateProfilePage() {
                 summary: editForm.summary || null,
                 skills: editForm.skills || [],
                 work_history: editForm.workHistory || [],
+                education_details: editForm.educationHistory || [],
                 education_level: editForm.qualification || null,
                 current_job_title: editForm.title || null,
                 current_company: editForm.company || null,
@@ -893,7 +929,27 @@ export default function CandidateProfilePage() {
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
-            {completionScore < 100 && (
+            {showCompleteBanner && (
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg relative">
+                    <button
+                        onClick={() => setShowCompleteBanner(false)}
+                        className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
+                        aria-label="Dismiss"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                    <div className="flex items-center gap-3 pr-6">
+                        <span className="text-2xl">🎉</span>
+                        <div>
+                            <h3 className="font-bold text-lg">Profile 100% Complete!</h3>
+                            <p className="text-green-100 text-sm">Your profile is fully set up — recruiters can see everything they need.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {completionScore !== null && completionScore < 100 && (
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white shadow-lg overflow-hidden relative">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                     <div className="relative z-10">
@@ -964,7 +1020,7 @@ export default function CandidateProfilePage() {
                                 >
                                     <Eye className="w-4 h-4" /> View Profile
                                 </button>
-                                <button className="btn-secondary flex items-center gap-2" onClick={() => { setEditForm(profileData); setIsEditing(true); }}>
+                                <button className="btn-secondary flex items-center gap-2" onClick={() => openEditModal()}>
                                     <Edit className="w-4 h-4" /> Edit Profile
                                 </button>
                             </div>
@@ -1024,90 +1080,151 @@ export default function CandidateProfilePage() {
                         
                         {/* Tab Content */}
                         <div className="space-y-8 animate-in fade-in duration-300">
-                            {activeTab === 'Overview' && (
+                            {activeTab === 'Overview' && (() => {
+                                const latestJob = profileData.workHistory?.[0];
+                                const currentCompany = latestJob?.company || profileData.company || '';
+                                const currentTitle = latestJob?.title || profileData.title || '';
+                                const location = [profileData.city, profileData.province].filter(Boolean).join(', ');
+
+                                // Calculate years of experience from work history
+                                let yearsExp = profileData.experience || '';
+                                if (!yearsExp && profileData.workHistory?.length > 0) {
+                                    const years = profileData.workHistory.map((w: any) => {
+                                        const m = w.timeline?.match(/(\d{4})/);
+                                        return m ? parseInt(m[1]) : null;
+                                    }).filter(Boolean);
+                                    if (years.length > 0) {
+                                        const earliest = Math.min(...years);
+                                        const yrs = new Date().getFullYear() - earliest;
+                                        yearsExp = yrs > 0 ? `${yrs}+ years` : '';
+                                    }
+                                }
+
+                                return (
                                 <>
-                                    {/* Professional Summary Section (Inline Editable) */}
+                                    {/* Professional Summary */}
                                     <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h3 className="text-lg font-bold text-gray-900">Professional Summary</h3>
-                                        </div>
+                                        <h3 className="text-lg font-bold text-gray-900 mb-3">Professional Summary</h3>
                                         {profileData.summary ? (
-                                            <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">{profileData.summary}</p>
+                                            <p className="text-gray-700 text-sm leading-relaxed">{profileData.summary}</p>
                                         ) : (
                                             <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
                                                 <p className="text-gray-500 mb-2">No professional summary added yet.</p>
-                                                <button className="text-blue-600 font-medium hover:underline text-sm" onClick={() => { setEditTab('Basic Info'); setEditForm(profileData); setIsEditing(true); }}>Add a summary to stand out</button>
+                                                <button className="text-blue-600 font-medium hover:underline text-sm" onClick={() => openEditModal('Basic Info')}>Add a summary to stand out</button>
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Personal Information */}
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900 mb-4">Personal Information</h3>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                                            {profileData.phone && (
+                                                <div>
+                                                    <p className="text-gray-500">Phone</p>
+                                                    <p className="font-medium text-gray-900">{profileData.phone}</p>
+                                                </div>
+                                            )}
+                                            {location && (
+                                                <div>
+                                                    <p className="text-gray-500">Location</p>
+                                                    <p className="font-medium text-gray-900">{location}</p>
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="text-gray-500">Years of Experience</p>
-                                                <p className="font-medium text-gray-900">{profileData.experience}</p>
+                                                <p className="font-medium text-gray-900">{yearsExp || <span className="text-gray-400 italic">Not specified</span>}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-500">Highest Qualification</p>
-                                                <p className="font-medium text-gray-900">{profileData.qualification}</p>
+                                                <p className="font-medium text-gray-900">{profileData.qualification || <span className="text-gray-400 italic">Not specified</span>}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-gray-500">Current Company</p>
-                                                <p className="font-medium text-gray-900">{profileData.company}</p>
-                                            </div>
+                                            {currentCompany && (
+                                                <div>
+                                                    <p className="text-gray-500">Current Company</p>
+                                                    <p className="font-medium text-gray-900">{currentCompany}</p>
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="text-gray-500">Notice Period</p>
-                                                <p className="font-medium text-gray-900">{profileData.noticePeriod}</p>
+                                                <p className="font-medium text-gray-900">{profileData.noticePeriod || <span className="text-gray-400 italic">Not specified</span>}</p>
                                             </div>
                                         </div>
                                     </div>
-                                    
+
+                                    {/* Skills */}
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900 mb-4">Skills</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {profileData.skills.map((skill: string) => (
-                                                <span key={skill} className="px-3 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer">
-                                                    {skill}
-                                                </span>
-                                            ))}
-                                        </div>
+                                        {profileData.skills?.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {profileData.skills.map((skill: string) => (
+                                                    <span key={skill} className="px-3 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-200 transition-colors">
+                                                        {skill}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-400 italic text-sm">No skills added yet. Upload your CV to auto-fill.</p>
+                                        )}
                                     </div>
-                                    
+
+                                    {/* Most Recent Role */}
                                     <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-4">Current Experience</h3>
-                                        <div className="border-l-2 border-blue-500 pl-4 py-2 bg-gray-50 rounded-r-lg">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900">{profileData.title}</h4>
-                                                    <p className="text-blue-600 font-medium text-sm">{profileData.company}</p>
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4">Current Role</h3>
+                                        {latestJob ? (
+                                            <div className="border-l-2 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 text-base">{latestJob.title}</h4>
+                                                        <p className="text-blue-600 font-semibold text-sm mt-0.5">{latestJob.company}</p>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500 font-medium badge badge-blue shrink-0 ml-4">{latestJob.timeline}</span>
                                                 </div>
-                                                <span className="text-sm text-gray-500 font-medium badge badge-blue">Jan 2022 - Present</span>
+                                                {latestJob.description && (
+                                                    <ul className="mt-3 space-y-1.5">
+                                                        {latestJob.description.split('\n').filter(Boolean).map((line: string, i: number) => (
+                                                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                                <span>{line.trim()}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
                                             </div>
-                                            <div className="mt-3 text-sm text-gray-700 space-y-1">
-                                                <p>• Developed fully responsive React applications leading to a 40% increase in user retention.</p>
-                                                <p>• Integrated complex backend microservices in Node.js.</p>
+                                        ) : (
+                                            <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
+                                                <p className="text-gray-500 mb-2">No work experience added yet.</p>
+                                                <button className="text-blue-600 font-medium hover:underline text-sm" onClick={() => openEditModal('Experience')}>Add your experience</button>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </>
-                            )}
+                                );
+                            })()}
                             
                             {activeTab === 'Experience' && (
                                 <div className="space-y-6">
                                     <h3 className="text-lg font-bold text-gray-900">Professional Experience</h3>
                                     {profileData.workHistory?.length === 0 && <p className="text-gray-500">No experience added yet.</p>}
                                     {profileData.workHistory?.map((work: any) => (
-                                        <div key={work.id} className="border-l-2 border-blue-500 pl-4 py-2 bg-gray-50 rounded-r-lg">
+                                        <div key={work.id} className="border-l-2 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900">{work.title}</h4>
-                                                    <p className="text-blue-600 font-medium text-sm">{work.company}</p>
+                                                    <h4 className="font-bold text-gray-900 text-base">{work.title}</h4>
+                                                    <p className="text-blue-600 font-semibold text-sm mt-0.5">{work.company}</p>
                                                 </div>
-                                                <span className="text-sm text-gray-500 font-medium badge badge-blue">{work.timeline}</span>
+                                                <span className="text-xs text-gray-500 font-medium badge badge-blue shrink-0 ml-4">{work.timeline}</span>
                                             </div>
-                                            <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap">
-                                                {work.description}
-                                            </div>
+                                            {work.description && (
+                                                <ul className="mt-3 space-y-1.5">
+                                                    {work.description.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                            <span>{line.trim()}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -1223,15 +1340,15 @@ export default function CandidateProfilePage() {
             {isEditing && (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 shrink-0">
                             <h2 className="text-2xl font-bold text-gray-900">Edit Profile</h2>
-                            <button onClick={() => setIsEditing(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                            <button onClick={() => setIsEditing(false)} className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100">✕</button>
                         </div>
-                        
-                        <div className="flex border-b border-gray-200 px-6 pt-2 overflow-x-auto">
+
+                        <div className="flex border-b border-gray-200 px-6 pt-2 overflow-x-auto shrink-0 bg-white">
                             {['Basic Info', 'Experience', 'Education', 'Certifications'].map(tab => (
-                                <button 
-                                    key={tab} 
+                                <button
+                                    key={tab}
                                     onClick={() => setEditTab(tab)}
                                     className={`whitespace-nowrap pb-3 px-4 border-b-2 font-medium text-sm transition-colors ${editTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                                 >
@@ -1239,8 +1356,8 @@ export default function CandidateProfilePage() {
                                 </button>
                             ))}
                         </div>
-                        
-                        <div className="p-6 overflow-y-auto flex-1">
+
+                        <div className="p-6 overflow-y-auto flex-1 min-h-0">
                             {editTab === 'Basic Info' && (
                                 <div className="space-y-4 animate-in fade-in duration-300">
                                     <div className="grid grid-cols-2 gap-4">
@@ -1265,7 +1382,17 @@ export default function CandidateProfilePage() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Highest Qualification</label>
-                                            <input className="input w-full" value={editForm.qualification} onChange={(e) => setEditForm({...editForm, qualification: e.target.value})} />
+                                            <select className="input w-full" value={editForm.qualification || ''} onChange={(e) => setEditForm({...editForm, qualification: e.target.value})}>
+                                                <option value="">-- Select --</option>
+                                                <option value="Matric">Matric (Grade 12 / NSC)</option>
+                                                <option value="Higher Certificate">Higher Certificate (NQF 5)</option>
+                                                <option value="Diploma">Diploma (NQF 6)</option>
+                                                <option value="Advanced Diploma">Advanced Diploma (NQF 7)</option>
+                                                <option value="Bachelors">Bachelor's Degree (NQF 7)</option>
+                                                <option value="Honours">Honours Degree (NQF 8)</option>
+                                                <option value="Masters">Master's Degree (NQF 9)</option>
+                                                <option value="PhD / Doctorate">PhD / Doctorate (NQF 10)</option>
+                                            </select>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400" />Phone Number</label>
@@ -1281,6 +1408,7 @@ export default function CandidateProfilePage() {
                                         <div className="col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period</label>
                                             <select className="input w-full" value={editForm.noticePeriod} onChange={(e) => setEditForm({...editForm, noticePeriod: e.target.value})}>
+                                                <option value="">-- Select --</option>
                                                 <option value="Immediately">Immediately</option>
                                                 <option value="1 Week">1 Week</option>
                                                 <option value="2 Weeks">2 Weeks</option>
@@ -1336,7 +1464,33 @@ export default function CandidateProfilePage() {
                                             <div className="grid grid-cols-2 gap-4 mb-3 pr-8">
                                                 <div><label className="block text-xs text-gray-500 mb-1">Job Title</label><input className="input w-full text-sm" value={work.title} onChange={(e) => { const newArr = [...editForm.workHistory]; newArr[index].title = e.target.value; setEditForm({...editForm, workHistory: newArr}) }} /></div>
                                                 <div><label className="block text-xs text-gray-500 mb-1">Company</label><input className="input w-full text-sm" value={work.company} onChange={(e) => { const newArr = [...editForm.workHistory]; newArr[index].company = e.target.value; setEditForm({...editForm, workHistory: newArr}) }} /></div>
-                                                <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">Timeline (e.g. Jan 2020 - Present)</label><input className="input w-full text-sm" value={work.timeline} onChange={(e) => { const newArr = [...editForm.workHistory]; newArr[index].timeline = e.target.value; setEditForm({...editForm, workHistory: newArr}) }} /></div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-xs text-gray-500 mb-1">Timeline</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1">
+                                                            <label className="block text-[10px] text-gray-400 mb-0.5">Start date</label>
+                                                            <input type="month" className="input w-full text-sm" value={(() => { const m = work.timeline?.match(/^(\w+ \d{4})/); if (!m) return ''; const d = new Date(m[1]); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0,7); })()} onChange={(e) => { const newArr = [...editForm.workHistory]; const d = new Date(e.target.value + '-01'); const start = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }); const endPart = newArr[index].timeline?.split(' - ')[1] || 'Present'; newArr[index].timeline = `${start} - ${endPart}`; setEditForm({...editForm, workHistory: newArr}); }} />
+                                                        </div>
+                                                        <span className="text-gray-400 mt-4">→</span>
+                                                        <div className="flex-1">
+                                                            {work.timeline?.toLowerCase().includes('present') ? (
+                                                                <div>
+                                                                    <label className="block text-[10px] text-gray-400 mb-0.5">End date</label>
+                                                                    <div className="input w-full text-sm bg-green-50 text-green-700 font-medium flex items-center">Currently working here</div>
+                                                                </div>
+                                                            ) : (
+                                                                <div>
+                                                                    <label className="block text-[10px] text-gray-400 mb-0.5">End date</label>
+                                                                    <input type="month" className="input w-full text-sm" value={(() => { const parts = work.timeline?.split(' - '); if (!parts || parts.length < 2) return ''; const d = new Date(parts[1]); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0,7); })()} onChange={(e) => { const newArr = [...editForm.workHistory]; const d = new Date(e.target.value + '-01'); const end = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }); const startPart = newArr[index].timeline?.split(' - ')[0] || ''; newArr[index].timeline = `${startPart} - ${end}`; setEditForm({...editForm, workHistory: newArr}); }} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-4 flex items-center gap-1.5">
+                                                            <input type="checkbox" id={`present-${work.id}`} className="w-4 h-4 accent-blue-600" checked={!!work.timeline?.toLowerCase().includes('present')} onChange={(e) => { const newArr = [...editForm.workHistory]; const startPart = newArr[index].timeline?.split(' - ')[0] || ''; newArr[index].timeline = e.target.checked ? `${startPart} - Present` : `${startPart} - `; setEditForm({...editForm, workHistory: newArr}); }} />
+                                                            <label htmlFor={`present-${work.id}`} className="text-xs text-gray-500 whitespace-nowrap">Current</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">Description & Achievements</label><textarea className="input w-full text-sm py-2 min-h-[80px]" value={work.description} onChange={(e) => { const newArr = [...editForm.workHistory]; newArr[index].description = e.target.value; setEditForm({...editForm, workHistory: newArr}) }} /></div>
                                             </div>
                                         </div>

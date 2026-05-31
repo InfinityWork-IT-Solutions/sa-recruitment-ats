@@ -9,6 +9,7 @@ export interface User {
     company_id?: string | null;
     candidate_id?: string | null;
     avatar_url?: string | null;
+    profile_photo?: string | null;
     agency_name?: string | null;
     managed_clients_count?: number;
     is_active: boolean;
@@ -91,6 +92,11 @@ export interface Candidate {
     resume_filename: string | null;
     resume_url: string | null;
     linkedin_url: string | null;
+    summary: string | null;
+    work_history: Array<{ id: string; title: string; company: string; timeline: string; description: string }> | null;
+    education_details: Array<{ id: string; degree: string; institution: string; year: string }> | null;
+    certificate_files: Array<{ id: string; name: string; issuer?: string; date?: string; file_url?: string; file_name?: string; category?: string }> | null;
+    profile_photo: string | null;
     applications_count: number;
     interviews_count: number;
     placements_count: number;
@@ -115,6 +121,7 @@ export interface Application {
     offer_amount: number | null;
     match_score: number | null;
     candidate_name?: string;
+    candidate_photo?: string | null;
     job_title?: string;
     created_at: string;
     updated_at: string;

@@ -119,10 +119,14 @@ export default function CandidateDetailPage() {
                 <div className="lg:col-span-1 space-y-6">
                     {/* Avatar & Basic Info */}
                     <div className="card text-center">
-                        <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span className="text-3xl font-bold text-blue-600">
-                                {candidate.first_name[0]}{candidate.last_name[0]}
-                            </span>
+                        <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden bg-blue-100 flex items-center justify-center">
+                            {candidate.profile_photo ? (
+                                <img src={candidate.profile_photo} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-3xl font-bold text-blue-600">
+                                    {candidate.first_name[0]}{candidate.last_name[0]}
+                                </span>
+                            )}
                         </div>
                         <h2 className="text-xl font-semibold text-gray-900">
                             {candidate.first_name} {candidate.last_name}
@@ -275,6 +279,15 @@ export default function CandidateDetailPage() {
 
                 {/* Right column - Details & Applications */}
                 <div className="lg:col-span-2 space-y-6">
+
+                    {/* Professional Summary */}
+                    {candidate.summary && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Professional Summary</h3>
+                            <p className="text-gray-700 text-sm leading-relaxed">{candidate.summary}</p>
+                        </div>
+                    )}
+
                     {/* Professional Details */}
                     <div className="card">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Details</h3>
@@ -284,7 +297,14 @@ export default function CandidateDetailPage() {
                                     <Briefcase className="w-4 h-4" />
                                     <span className="text-sm font-medium">Experience</span>
                                 </div>
-                                <p className="text-gray-900">{candidate.years_of_experience} years</p>
+                                <p className="text-gray-900">{(() => {
+                                    if (candidate.years_of_experience > 0) return candidate.years_of_experience;
+                                    if (!candidate.work_history?.length) return 0;
+                                    const startYears = candidate.work_history
+                                        .map(j => { const m = j.timeline.match(/\b(19|20\d{2})\b/); return m ? parseInt(m[0]) : null; })
+                                        .filter(Boolean) as number[];
+                                    return startYears.length ? new Date().getFullYear() - Math.min(...startYears) : 0;
+                                })()} years</p>
                             </div>
 
                             {candidate.education_level && (
@@ -337,6 +357,82 @@ export default function CandidateDetailPage() {
                             </div>
                         )}
                     </div>
+
+                    {/* Work History */}
+                    {candidate.work_history && candidate.work_history.length > 0 && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Work Experience</h3>
+                            <div className="space-y-5">
+                                {candidate.work_history.map((job) => (
+                                    <div key={job.id} className="border-l-2 border-blue-200 pl-4">
+                                        <p className="font-semibold text-gray-900">{job.title}</p>
+                                        <p className="text-sm text-blue-600 font-medium">{job.company}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{job.timeline}</p>
+                                        {job.description && (
+                                            <ul className="mt-2 space-y-1">
+                                                {job.description.split('\n').filter(l => l.trim()).map((line, i) => (
+                                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                        <span>{line.trim()}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Education Details */}
+                    {candidate.education_details && candidate.education_details.length > 0 && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Education</h3>
+                            <div className="space-y-3">
+                                {candidate.education_details.map((edu) => (
+                                    <div key={edu.id} className="flex items-start gap-3">
+                                        <GraduationCap className="w-4 h-4 text-blue-500 mt-1 shrink-0" />
+                                        <div>
+                                            <p className="font-medium text-gray-900 text-sm">{edu.degree}</p>
+                                            {edu.institution && <p className="text-sm text-gray-600">{edu.institution}</p>}
+                                            {edu.year && <p className="text-xs text-gray-400">{edu.year}</p>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Certificates & Attachments */}
+                    {candidate.certificate_files && candidate.certificate_files.length > 0 && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Certificates & Attachments</h3>
+                            <div className="space-y-2">
+                                {candidate.certificate_files.map((cert) => (
+                                    <div key={cert.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <FileText className="w-5 h-5 text-blue-500 shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">{cert.name}</p>
+                                                {cert.issuer && <p className="text-xs text-gray-500">{cert.issuer}{cert.date ? ` · ${cert.date}` : ''}</p>}
+                                            </div>
+                                        </div>
+                                        {cert.file_url && (
+                                            <a
+                                                href={cert.file_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                View
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Applications */}
                     <div className="card">

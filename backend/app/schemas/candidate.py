@@ -156,7 +156,15 @@ class CandidateResponse(CandidateBase):
     # Resume
     resume_filename: Optional[str] = None
     resume_url: Optional[str] = None
-    
+
+    # Rich profile fields
+    summary: Optional[str] = None
+    work_history: Optional[List[Dict[str, Any]]] = None
+    certificate_files: Optional[List[Dict[str, Any]]] = None
+
+    # Profile photo (resolved from the linked User record by the endpoint)
+    profile_photo: Optional[str] = None
+
     # Parsed data
     resume_parsed_data: Optional[Dict[str, Any]] = None
     
@@ -192,7 +200,8 @@ class CandidateBrief(BaseModel):
     status: CandidateStatus
     applications_count: int
     created_at: datetime
-    
+    profile_photo: Optional[str] = None
+
     model_config = ConfigDict(from_attributes=True)
 
 

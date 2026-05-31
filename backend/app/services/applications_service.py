@@ -101,7 +101,7 @@ class ApplicationService:
         """Get application by ID (within agency)"""
         stmt = select(Application).where(Application.id == application_id).options(
                 selectinload(Application.job),
-                selectinload(Application.candidate)
+                selectinload(Application.candidate).selectinload(Candidate.user)
             )
         if agency_id:
             stmt = stmt.where(Application.agency_id == agency_id)
@@ -125,7 +125,7 @@ class ApplicationService:
         # Base query
         query = select(Application).options(
             selectinload(Application.job),
-            selectinload(Application.candidate)
+            selectinload(Application.candidate).selectinload(Candidate.user)
         )
         if agency_id:
             query = query.where(Application.agency_id == agency_id)

@@ -126,8 +126,9 @@ class ApplicationBrief(BaseModel):
     
     # Joined fields
     candidate_name: Optional[str] = None
+    candidate_photo: Optional[str] = None
     job_title: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

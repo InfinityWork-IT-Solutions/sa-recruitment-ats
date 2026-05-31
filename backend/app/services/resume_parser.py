@@ -62,13 +62,14 @@ SA_PROVINCES = [
 # ── Education hierarchy ────────────────────────────────────────────────────────
 
 EDUCATION_LEVELS = [
-    ("PhD / Doctorate",   [r'\bPhD\b', r'\bDoctorate\b', r'\bDoctor\s+of\b']),
-    ("Masters",           [r'\bMasters?\b', r'\bMBA\b', r'\bMSc\b', r'\bM\.Sc\b', r'\bMA\b', r'\bMEng\b', r'\bMTech\b']),
-    ("Honours",           [r'\bHonours?\b', r'\bBHons?\b']),
-    ("Bachelors",         [r'\bBSc\b', r'\bB\.Sc\b', r'\bBA\b', r'\bBCom\b', r'\bBEng\b', r'\bBTech\b', r'\bLLB\b', r'\bBNurs\b']),
-    ("National Diploma",  [r'\bNational Diploma\b', r'\bND\b']),
-    ("Higher Certificate",[r'\bHigher Certificate\b']),
-    ("Matric",            [r'\bMatric\b', r'\bGrade\s+12\b', r'\bNSC\b', r'\bSenior Certificate\b']),
+    ("PhD / Doctorate",    [r'\bPhD\b', r'\bDoctorate\b', r'\bDoctor\s+of\b']),
+    ("Masters",            [r'\bMasters?\b', r'\bMBA\b', r'\bMSc\b', r'\bM\.Sc\b', r'\bMA\b', r'\bMEng\b', r'\bMTech\b']),
+    ("Honours",            [r'\bHonours?\b', r'\bBHons?\b', r'\bPostgraduate Diploma\b']),
+    ("Advanced Diploma",   [r'\bAdvanced Diploma\b']),           # NQF 7 — must be before "Diploma"
+    ("Bachelors",          [r'\bBSc\b', r'\bB\.Sc\b', r'\bBA\b', r'\bBCom\b', r'\bBEng\b', r'\bBTech\b', r'\bLLB\b', r'\bBNurs\b', r'\bBachelor']),
+    ("Diploma",            [r'\bNational Diploma\b', r'\bND\b', r'\bDiploma\b']),  # NQF 6 — after "Advanced Diploma"
+    ("Higher Certificate", [r'\bHigher Certificate\b']),         # NQF 5
+    ("Matric",             [r'\bMatric\b', r'\bGrade\s+12\b', r'\bNSC\b', r'\bSenior Certificate\b']),
 ]
 
 # ── Common SA job title fragments ──────────────────────────────────────────────
@@ -94,6 +95,9 @@ def parse_resume_text(text: str) -> dict:
     Only non-empty values are included; callers should merge over existing data
     (i.e. only fill fields that are currently blank on the profile).
     """
+    # Normalize common Unicode/encoding artifacts from PDF extraction
+    text = text.replace('–', '-').replace('—', '-').replace('’', "'")
+    text = text.replace('�', '-').replace('â', '-')
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     full_text = "\n".join(lines)
     result: dict = {}
@@ -103,10 +107,10 @@ def parse_resume_text(text: str) -> dict:
     if emails:
         result["email"] = emails[0].lower()
 
-    # ── Phone (SA formats — handles +27-7XX-XXX-XXXX, 0XX XXX XXXX, etc.) ────
+    # ── Phone (SA formats: +27-720-614-477, +27 72 061 4477, 072 061 4477) ────
     phones = re.findall(
-        r'(?:\+27[\s\-]?|0)[6-8]\d[\s.\-]?\d{3}[\s.\-]?\d{4}'
-        r'|(?:\+27[\s\-]?|0)\d{2}[\s.\-]?\d{3}[\s.\-]?\d{4}',
+        r'(?:\+27[\s\-]?|0)[6-8]\d\d?[\s.\-]?\d{3}[\s.\-]?\d{3,4}'
+        r'|(?:\+27[\s\-]?|0)\d{2,3}[\s.\-]?\d{3}[\s.\-]?\d{3,4}',
         full_text
     )
     if phones:
@@ -138,6 +142,59 @@ def parse_resume_text(text: str) -> dict:
             result["education_level"] = level_label
             break
 
+    # ── Education entries (structured) ─────────────────────────────────────────
+    edu_entries: List[dict] = []
+    in_edu_section = False
+    year_re = re.compile(r'\b(19|20)\d{2}\b')
+    sep_re = re.compile(r'\s+[-–]\s+|\s*\|\s*')
+    edu_stop = re.compile(
+        r'^(certifications|professional experience|work experience|skills|core skills|projects?|references?|summary)',
+        re.IGNORECASE
+    )
+    bullet_strip = re.compile(r'^[•\-\*◦▪]\s*')
+    # First collect raw education lines, joining wrapped continuations
+    edu_raw: List[str] = []
+    for line in lines:
+        if re.match(r'^education', line, re.IGNORECASE):
+            in_edu_section = True
+            continue
+        if in_edu_section:
+            if edu_stop.match(line):
+                break
+            if len(line) < 5:
+                continue
+            if bullet_strip.match(line):
+                edu_raw.append(line)
+            elif edu_raw:
+                # Continuation of previous line (PDF word-wrap) — join it
+                edu_raw[-1] = edu_raw[-1].rstrip() + ' ' + line.strip()
+    for raw in edu_raw:
+        clean = bullet_strip.sub('', raw).strip()
+        yr_match = year_re.search(clean)
+        year = yr_match.group(0) if yr_match else ''
+        without_year = year_re.sub('', clean).strip().strip('|').strip()
+        parts = sep_re.split(without_year, maxsplit=1)
+        if len(parts) == 2:
+            degree = parts[0].strip().strip(',').strip()
+            institution = parts[1].strip().strip(',').strip()
+        else:
+            tokens = [t.strip() for t in without_year.split(',') if t.strip()]
+            if len(tokens) >= 2:
+                institution = tokens[-1]
+                degree = ', '.join(tokens[:-1])
+            else:
+                degree = without_year
+                institution = ''
+        if degree and len(degree) > 3:
+            edu_entries.append({
+                "id": str(len(edu_entries) + 1),
+                "degree": degree,
+                "institution": institution,
+                "year": year,
+            })
+    if edu_entries:
+        result["education_details"] = edu_entries
+
     # ── Current job title (look in first 20 lines) ─────────────────────────────
     for line in lines[:20]:
         for fragment in TITLE_FRAGMENTS:
@@ -149,54 +206,102 @@ def parse_resume_text(text: str) -> dict:
         if result.get("current_job_title"):
             break
 
-    # ── Professional summary (first paragraph ≥ 60 chars that isn't a heading) ─
+    # ── Professional summary (paragraph after "Professional Summary" heading) ─────
     skip_headings = re.compile(
-        r'^(curriculum vitae|cv|resume|contact|personal details|objective|skills|experience|education)',
+        r'^(curriculum vitae|cv|resume|contact|personal details|objective|skills|'
+        r'experience|education|certifications|core skills|project|reference|work experience)',
         re.IGNORECASE
     )
+    skip_contact = re.compile(r'[\|@]|https?://|\+27|linkedin\.com', re.IGNORECASE)
+    in_summary = False
     para_lines: List[str] = []
     for line in lines:
-        if skip_headings.match(line) or len(line) < 20:
-            if para_lines:
-                break
+        if re.match(r'^professional summary', line, re.IGNORECASE):
+            in_summary = True
             continue
-        para_lines.append(line)
-        combined = " ".join(para_lines)
-        if len(combined) >= 80:
-            result["summary"] = combined[:600]
-            break
+        if in_summary:
+            if skip_headings.match(line) or skip_contact.search(line):
+                break
+            if len(line) < 15:
+                if para_lines:
+                    break
+                continue
+            para_lines.append(line)
+    if para_lines:
+        result["summary"] = " ".join(para_lines)[:800]
+    else:
+        # Fallback: find any long prose paragraph not containing contact info
+        for line in lines:
+            if skip_headings.match(line) or skip_contact.search(line) or len(line) < 40:
+                if para_lines:
+                    break
+                continue
+            para_lines.append(line)
+            if len(" ".join(para_lines)) >= 80:
+                result["summary"] = " ".join(para_lines)[:600]
+                break
 
-    # ── Work history (date-range anchored blocks) ───────────────────────────────
-    date_re = re.compile(
-        r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}|\d{4})'
+    # ── Work history ──────────────────────────────────────────────────────────────
+    # Structure: "Company – Job Title" line, then date range line, then bullet points
+    date_line_re = re.compile(
+        r'^((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+        r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+        r'[\w.]*[\s\-]+\d{4}|\d{4})'
         r'\s*[-–—to/]+\s*'
-        r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}'
-        r'|present|current|now|\d{4})',
+        r'((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|'
+        r'Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+        r'[\w.]*[\s\-]+\d{4}|present|current|now|\d{4})',
         re.IGNORECASE
     )
-    matches = list(date_re.finditer(full_text))
-    work_entries = []
-    for i, m in enumerate(matches[:6]):
-        block_start = max(0, m.start() - 150)
-        block_end = matches[i + 1].start() if i + 1 < len(matches) else min(m.end() + 300, len(full_text))
-        block = full_text[block_start:block_end]
-        block_lines = [l.strip() for l in block.splitlines() if l.strip()]
-        timeline = m.group(0).strip()
-        # first short non-date line = title candidate
-        title_line = ""
-        for bl in block_lines:
-            if bl == timeline or len(bl) > 100 or re.search(r'^\d{4}', bl):
-                continue
-            title_line = bl
-            break
-        if title_line:
-            work_entries.append({
-                "id": str(i + 1),
-                "title": title_line,
-                "company": "",
-                "timeline": timeline,
-                "description": "",
-            })
+    bullet_re = re.compile(r'^[•\-\*◦▪–]\s+')
+    company_title_re = re.compile(r'\s+[-–—]\s+|\s*\|\s*')
+    section_stop_re = re.compile(
+        r'^(core skills|skills|certifications|project highlights?|references?|'
+        r'awards?|publications?|languages?|interests?|hobbies)',
+        re.IGNORECASE
+    )
+
+    work_entries: List[dict] = []
+    for idx, line in enumerate(lines):
+        if not date_line_re.match(line):
+            continue
+        # Line before the date range should be "Company – Job Title"
+        company, title = "", ""
+        if idx > 0:
+            prev = lines[idx - 1]
+            # Skip if previous line is a section heading or another date range
+            if not date_line_re.match(prev) and len(prev) < 120:
+                parts = company_title_re.split(prev, maxsplit=1)
+                if len(parts) == 2:
+                    company = parts[0].strip()
+                    title = parts[1].strip()
+                else:
+                    title = prev.strip()
+        if not title and not company:
+            continue
+        # Collect bullet-point responsibilities (join PDF word-wrapped continuations)
+        responsibilities: List[str] = []
+        j = idx + 1
+        while j < len(lines) and len(responsibilities) < 6:
+            nxt = lines[j]
+            if date_line_re.match(nxt) or section_stop_re.match(nxt):
+                break
+            # Stop if we hit the next "Company – Title" pattern
+            if j + 1 < len(lines) and date_line_re.match(lines[j + 1]) and company_title_re.search(nxt):
+                break
+            if bullet_re.match(nxt):
+                responsibilities.append(bullet_re.sub('', nxt).strip())
+            elif responsibilities and not date_line_re.match(nxt) and not company_title_re.search(nxt) and len(nxt) > 5:
+                # Continuation line from PDF word-wrap — append to last bullet
+                responsibilities[-1] = responsibilities[-1].rstrip() + ' ' + nxt.strip()
+            j += 1
+        work_entries.append({
+            "id": str(len(work_entries) + 1),
+            "title": title,
+            "company": company,
+            "timeline": line.strip(),
+            "description": "\n".join(responsibilities),
+        })
     if work_entries:
         result["work_history"] = work_entries
 

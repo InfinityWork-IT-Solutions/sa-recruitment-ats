@@ -146,8 +146,30 @@ async def list_candidates(
         filters
     )
     
+    def _calc_years(c) -> int:
+        """Derive years of experience from work_history when the stored value is 0."""
+        if c.years_of_experience and c.years_of_experience > 0:
+            return c.years_of_experience
+        if not c.work_history:
+            return 0
+        import re as _re
+        from datetime import datetime as _dt
+        start_years = []
+        for job in c.work_history:
+            found = _re.findall(r'\b((?:19|20)\d{2})\b', job.get("timeline", ""))
+            if found:
+                start_years.append(int(found[0]))
+        return (_dt.now().year - min(start_years)) if start_years else 0
+
+    def _brief(c):
+        d = CandidateBrief.model_validate(c).model_dump()
+        d["years_of_experience"] = _calc_years(c)
+        if c.user:
+            d["profile_photo"] = c.user.profile_photo or getattr(c.user, "avatar_url", None)
+        return d
+
     return {
-        "candidates": [CandidateBrief.model_validate(c) for c in candidates],
+        "candidates": [_brief(c) for c in candidates],
         "total": total,
         "skip": skip,
         "limit": limit,
@@ -175,14 +197,34 @@ async def get_candidate(
     """Get candidate details by ID"""
     agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
-    
+
     if not candidate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Candidate not found"
         )
-    
-    return CandidateResponse.model_validate(candidate)
+
+    # Build response dict and inject profile_photo + computed years from linked User
+    data = CandidateResponse.model_validate(candidate).model_dump()
+    if candidate.user_id:
+        from sqlalchemy import select as sa_select
+        from app.models.user import User as UserModel
+        user_res = await db.execute(sa_select(UserModel).where(UserModel.id == candidate.user_id))
+        linked_user = user_res.scalar_one_or_none()
+        if linked_user:
+            data["profile_photo"] = linked_user.profile_photo or getattr(linked_user, "avatar_url", None)
+    # Compute years_of_experience from work_history if stored value is 0
+    if not data.get("years_of_experience") and candidate.work_history:
+        import re as _re
+        from datetime import datetime as _dt
+        start_years = []
+        for job in candidate.work_history:
+            found = _re.findall(r'\b((?:19|20)\d{2})\b', job.get("timeline", ""))
+            if found:
+                start_years.append(int(found[0]))
+        if start_years:
+            data["years_of_experience"] = _dt.now().year - min(start_years)
+    return data
 
 
 @router.put("/{candidate_id}", response_model=CandidateResponse)

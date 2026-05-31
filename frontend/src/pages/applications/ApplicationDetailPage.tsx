@@ -368,10 +368,18 @@ export default function ApplicationDetailPage() {
                         </div>
                         <Link
                             to={`/candidates/${application.candidate_id}`}
-                            className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                            className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
-                            <p className="text-lg font-semibold text-gray-900">View Candidate Profile →</p>
-                            <p className="text-sm text-gray-600 mt-1">ID: {application.candidate_id}</p>
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                {(application as any).candidate_photo
+                                    ? <img src={(application as any).candidate_photo} alt={application.candidate_name || ''} className="w-full h-full object-cover" />
+                                    : <span className="text-sm font-bold text-blue-600">{application.candidate_name?.split(' ').map(n => n[0]).join('') || '?'}</span>
+                                }
+                            </div>
+                            <div>
+                                <p className="font-semibold text-gray-900">{application.candidate_name || 'View Candidate Profile'}</p>
+                                <p className="text-sm text-blue-600 mt-0.5">View full profile →</p>
+                            </div>
                         </Link>
                     </div>
 
