@@ -144,15 +144,15 @@ export default function JobsPage() {
   const fetchJobs = async () => {
     try {
       const response = await apiClient.get('/jobs');
-      // Backend returns a list directly or in a results/jobs field
       const data = response.data;
       const jobList = Array.isArray(data) ? data : (data.jobs || data.results || []);
-      setJobs(jobList.length > 0 ? jobList : mockJobs);
-      setFilteredJobs(jobList.length > 0 ? jobList : mockJobs);
+      setJobs(jobList);
+      setFilteredJobs(jobList);
     } catch (error) {
       console.error('Error fetching jobs:', error);
-      setJobs(mockJobs);
-      setFilteredJobs(mockJobs);
+      toast.error('Failed to load jobs');
+      setJobs([]);
+      setFilteredJobs([]);
     } finally {
       setLoading(false);
     }
@@ -635,61 +635,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-// Mock data
-const mockJobs: Job[] = [
-  {
-    id: '1',
-    title: 'Senior Software Engineer',
-    company_name: 'TechCorp',
-    location: 'Cape Town, Western Cape',
-    work_mode: 'hybrid',
-    job_type: 'full-time',
-    salary_min: 400000,
-    salary_max: 650000,
-    description: 'We are looking for...',
-    skills: ['React', 'TypeScript', 'Node.js'],
-    status: 'active',
-    applicants_count: 23,
-    matches_count: 5,
-    views_count: 156,
-    posted_date: '3 days ago',
-    created_at: '2026-03-29',
-  },
-  {
-    id: '2',
-    title: 'DevOps Engineer',
-    company_name: 'TechCorp',
-    location: 'Johannesburg, Gauteng',
-    work_mode: 'remote',
-    job_type: 'full-time',
-    salary_min: 500000,
-    salary_max: 750000,
-    description: 'We are looking for...',
-    skills: ['AWS', 'Docker', 'Kubernetes'],
-    status: 'active',
-    applicants_count: 15,
-    matches_count: 3,
-    views_count: 98,
-    posted_date: '1 week ago',
-    created_at: '2026-03-25',
-  },
-  {
-    id: '3',
-    title: 'Product Manager',
-    company_name: 'TechCorp',
-    location: 'Remote',
-    work_mode: 'remote',
-    job_type: 'full-time',
-    salary_min: 550000,
-    salary_max: 800000,
-    description: 'We are looking for...',
-    skills: ['Product Management', 'Agile', 'User Research'],
-    status: 'paused',
-    applicants_count: 10,
-    matches_count: 4,
-    views_count: 67,
-    posted_date: '2 weeks ago',
-    created_at: '2026-03-18',
-  },
-];
