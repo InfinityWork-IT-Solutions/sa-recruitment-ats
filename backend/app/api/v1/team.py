@@ -1,7 +1,7 @@
 """
 Team API — team members for a client company, bulk application ops
 """
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -59,8 +59,8 @@ async def get_team_members(
                 "avatar_url": m.avatar_url or m.profile_photo,
                 "is_verified": m.is_verified,
                 "status": _status(m),
-                "last_active": m.last_login_at.strftime("%-d %b %Y") if m.last_login_at else None,
-                "joined_at": m.created_at.strftime("%-d %b %Y") if m.created_at else None,
+                "last_active": m.last_login_at.strftime("%d %b %Y").lstrip("0") if m.last_login_at else None,
+                "joined_at": m.created_at.strftime("%d %b %Y").lstrip("0") if m.created_at else None,
             }
             for m in members
         ],
@@ -75,9 +75,9 @@ async def get_team_members(
 
 
 class UpdateMemberProfileRequest(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    phone: str | None = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
 
 
 @router.patch("/team/members/{member_id}/profile")
