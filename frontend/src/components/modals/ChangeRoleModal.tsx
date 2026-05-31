@@ -1,4 +1,4 @@
-import { X, Shield, UserPlus } from 'lucide-react';
+import { X, Shield, UserPlus, Building2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface ChangeRoleModalProps {
@@ -22,9 +22,9 @@ export default function ChangeRoleModal({
 
   const roles = [
     {
-      value: 'admin',
+      value: 'agency_admin',
       label: 'Admin',
-      description: 'Full access to all features, billing, and team management',
+      description: 'Full access to all features, team management, and billing',
       icon: Shield,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
@@ -33,29 +33,20 @@ export default function ChangeRoleModal({
     {
       value: 'recruiter',
       label: 'Recruiter',
-      description: 'Manage candidates, jobs, and applications',
+      description: 'Manage candidates, jobs, applications, and interviews',
       icon: UserPlus,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-500',
     },
     {
-      value: 'hiring_manager',
-      label: 'Hiring Manager',
-      description: 'View candidates and provide feedback',
-      icon: UserPlus,
+      value: 'client',
+      label: 'Client / Hiring Manager',
+      description: 'View candidates and provide feedback on hiring decisions',
+      icon: Building2,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       borderColor: 'border-purple-500',
-    },
-    {
-      value: 'viewer',
-      label: 'Viewer',
-      description: 'Read-only access to candidates and jobs',
-      icon: UserPlus,
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50',
-      borderColor: 'border-gray-500',
     },
   ];
 

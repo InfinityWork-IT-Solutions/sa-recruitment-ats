@@ -80,6 +80,46 @@ class UpdateMemberProfileRequest(BaseModel):
     phone: Optional[str] = None
 
 
+class ChangeRoleRequest(BaseModel):
+    role: str
+
+
+@router.patch("/team/members/{member_id}/role")
+async def change_team_member_role(
+    member_id: UUID,
+    body: ChangeRoleRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change a team member's role."""
+    from app.models.user import UserRole as UserRoleEnum
+
+    await _get_company(current_user, db)
+
+    allowed = {UserRoleEnum.agency_admin, UserRoleEnum.recruiter, UserRoleEnum.client}
+    try:
+        new_role = UserRoleEnum(body.role)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid role: {body.role}")
+    if new_role not in allowed:
+        raise HTTPException(status_code=400, detail="Role cannot be set through team management")
+
+    result = await db.execute(
+        select(User).where(
+            User.id == member_id,
+            User.agency_id == current_user.agency_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    member.role = new_role
+    await db.commit()
+    await db.refresh(member)
+    return {"id": str(member.id), "role": member.role.value}
+
+
 @router.patch("/team/members/{member_id}/profile")
 async def update_team_member_profile(
     member_id: UUID,
