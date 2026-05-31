@@ -62,35 +62,47 @@ export default function CandidatesPage() {
 
   const fetchCandidates = async () => {
     try {
-      const response = await apiClient.get('/candidates');
+      const response = await apiClient.get('/candidates?limit=100');
       const data = response.data;
-      const formatted = (data.candidates || []).map((c: any) => ({
-        id: c.id,
-        name: `${c.first_name} ${c.last_name}`,
-        email: c.email,
-        phone: c.phone || '',
-        title: c.current_job_title || 'Candidate',
-        location: c.city || 'South Africa',
-        city: c.city || '',
-        province: '',
-        skills: c.skills || [],
-        experience_years: c.years_of_experience || 0,
-        current_company: '',
-        salary_expectation: 0,
-        availability: 'Immediate',
-        match_score: 95,
-        education: '',
-        applied_jobs: c.applications_count || 0,
-        last_active: 'Recently',
-        status: c.status === 'active' ? 'new' : c.status,
-        profile_photo: c.profile_photo || null,
-      }));
-      setCandidates(formatted.length > 0 ? formatted : mockCandidates);
-      setFilteredCandidates(formatted.length > 0 ? formatted : mockCandidates);
+      const formatted = (data.candidates || []).map((c: any) => {
+        const availabilityLabel = c.is_immediately_available
+          ? 'Immediate'
+          : c.notice_period_days
+            ? `${c.notice_period_days} day notice`
+            : 'Available';
+        return {
+          id: c.id,
+          name: `${c.first_name} ${c.last_name}`,
+          email: c.email,
+          phone: c.phone || '',
+          title: c.current_job_title || 'Candidate',
+          location: [c.city, c.province].filter(Boolean).join(', ') || 'South Africa',
+          city: c.city || '',
+          province: c.province || '',
+          skills: c.skills || [],
+          experience_years: c.years_of_experience || 0,
+          current_company: c.current_company || '',
+          salary_expectation: c.expected_salary_min || 0,
+          availability: availabilityLabel,
+          match_score: c.match_score ?? null,
+          education: c.education_level || '',
+          linkedin_url: c.linkedin_url || '',
+          resume_url: c.resume_url || '',
+          applied_jobs: c.applications_count || 0,
+          last_active: c.last_active || 'Recently',
+          status: (['new','shortlisted','interviewed','offered','rejected'].includes(c.ui_status)
+            ? c.ui_status
+            : 'new') as Candidate['status'],
+          profile_photo: c.profile_photo || null,
+        };
+      });
+      setCandidates(formatted);
+      setFilteredCandidates(formatted);
     } catch (error) {
       console.error('Error fetching candidates:', error);
-      setCandidates(mockCandidates);
-      setFilteredCandidates(mockCandidates);
+      setCandidates([]);
+      setFilteredCandidates([]);
+      toast.error('Failed to load candidates. Please refresh.');
     } finally {
       setLoading(false);
     }
@@ -214,14 +226,13 @@ export default function CandidatesPage() {
 
   const handleShortlist = async (candidateId: string) => {
     try {
-      // Mock API call since shortlist status is tracked on Applications rather than Candidate model
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // Update local state
-      setCandidates(prev => prev.map(c => 
+      await apiClient.put(`/candidates/${candidateId}`, { tags: ['shortlisted'] });
+      setCandidates(prev => prev.map(c =>
         c.id === candidateId ? { ...c, status: 'shortlisted' as const } : c
       ));
-    } catch (error) {
-      console.error('Error shortlisting candidate:', error);
+      toast.success('Candidate shortlisted!');
+    } catch {
+      toast.error('Failed to shortlist candidate.');
     }
   };
 
@@ -258,9 +269,9 @@ export default function CandidatesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading candidates...</p>
         </div>
       </div>
@@ -268,7 +279,7 @@ export default function CandidatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -748,28 +759,3 @@ export default function CandidatesPage() {
   );
 }
 
-// Mock data
-const mockCandidates: Candidate[] = [
-  {
-    id: '1',
-    name: 'Sizwe Khoza',
-    email: 'sizwe@example.com',
-    phone: '+27 82 123 4567',
-    title: 'Senior DevOps Engineer',
-    location: 'Cape Town, Western Cape',
-    city: 'Cape Town',
-    province: 'Western Cape',
-    skills: ['AWS', 'Docker', 'Kubernetes', 'Terraform', 'Python', 'CI/CD'],
-    experience_years: 7,
-    current_company: 'TechCorp',
-    salary_expectation: 650000,
-    availability: 'Immediate',
-    match_score: 98,
-    education: 'BSc Computer Science - UCT',
-    linkedin_url: 'https://linkedin.com/in/sizwe',
-    applied_jobs: 3,
-    last_active: '2 hours ago',
-    status: 'new',
-  },
-  // Add more mock candidates...
-];
