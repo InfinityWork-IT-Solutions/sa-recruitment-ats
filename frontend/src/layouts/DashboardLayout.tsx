@@ -40,7 +40,7 @@ const getNavigation = (role?: string) => {
         ];
     }
 
-    if (role === 'client') {
+    if (role === 'client' || role === 'agency_admin') {
         return [
             { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
             { name: 'Company Profile', href: '/company/profile', icon: Building2 },
@@ -54,6 +54,20 @@ const getNavigation = (role?: string) => {
             { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
             { name: 'Billing', href: '/settings/billing', icon: CreditCard },
+            { name: 'Settings', href: '/settings', icon: Settings },
+        ];
+    }
+
+    if (role === 'recruiter') {
+        return [
+            { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
+            { name: 'Jobs', href: '/company/jobs', icon: Briefcase },
+            { name: 'Candidates', href: '/company/candidates', icon: Users },
+            { name: 'Applications', href: '/company/applications', icon: FileText },
+            { name: 'Interviews', href: '/company/interviews', icon: Calendar },
+            { name: 'Offers', href: '/company/offers', icon: Gift },
+            { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
+            { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
     }
@@ -111,7 +125,11 @@ export default function DashboardLayout() {
                     {/* Logo */}
                     <div className="flex items-center justify-between h-16 px-6 border-b border-white/20 dark:border-gray-700">
                         <Link
-                            to={user?.role === 'candidate' ? '/candidate-dashboard' : user?.role === 'client' ? '/company/dashboard' : '/admin/dashboard'}
+                            to={
+                                user?.role === 'candidate' ? '/candidate-dashboard'
+                                : user?.role === 'super_admin' ? '/admin/dashboard'
+                                : '/company/dashboard'
+                            }
                             className="flex items-center space-x-2"
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">

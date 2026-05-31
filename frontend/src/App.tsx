@@ -182,10 +182,10 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect to their default dashboard if they hit the wrong portal
     if (user.role === 'candidate') return <Navigate to="/candidate-dashboard" replace />;
-    if (user.role === 'client') return <Navigate to="/client-dashboard" replace />;
-    return <Navigate to="/dashboard" replace />;
+    if (user.role === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
+    if (['client', 'agency_admin', 'recruiter'].includes(user.role)) return <Navigate to="/company/dashboard" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
@@ -250,7 +250,7 @@ function App() {
           {/* Company Portal */}
           <Route
             element={
-              <ProtectedRoute allowedRoles={['client']}>
+              <ProtectedRoute allowedRoles={['client', 'agency_admin', 'recruiter']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -298,10 +298,10 @@ function App() {
             <Route path="/admin/candidates" element={<UserManagement />} />
           </Route>
 
-          {/* Shared Routes (Accessible by all roles) */}
+          {/* Shared Routes (Accessible by all authenticated roles) */}
           <Route
             element={
-              <ProtectedRoute allowedRoles={['super_admin', 'candidate', 'client']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'candidate', 'client', 'agency_admin', 'recruiter']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }

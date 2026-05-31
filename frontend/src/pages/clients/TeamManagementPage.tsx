@@ -80,7 +80,7 @@ export default function TeamManagementPage() {
     try {
       await apiClient.patch(`/team/members/${memberId}/role`, { role: newRole });
       setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
-      toast.success('Role updated!');
+      toast.success('Role updated. The member will see their new permissions after their next login.', { duration: 5000 });
     } catch {
       toast.error('Failed to change role.');
     }

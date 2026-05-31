@@ -59,8 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             // Role-based redirection
             if (user.role === 'super_admin') window.location.href = '/admin/dashboard';
             else if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
-            else if (user.role === 'client') window.location.href = '/client-dashboard';
-            else window.location.href = '/admin/dashboard';
+            else window.location.href = '/company/dashboard';
         } catch (error) {
             set({ isLoading: false });
             throw error;
