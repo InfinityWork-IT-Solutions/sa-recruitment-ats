@@ -55,6 +55,8 @@ async def get_team_members(
                 "last_name": m.last_name,
                 "email": m.email,
                 "phone": m.phone or "",
+                "position": m.position or "",
+                "department": m.department or "",
                 "role": m.role.value,
                 "avatar_url": m.avatar_url or m.profile_photo,
                 "is_verified": m.is_verified,
@@ -78,6 +80,8 @@ class UpdateMemberProfileRequest(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
+    position: Optional[str] = None
+    department: Optional[str] = None
 
 
 class ChangeRoleRequest(BaseModel):
@@ -145,10 +149,21 @@ async def update_team_member_profile(
         member.last_name = body.last_name
     if body.phone is not None:
         member.phone = body.phone
+    if body.position is not None:
+        member.position = body.position
+    if body.department is not None:
+        member.department = body.department
 
     await db.commit()
     await db.refresh(member)
-    return {"id": str(member.id), "first_name": member.first_name, "last_name": member.last_name, "phone": member.phone}
+    return {
+        "id": str(member.id),
+        "first_name": member.first_name,
+        "last_name": member.last_name,
+        "phone": member.phone,
+        "position": member.position or "",
+        "department": member.department or "",
+    }
 
 
 class BulkMoveRequest(BaseModel):

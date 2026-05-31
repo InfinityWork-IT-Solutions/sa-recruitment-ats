@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, Mail, Shield, Trash2, Edit, Phone,
   CheckCircle, Clock, XCircle, CreditCard, AlertCircle, RefreshCw,
-  ShieldCheck, ShieldAlert, X, Eye, Save, User
+  ShieldCheck, ShieldAlert, X, Eye, Save, User, Briefcase, Building2
 } from 'lucide-react';
 import InviteTeamMemberModal from '@/components/modals/InviteTeamMemberModal';
 import ChangeRoleModal from '@/components/modals/ChangeRoleModal';
@@ -16,6 +16,8 @@ interface TeamMember {
   last_name: string;
   email: string;
   phone: string;
+  position: string;
+  department: string;
   role: string;
   status: 'active' | 'invited' | 'inactive';
   is_verified: boolean;
@@ -47,7 +49,7 @@ export default function TeamManagementPage() {
   // Detail / edit slide-over
   const [detailMember, setDetailMember] = useState<TeamMember | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', phone: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', phone: '', position: '', department: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { fetchTeamData(); }, []);
@@ -119,7 +121,7 @@ export default function TeamManagementPage() {
 
   const openDetail = (member: TeamMember) => {
     setDetailMember(member);
-    setEditForm({ first_name: member.first_name, last_name: member.last_name, phone: member.phone || '' });
+    setEditForm({ first_name: member.first_name, last_name: member.last_name, phone: member.phone || '', position: member.position || '', department: member.department || '' });
     setEditMode(false);
   };
 
@@ -133,6 +135,8 @@ export default function TeamManagementPage() {
         first_name: res.data.first_name ?? editForm.first_name,
         last_name: res.data.last_name ?? editForm.last_name,
         phone: res.data.phone ?? editForm.phone,
+        position: res.data.position ?? editForm.position,
+        department: res.data.department ?? editForm.department,
       };
       setMembers(prev => prev.map(m => m.id === detailMember.id ? updated : m));
       setDetailMember(updated);
@@ -344,9 +348,15 @@ export default function TeamManagementPage() {
                       <p className="text-sm text-gray-600 truncate">{member.email}</p>
 
                       <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 flex-wrap">
+                        {member.position && (
+                          <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{member.position}</span>
+                        )}
+                        {member.department && (
+                          <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{member.department}</span>
+                        )}
                         {member.phone
                           ? <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{member.phone}</span>
-                          : <span className="text-amber-500">No phone number — click Details to add</span>
+                          : <span className="text-amber-500">No phone — click Details to add</span>
                         }
                         {member.last_active && <span>Last active {member.last_active}</span>}
                       </div>
@@ -503,6 +513,32 @@ export default function TeamManagementPage() {
                         />
                       </div>
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Position / Job Title</label>
+                      <div className="relative">
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={editForm.position}
+                          onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))}
+                          placeholder="e.g. Senior Recruiter"
+                          className="input pl-9 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Department</label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={editForm.department}
+                          onChange={e => setEditForm(f => ({ ...f, department: e.target.value }))}
+                          placeholder="e.g. Engineering, Sales"
+                          className="input pl-9 text-sm"
+                        />
+                      </div>
+                    </div>
                     <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => setEditMode(false)}
@@ -531,6 +567,20 @@ export default function TeamManagementPage() {
                       {detailMember.phone
                         ? <a href={`tel:${detailMember.phone}`} className="text-blue-600 hover:underline">{detailMember.phone}</a>
                         : <span className="text-amber-500 text-xs">No phone number — click Edit to add</span>
+                      }
+                    </div>
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
+                      {detailMember.position
+                        ? <span>{detailMember.position}</span>
+                        : <span className="text-gray-400 text-xs italic">No position set</span>
+                      }
+                    </div>
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+                      {detailMember.department
+                        ? <span>{detailMember.department}</span>
+                        : <span className="text-gray-400 text-xs italic">No department set</span>
                       }
                     </div>
                   </div>
