@@ -60,8 +60,26 @@ export default function TeamManagementPage() {
     try {
       const response = await apiClient.get('/team/members');
       const data = response.data;
-      setMembers(data.members || mockMembers);
-      setSeats(data.seats || mockSeats);
+      // API may return { members: [...], seats: {...} } or a flat array
+      const rawMembers: any[] = Array.isArray(data) ? data : (data.members ?? []);
+      // Normalise fields so first_name / last_name are always strings
+      const normalised: TeamMember[] = rawMembers.map((m: any) => ({
+        id: m.id ?? m.user_id ?? '',
+        first_name: m.first_name ?? m.name?.split(' ')[0] ?? '',
+        last_name: m.last_name ?? m.name?.split(' ').slice(1).join(' ') ?? '',
+        email: m.email ?? '',
+        phone: m.phone ?? '',
+        job_title: m.job_title ?? '',
+        department: m.department ?? '',
+        role: m.role ?? 'viewer',
+        status: m.status ?? 'active',
+        is_verified: m.is_verified ?? m.is_email_verified ?? true,
+        last_active: m.last_active,
+        invited_at: m.invited_at,
+        joined_at: m.joined_at,
+      }));
+      setMembers(normalised.length > 0 ? normalised : mockMembers);
+      setSeats(data.seats ?? mockSeats);
     } catch {
       // Backend endpoint not yet live — use mock so UI remains testable
       setMembers(mockMembers);
@@ -307,7 +325,7 @@ export default function TeamManagementPage() {
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="relative flex-shrink-0">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {member.first_name[0]}{member.last_name[0]}
+                      {member.first_name?.[0] ?? '?'}{member.last_name?.[0] ?? ''}
                     </div>
                     {/* Verification badge */}
                     <div className="absolute -bottom-0.5 -right-0.5">
@@ -428,7 +446,7 @@ export default function TeamManagementPage() {
               {/* Avatar + name */}
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                  {detailMember.first_name[0]}{detailMember.last_name[0]}
+                  {detailMember.first_name?.[0] ?? '?'}{detailMember.last_name?.[0] ?? ''}
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">{detailMember.first_name} {detailMember.last_name}</h3>
