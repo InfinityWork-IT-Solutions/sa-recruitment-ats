@@ -157,9 +157,9 @@ export default function ApplicationsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900">All Applications</h1>
-                <p className="text-gray-600 mt-1">View and manage all job applications</p>
+            <div className="card px-6 py-5">
+                <h1 className="text-2xl font-bold text-gray-900">All Applications</h1>
+                <p className="text-gray-500 mt-1 text-sm">View and manage all job applications</p>
             </div>
 
             {/* Filters */}
