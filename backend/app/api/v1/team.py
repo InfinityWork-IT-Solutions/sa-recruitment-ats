@@ -23,8 +23,12 @@ router = APIRouter()
 
 
 async def _get_company(user: User, db: AsyncSession) -> ClientCompany:
+    # Try by direct ownership first, then fall back to agency membership
     result = await db.execute(select(ClientCompany).where(ClientCompany.user_id == user.id))
     company = result.scalar_one_or_none()
+    if not company:
+        result = await db.execute(select(ClientCompany).where(ClientCompany.agency_id == user.agency_id))
+        company = result.scalar_one_or_none()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company

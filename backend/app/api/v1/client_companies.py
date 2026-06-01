@@ -116,17 +116,23 @@ async def get_my_client_company(
 ):
     """Get my client company details - Auto-creates if missing for clients"""
     company = await client_company_service.get_client_company_by_user_id(db, current_user.id)
-    
+
+    if not company:
+        # Team members (recruiter/agency_admin) share the agency's company
+        result = await db.execute(
+            select(ClientCompany).where(ClientCompany.agency_id == current_user.agency_id)
+        )
+        company = result.scalar_one_or_none()
+
     if not company and current_user.role == UserRole.client:
         # Auto-create profile if missing for a client user
         from app.schemas.client_company import ClientCompanyCreate
         from app.models.agency import Agency
-        
-        # Get agency name for default company name
+
         stmt = select(Agency).where(Agency.id == current_user.agency_id)
         result = await db.execute(stmt)
         agency = result.scalar_one_or_none()
-        
+
         company_data = ClientCompanyCreate(
             name=agency.name if agency else f"{current_user.first_name}'s Company",
             contact_email=current_user.email,
@@ -135,15 +141,14 @@ async def get_my_client_company(
         company = await client_company_service.create_client_company(
             db, company_data, current_user.agency_id
         )
-        # Link to user
         company.user_id = current_user.id
         db.add(company)
         await db.commit()
         await db.refresh(company)
-        
+
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-        
+
     return ClientCompanyResponse.model_validate(company)
 
 @router.put("/me/profile", response_model=ClientCompanyResponse)
@@ -154,6 +159,11 @@ async def update_my_client_company(
 ):
     """Update my client company details"""
     company = await client_company_service.get_client_company_by_user_id(db, current_user.id)
+    if not company:
+        result = await db.execute(
+            select(ClientCompany).where(ClientCompany.agency_id == current_user.agency_id)
+        )
+        company = result.scalar_one_or_none()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     company = await client_company_service.update_client_company(db, company, company_data)
