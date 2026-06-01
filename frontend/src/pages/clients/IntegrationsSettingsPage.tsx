@@ -28,10 +28,10 @@ export default function IntegrationsSettingsPage() {
   const fetchIntegrations = async () => {
     try {
       const response = await apiClient.get('/integrations');
-      setIntegrations(response.data || mockIntegrations);
+      setIntegrations(response.data || []);
     } catch (error) {
       console.error('Error fetching integrations:', error);
-      setIntegrations(mockIntegrations);
+      setIntegrations([]);
     } finally {
       setLoading(false);
     }
@@ -311,50 +311,47 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
-      {/* Connect Modal (placeholder - would implement full OAuth flow) */}
-      {showConnectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Connect to {platformInfo[selectedPlatform as keyof typeof platformInfo]?.name}
-            </h2>
-            <p className="text-gray-600 mb-6">
-              This feature is coming soon! Contact support to enable {selectedPlatform} integration.
-            </p>
-            <button
-              onClick={() => setShowConnectModal(false)}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all"
-            >
-              Close
-            </button>
+      {/* Connect Modal — setup instructions */}
+      {showConnectModal && selectedPlatform && (() => {
+        const info = platformInfo[selectedPlatform as keyof typeof platformInfo];
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Connect {info?.name}</h2>
+                  <p className="text-blue-100 text-sm mt-0.5">{info?.description}</p>
+                </div>
+                <button onClick={() => setShowConnectModal(false)} className="text-white hover:bg-white/20 rounded-full p-1.5 transition-all">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Setup steps:</p>
+                <ol className="space-y-2 mb-6">
+                  {info?.setupInstructions.map((step, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm text-gray-600">
+                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
+                      {step.replace(/^\d+\.\s/, '')}
+                    </li>
+                  ))}
+                </ol>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700">Once you have your API credentials, contact <strong>support@recruitpro.co.za</strong> to complete the connection on your account.</p>
+                </div>
+                <button
+                  onClick={() => setShowConnectModal(false)}
+                  className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
 
-// Mock data
-const mockIntegrations: Integration[] = [
-  {
-    platform: 'pnet',
-    connected: true,
-    status: 'active',
-    last_sync: '2 hours ago',
-    active_jobs: 12,
-    total_applications: 45,
-  },
-  {
-    platform: 'indeed',
-    connected: true,
-    status: 'active',
-    last_sync: '1 hour ago',
-    active_jobs: 12,
-    total_applications: 38,
-  },
-  {
-    platform: 'linkedin',
-    connected: false,
-    status: 'inactive',
-  },
-];

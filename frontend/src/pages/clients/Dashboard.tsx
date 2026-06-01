@@ -232,11 +232,8 @@ export default function CompleteDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Active Jobs */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600" />
-              </div>
-              <span className="text-green-600 text-sm font-semibold">+12% ↗</span>
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+              <Briefcase className="w-6 h-6 text-blue-600" />
             </div>
             <div className="text-sm text-gray-600 mb-1">Active Jobs</div>
             <div className="text-3xl font-bold text-gray-900">{Number(stats.activeJobs) || 0}</div>
@@ -244,11 +241,8 @@ export default function CompleteDashboard() {
 
           {/* Applicants */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
-              <span className="text-green-600 text-sm font-semibold">+15% ↗</span>
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+              <Users className="w-6 h-6 text-purple-600" />
             </div>
             <div className="text-sm text-gray-600 mb-1">Total Applicants</div>
             <div className="text-3xl font-bold text-gray-900">{Number(stats.totalApplicants) || 0}</div>
@@ -256,11 +250,8 @@ export default function CompleteDashboard() {
 
           {/* Top Matches */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-              <span className="text-green-600 text-sm font-semibold">+42% ↗</span>
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+              <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
             <div className="text-sm text-gray-600 mb-1">AI Matches (85%+)</div>
             <div className="text-3xl font-bold text-gray-900">{Number(stats.topMatches) || 0}</div>
@@ -268,11 +259,8 @@ export default function CompleteDashboard() {
 
           {/* Interviews */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-yellow-600" />
-              </div>
-              <span className="text-green-600 text-sm font-semibold">+8% ↗</span>
+            <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mb-4">
+              <Calendar className="w-6 h-6 text-yellow-600" />
             </div>
             <div className="text-sm text-gray-600 mb-1">Scheduled Interviews</div>
             <div className="text-3xl font-bold text-gray-900">{Number(stats.scheduledInterviews) || 0}</div>
