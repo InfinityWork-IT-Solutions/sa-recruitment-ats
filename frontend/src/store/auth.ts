@@ -39,11 +39,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             if (expectedType) {
                 const userRole = user.role;
                 let isValid = false;
+                const companyRoles = ['client', 'agency_admin', 'recruiter'];
                 if (userRole === 'super_admin') {
                     isValid = true;
                 } else if (expectedType === 'candidate' && userRole === 'candidate') {
                     isValid = true;
-                } else if (expectedType === 'company' && userRole === 'client') {
+                } else if (expectedType === 'company' && companyRoles.includes(userRole)) {
                     isValid = true;
                 }
 

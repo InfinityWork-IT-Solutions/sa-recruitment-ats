@@ -88,10 +88,11 @@ export default function UnifiedLoginPage() {
 
       if (pendingUserType) {
         const role = user.role;
+        const companyRoles = ['client', 'agency_admin', 'recruiter'];
         const valid =
           role === 'super_admin' ||
           (pendingUserType === 'candidate' && role === 'candidate') ||
-          (pendingUserType === 'company' && role === 'client');
+          (pendingUserType === 'company' && companyRoles.includes(role));
         if (!valid) throw new Error(`Account is not registered as a ${pendingUserType}.`);
       }
 
@@ -100,8 +101,7 @@ export default function UnifiedLoginPage() {
       useAuthStore.setState({ user, isAuthenticated: true });
       if (user.role === 'super_admin') window.location.href = '/admin/dashboard';
       else if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
-      else if (user.role === 'client') window.location.href = '/client-dashboard';
-      else window.location.href = '/admin/dashboard';
+      else window.location.href = '/company/dashboard';
     } catch (err: any) {
       setMfaError(err.response?.data?.detail || err.message || 'Invalid code. Try again.');
     } finally {
