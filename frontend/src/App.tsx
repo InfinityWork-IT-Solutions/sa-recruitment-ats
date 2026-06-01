@@ -19,6 +19,7 @@ import UnifiedLoginPage from './pages/auth/UnifiedLoginPage';
 import UnifiedRegisterPage from './pages/auth/UnifiedRegisterPage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import VerifyEmailRequired from './pages/auth/VerifyEmailRequired';
+import AcceptInvitePage from './pages/auth/AcceptInvitePage';
 import PublicJobsPage from './pages/PublicJobsPage';
 import PublicJobDetailPage from './pages/PublicJobDetailPage';
 
@@ -212,9 +213,10 @@ function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/p/:slug" element={<PublicCareerPage />} />
 
-          {/* Email verification (public — no auth needed) */}
+          {/* Email verification & invite acceptance (public — no auth needed) */}
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/verify-email-required" element={<VerifyEmailRequired />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
           {/* Video Screening Routes */}
           <Route path="/video-screening/:access_token" element={<VideoScreeningLanding />} />

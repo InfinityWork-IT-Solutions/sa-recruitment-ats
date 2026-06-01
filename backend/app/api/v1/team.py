@@ -6,13 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+import secrets
+from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
-from app.core.security import get_current_active_user
+from app.core.security import get_current_active_user, hash_password, FRONTEND_URL
 from app.models import User, ClientCompany, UserRole
 from app.models.application import ApplicationStatus
 from app.services.applications_service import ApplicationService
+from app.services.email_service import EmailService
+
+email_service = EmailService()
 
 router = APIRouter()
 
@@ -23,6 +28,116 @@ async def _get_company(user: User, db: AsyncSession) -> ClientCompany:
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
+
+
+class InviteMemberRequest(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    role: str = "recruiter"
+
+
+async def _send_invite_email(member: User, inviter_name: str) -> None:
+    invite_link = f"{FRONTEND_URL}/accept-invite?token={member.invitation_token}"
+    subject = f"You've been invited to join RecruitPro"
+    html = f"""
+    <html>
+      <body style="font-family:sans-serif;color:#333;background:#f8fafc;margin:0;padding:0;">
+        <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:32px 40px;">
+            <h1 style="color:#fff;margin:0;font-size:24px;">You're invited to RecruitPro</h1>
+            <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;">{inviter_name} has added you to their team.</p>
+          </div>
+          <div style="padding:32px 40px;">
+            <p style="font-size:16px;">Hi <strong>{member.first_name}</strong>,</p>
+            <p>You've been invited to join the team on RecruitPro SA. Click the button below to set your password and activate your account.</p>
+            <div style="text-align:center;margin:32px 0;">
+              <a href="{invite_link}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Accept Invitation & Set Password</a>
+            </div>
+            <p style="color:#64748b;font-size:13px;">This invitation link expires in <strong>7 days</strong>. If you didn't expect this, you can ignore this email.</p>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+            <p style="color:#94a3b8;font-size:12px;text-align:center;">RecruitPro SA &mdash; Smarter Hiring for South Africa</p>
+          </div>
+        </div>
+      </body>
+    </html>
+    """
+    plain = f"Hi {member.first_name},\n\n{inviter_name} has invited you to join their team on RecruitPro.\n\nAccept your invitation here:\n{invite_link}\n\nThis link expires in 7 days."
+    await email_service.send_email(member.email, subject, plain, html)
+
+
+@router.post("/team/invite")
+async def invite_team_member(
+    body: InviteMemberRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Invite a new team member — creates their account and emails a set-password link."""
+    await _get_company(current_user, db)
+
+    allowed = {UserRole.agency_admin, UserRole.recruiter, UserRole.client}
+    try:
+        role = UserRole(body.role)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid role: {body.role}")
+    if role not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid role for team member")
+
+    # Check email not already taken
+    existing = await db.execute(select(User).where(User.email == body.email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="A user with this email already exists")
+
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc) + timedelta(days=7)
+
+    member = User(
+        email=body.email,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        hashed_password=hash_password(secrets.token_urlsafe(16)),  # random placeholder
+        role=role,
+        agency_id=current_user.agency_id,
+        is_active=False,      # inactive until they accept
+        is_verified=False,
+        invitation_token=token,
+        invitation_expires_at=expires,
+    )
+    db.add(member)
+    await db.commit()
+    await db.refresh(member)
+
+    inviter_name = f"{current_user.first_name} {current_user.last_name}".strip() or current_user.email
+    await _send_invite_email(member, inviter_name)
+
+    return {"message": f"Invitation sent to {body.email}", "member_id": str(member.id)}
+
+
+@router.post("/team/members/{member_id}/resend-invitation")
+async def resend_invitation(
+    member_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-generate the invitation token and resend the email."""
+    await _get_company(current_user, db)
+    result = await db.execute(
+        select(User).where(User.id == member_id, User.agency_id == current_user.agency_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if member.is_active and member.is_verified:
+        raise HTTPException(status_code=400, detail="Member has already accepted their invitation")
+
+    member.invitation_token = secrets.token_urlsafe(32)
+    member.invitation_expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    await db.commit()
+    await db.refresh(member)
+
+    inviter_name = f"{current_user.first_name} {current_user.last_name}".strip() or current_user.email
+    await _send_invite_email(member, inviter_name)
+    return {"message": f"Invitation resent to {member.email}"}
 
 
 @router.get("/team/members")

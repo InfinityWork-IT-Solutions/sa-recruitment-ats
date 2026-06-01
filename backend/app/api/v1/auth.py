@@ -5,13 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFi
 import os
 import shutil
 from typing import Optional, Union
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.security import (
     get_current_user, get_current_active_user, decode_token,
     create_verification_token, decode_verification_token,
+    hash_password, create_access_token, create_refresh_token,
 )
 from app.models import User
 from app.schemas import (
@@ -600,3 +603,67 @@ async def confirm_my_email(
         return MessageResponse(message="Already verified.")
     await auth_service.verify_email(db, str(current_user.id))
     return MessageResponse(message=f"Email {current_user.email} verified successfully.")
+
+
+# ── Invitation accept ──────────────────────────────────────────────────────────
+
+class AcceptInviteRequest(BaseModel):
+    token: str
+    password: str
+    confirm_password: str
+
+
+@router.post("/accept-invite")
+async def accept_invite(
+    body: AcceptInviteRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Accept a team invitation: validate token, set password, activate account."""
+    if body.password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    result = await db.execute(
+        select(User).where(User.invitation_token == body.token)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired invitation link")
+
+    if user.invitation_expires_at and user.invitation_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This invitation link has expired. Ask your admin to resend it.")
+
+    # Activate account
+    user.hashed_password = hash_password(body.password)
+    user.is_active = True
+    user.is_verified = True
+    user.email_verified_at = datetime.now(timezone.utc)
+    user.invitation_token = None
+    user.invitation_expires_at = None
+    await db.commit()
+    await db.refresh(user)
+
+    # Issue tokens so they are auto-logged in
+    from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role.value},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+
+    return {
+        "message": "Account activated successfully",
+        "tokens": {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token},
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role.value,
+        },
+    }

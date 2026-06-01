@@ -43,6 +43,8 @@ class User(Base):
     avatar_url = Column(String(255))
     position = Column(String(150))
     department = Column(String(150))
+    invitation_token = Column(String(255), nullable=True, index=True)
+    invitation_expires_at = Column(DateTime(timezone=True), nullable=True)
     
     # Authorization
     role = Column(Enum(UserRole), nullable=False, default=UserRole.recruiter)
