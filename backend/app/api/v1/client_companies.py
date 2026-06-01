@@ -18,6 +18,7 @@ from app.models.application import Application, ApplicationStatus
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models import User, UserRole
+from app.models.client_company import ClientCompany
 from app.schemas import (
     ClientCompanyCreate,
     ClientCompanyUpdate,
