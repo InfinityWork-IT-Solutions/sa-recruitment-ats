@@ -77,6 +77,8 @@ async def invite_team_member(
     db: AsyncSession = Depends(get_db),
 ):
     """Invite a new team member — creates their account and emails a set-password link."""
+    if current_user.role not in (UserRole.agency_admin, UserRole.client):
+        raise HTTPException(status_code=403, detail="Only admins can invite team members")
     await _get_company(current_user, db)
 
     allowed = {UserRole.agency_admin, UserRole.recruiter, UserRole.client}
@@ -124,6 +126,8 @@ async def resend_invitation(
     db: AsyncSession = Depends(get_db),
 ):
     """Re-generate the invitation token and resend the email."""
+    if current_user.role not in (UserRole.agency_admin, UserRole.client):
+        raise HTTPException(status_code=403, detail="Only admins can resend invitations")
     await _get_company(current_user, db)
     result = await db.execute(
         select(User).where(User.id == member_id, User.agency_id == current_user.agency_id)
@@ -215,6 +219,8 @@ async def change_team_member_role(
     db: AsyncSession = Depends(get_db),
 ):
     """Change a team member's role."""
+    if current_user.role not in (UserRole.agency_admin, UserRole.client):
+        raise HTTPException(status_code=403, detail="Only admins can change roles")
     from app.models.user import UserRole as UserRoleEnum
 
     await _get_company(current_user, db)

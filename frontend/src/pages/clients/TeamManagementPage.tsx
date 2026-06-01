@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/auth';
 import {
   Users, UserPlus, Mail, Shield, Trash2, Edit, Phone,
   CheckCircle, Clock, XCircle, CreditCard, AlertCircle, RefreshCw,
@@ -35,6 +36,8 @@ interface TeamSeats {
 
 export default function TeamManagementPage() {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuthStore();
+  const isAdmin = currentUser?.role === 'agency_admin' || currentUser?.role === 'client';
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [seats, setSeats] = useState<TeamSeats>({ used: 0, total: 5, available: 5, plan: 'Professional' });
   const [loading, setLoading] = useState(true);
@@ -198,14 +201,16 @@ export default function TeamManagementPage() {
           <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
           <p className="text-gray-600 mt-1">Manage your team members, roles, and contact details</p>
         </div>
-        <button
-          onClick={() => setShowInviteModal(true)}
-          disabled={seats.available === 0}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <UserPlus className="w-5 h-5" />
-          <span>Invite Member</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowInviteModal(true)}
+            disabled={seats.available === 0}
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <UserPlus className="w-5 h-5" />
+            <span>Invite Member</span>
+          </button>
+        )}
       </div>
 
       {/* Unverified warning */}
@@ -372,7 +377,7 @@ export default function TeamManagementPage() {
                       <Eye className="w-4 h-4" />
                       Details
                     </button>
-                    {member.status === 'invited' && (
+                    {isAdmin && member.status === 'invited' && (
                       <button
                         onClick={() => handleResendInvitation(member.id)}
                         className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors flex items-center gap-1.5"
@@ -381,20 +386,24 @@ export default function TeamManagementPage() {
                         Resend
                       </button>
                     )}
-                    <button
-                      onClick={() => { setSelectedMember(member); setShowChangeRoleModal(true); }}
-                      className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-1.5"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Role
-                    </button>
-                    <button
-                      onClick={() => { setMemberToRemove(member.id); setShowRemoveConfirm(true); }}
-                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center gap-1.5"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Remove
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => { setSelectedMember(member); setShowChangeRoleModal(true); }}
+                        className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-1.5"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Role
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => { setMemberToRemove(member.id); setShowRemoveConfirm(true); }}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
