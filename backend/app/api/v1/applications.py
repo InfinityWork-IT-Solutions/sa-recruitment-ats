@@ -236,10 +236,14 @@ async def list_applications(
     
     def _app_brief(a):
         d = ApplicationBrief.model_validate(a).model_dump()
-        if a.candidate and a.candidate.user:
-            d["candidate_photo"] = (
-                a.candidate.user.profile_photo or getattr(a.candidate.user, "avatar_url", None)
-            )
+        if a.candidate:
+            d["candidate_name"] = a.candidate.full_name
+            if a.candidate.user:
+                d["candidate_photo"] = (
+                    a.candidate.user.profile_photo or getattr(a.candidate.user, "avatar_url", None)
+                )
+        if a.job:
+            d["job_title"] = a.job.title
         return d
 
     return {

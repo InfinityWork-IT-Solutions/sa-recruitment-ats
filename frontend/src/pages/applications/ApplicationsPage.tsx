@@ -294,15 +294,17 @@ export default function ApplicationsPage() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Link
                                                 to={`/candidates/${application.candidate_id}`}
-                                                className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline"
+                                                className="flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors"
                                             >
-                                                <div className="w-7 h-7 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">
                                                     {(application as any).candidate_photo
                                                         ? <img src={(application as any).candidate_photo} alt="" className="w-full h-full object-cover" />
-                                                        : <span className="text-xs font-bold text-blue-600">{application.candidate_name?.split(' ').map(n => n[0]).join('') || '?'}</span>
+                                                        : (application.candidate_name
+                                                            ? application.candidate_name.split(' ').filter(Boolean).map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
+                                                            : '?')
                                                     }
                                                 </div>
-                                                {application.candidate_name}
+                                                <span>{application.candidate_name || <span className="text-gray-400 italic text-xs">Unknown</span>}</span>
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -310,7 +312,7 @@ export default function ApplicationsPage() {
                                                 to={`/jobs/${application.job_id}`}
                                                 className="text-sm font-medium text-blue-600 hover:underline"
                                             >
-                                                {application.job_title || `Job #${application.job_id.slice(0, 8)}`}
+                                                {application.job_title || <span className="text-gray-400 italic text-xs">Untitled Job</span>}
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -321,18 +323,20 @@ export default function ApplicationsPage() {
                                             />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {application.match_score !== null ? (
-                                                <div className="flex items-center space-x-2">
+                                            {application.match_score != null ? (
+                                                <div className="flex items-center gap-2">
                                                     <div className="w-16 bg-gray-200 rounded-full h-2">
                                                         <div
-                                                            className="bg-blue-600 h-2 rounded-full"
+                                                            className={`h-2 rounded-full ${application.match_score >= 75 ? 'bg-green-500' : application.match_score >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
                                                             style={{ width: `${application.match_score}%` }}
                                                         />
                                                     </div>
-                                                    <span className="text-xs font-medium">{application.match_score}%</span>
+                                                    <span className={`text-xs font-semibold ${application.match_score >= 75 ? 'text-green-600' : application.match_score >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                                        {application.match_score}%
+                                                    </span>
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400 text-xs">—</span>
+                                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Pending</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
