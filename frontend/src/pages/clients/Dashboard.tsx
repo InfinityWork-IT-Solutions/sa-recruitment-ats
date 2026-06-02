@@ -568,11 +568,19 @@ export default function CompleteDashboard() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Response Rate</span>
-                  <span className="font-bold text-green-600">67%</span>
+                  <span className="font-bold text-green-600">
+                    {stats.totalApplicants > 0
+                      ? `${Math.round((stats.shortlisted / stats.totalApplicants) * 100)}%`
+                      : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Avg. Time to Hire</span>
-                  <span className="font-bold text-gray-900">18 days</span>
+                  <span className="font-bold text-gray-900">
+                    {dashboardData?.avg_time_to_hire_days
+                      ? `${dashboardData.avg_time_to_hire_days} days`
+                      : '—'}
+                  </span>
                 </div>
               </div>
             </div>

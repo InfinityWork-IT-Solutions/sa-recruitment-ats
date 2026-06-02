@@ -28,11 +28,19 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Real chart data
+  const [applicationsOverTime, setApplicationsOverTime] = useState<any[]>([]);
+  const [popularJobs, setPopularJobs] = useState<any[]>([]);
+  const [candidateSources, setCandidateSources] = useState<any[]>([]);
+  const [funnelSteps, setFunnelSteps] = useState<any[]>([]);
+
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>(
     location.pathname === '/admin/analytics' ? 'analytics' : 'overview'
   );
-  
+
   useEffect(() => {
     if (location.pathname === '/admin/analytics') {
       setActiveTab('analytics');
@@ -40,11 +48,15 @@ export default function AdminDashboard() {
       setActiveTab('overview');
     }
   }, [location.pathname]);
-  
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
-  
+
+  useEffect(() => {
+    if (activeTab === 'analytics') fetchAnalyticsData();
+  }, [activeTab]);
+
   const fetchDashboardData = async () => {
     try {
       const response = await apiClient.get('/admin/dashboard');
@@ -55,6 +67,67 @@ export default function AdminDashboard() {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const SOURCE_COLORS: Record<string, string> = {
+    linkedin: '#2563eb', indeed: '#0ea5e9', referral: '#10b981',
+    direct: '#f59e0b', pnet: '#8b5cf6', other: '#94a3b8',
+  };
+
+  const fetchAnalyticsData = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const [appsRes, jobsRes, sourcesRes, statusRes] = await Promise.all([
+        apiClient.get('/analytics/applications-over-time?period_days=90'),
+        apiClient.get('/analytics/top-jobs?limit=5'),
+        apiClient.get('/analytics/source-effectiveness'),
+        apiClient.get('/analytics/applications-by-status'),
+      ]);
+
+      // Applications over time — format for recharts
+      const appsData = (appsRes.data?.data || []).map((d: any) => ({
+        name: new Date(d.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' }),
+        count: d.count,
+      }));
+      setApplicationsOverTime(appsData);
+
+      // Top jobs
+      setPopularJobs(appsRes.data?.data ? (jobsRes.data?.jobs || []).map((j: any) => ({
+        title: j.title,
+        applications: j.applications_count,
+        hires: j.hires_count,
+        rate: j.conversion_rate,
+      })) : []);
+
+      // Candidate sources for pie chart
+      const sourceData = (sourcesRes.data?.sources || []).map((s: any) => ({
+        name: s.source.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        value: s.candidates_count,
+        color: SOURCE_COLORS[s.source.toLowerCase()] || '#94a3b8',
+      }));
+      setCandidateSources(sourceData);
+
+      // Funnel from status counts
+      const statusMap: Record<string, number> = {};
+      (statusRes.data?.data || []).forEach((s: any) => { statusMap[s.status] = s.count; });
+      const applied = Object.values(statusMap).reduce((a: number, b: number) => a + b, 0);
+      const shortlisted = (statusMap['shortlisted'] || 0) + (statusMap['screening'] || 0);
+      const interviewing = (statusMap['interview_scheduled'] || 0) + (statusMap['interviewed'] || 0);
+      const offered = (statusMap['offer_pending'] || 0) + (statusMap['offer_made'] || 0) + (statusMap['offer_accepted'] || 0);
+      const placed = statusMap['hired'] || 0;
+      setFunnelSteps([
+        { stage: 'Applied',      count: applied,     percentage: 100, color: 'bg-blue-600',   description: 'Total applications received' },
+        { stage: 'Shortlisted',  count: shortlisted,  percentage: applied > 0 ? Math.round(shortlisted / applied * 100) : 0,  color: 'bg-sky-500',    description: 'Screened and shortlisted' },
+        { stage: 'Interviewing', count: interviewing, percentage: applied > 0 ? Math.round(interviewing / applied * 100) : 0, color: 'bg-emerald-500', description: 'In interview stage' },
+        { stage: 'Offered',      count: offered,      percentage: applied > 0 ? Math.round(offered / applied * 100) : 0,      color: 'bg-amber-500',  description: 'Offers extended' },
+        { stage: 'Placed',       count: placed,       percentage: applied > 0 ? Math.round(placed / applied * 100) : 0,       color: 'bg-rose-500',   description: 'Successful placements' },
+      ]);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      toast.error('Failed to load analytics data');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
   
@@ -69,75 +142,7 @@ export default function AdminDashboard() {
     );
   }
 
-  // ----------------------------------------------------
-  // Analytics and Charts Mock Data
-  // ----------------------------------------------------
-  const revenueData = [
-    { name: 'Jan', revenue: 45000 },
-    { name: 'Feb', revenue: 52000 },
-    { name: 'Mar', revenue: 48000 },
-    { name: 'Apr', revenue: 65000 },
-    { name: 'May', revenue: 72000 },
-    { name: 'Jun', revenue: 68000 },
-    { name: 'Jul', revenue: 85000 },
-  ];
-
-  const applicationsOverTime = [
-    { name: 'Jan', count: 1200 },
-    { name: 'Feb', count: 1600 },
-    { name: 'Mar', count: 1400 },
-    { name: 'Apr', count: 2200 },
-    { name: 'May', count: 3100 },
-    { name: 'Jun', count: 2800 },
-    { name: 'Jul', count: 4892 },
-  ];
-
-  const topCompanies = [
-    { name: 'TechCorp', applications: 45, hires: 12, rate: 92 },
-    { name: 'StartupX', applications: 32, hires: 8, rate: 88 },
-    { name: 'BigCo', applications: 28, hires: 5, rate: 85 },
-    { name: 'Apex Solutions', applications: 22, hires: 4, rate: 80 },
-    { name: 'AlphaTech', applications: 19, hires: 3, rate: 78 },
-  ];
-
-  const popularJobs = [
-    { title: 'Senior Developer', company: 'TechCorp', applications: 45, status: 'Active', category: 'Engineering' },
-    { title: 'Product Manager', company: 'StartupX', applications: 38, status: 'Active', category: 'Management' },
-    { title: 'UI/UX Designer', company: 'BigCo', applications: 32, status: 'Reviewing', category: 'Design' },
-    { title: 'Data Scientist', company: 'Apex Solutions', applications: 27, status: 'Active', category: 'Data' },
-    { title: 'DevOps Engineer', company: 'AlphaTech', applications: 24, status: 'Pending', category: 'Engineering' },
-  ];
-
-  const candidateSources = [
-    { name: 'LinkedIn', value: 2201, color: '#2563eb' },
-    { name: 'Indeed', value: 1223, color: '#0ea5e9' },
-    { name: 'Referrals', value: 734, color: '#10b981' },
-    { name: 'Direct/Site', value: 489, color: '#f59e0b' },
-    { name: 'Other', value: 245, color: '#8b5cf6' },
-  ];
-
-  const funnelSteps = [
-    { stage: 'Applied', count: 4892, percentage: 100, color: 'bg-blue-600', description: 'Total application submissions' },
-    { stage: 'Shortlisted', count: 3180, percentage: 65, color: 'bg-sky-500', description: 'Screened by system / AI match' },
-    { stage: 'Interviewing', count: 1712, percentage: 35, color: 'bg-emerald-500', description: 'Interviews & video screenings' },
-    { stage: 'Offered', count: 587, percentage: 12, color: 'bg-amber-500', description: 'Employment offers extended' },
-    { stage: 'Placed', count: 391, percentage: 8, color: 'bg-rose-500', description: 'Successful placements' },
-  ];
-
-  const detailedRevenue = [
-    { name: 'Jan', actual: 45000, projected: 45000 },
-    { name: 'Feb', actual: 52000, projected: 50000 },
-    { name: 'Mar', actual: 48000, projected: 55000 },
-    { name: 'Apr', actual: 65000, projected: 60000 },
-    { name: 'May', actual: 72000, projected: 65000 },
-    { name: 'Jun', actual: 68000, projected: 70000 },
-    { name: 'Jul', actual: 85000, projected: 75000 },
-    { name: 'Aug', projected: 90000 },
-    { name: 'Sep', projected: 98000 },
-    { name: 'Oct', projected: 105000 },
-    { name: 'Nov', projected: 112000 },
-    { name: 'Dec', projected: 120000 },
-  ];
+  // All chart data is now fetched from real API endpoints in fetchAnalyticsData()
 
   const inactiveUsers = Math.max(0, (stats?.totalUsers ?? 0) - ((stats?.totalCandidates ?? 0) + (stats?.totalAgencies ?? 0)));
   const closedJobs = Math.max(0, (stats?.totalJobs ?? 0) - (stats?.activeJobs ?? 0));
@@ -418,40 +423,34 @@ export default function AdminDashboard() {
         <>
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            {/* Revenue Chart */}
+            {/* Applications Over Time Chart */}
             <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-lg font-black text-gray-900 tracking-tight">Revenue Projection</h3>
-                <select className="bg-gray-50 border-none text-xs font-bold px-3 py-1.5 rounded-lg text-gray-600 ring-1 ring-gray-200">
-                  <option>Last 6 Months</option>
-                  <option>Last Year</option>
-                </select>
+                <h3 className="text-lg font-black text-gray-900 tracking-tight">Applications Over Time</h3>
+                <span className="text-xs text-gray-400 font-medium">Last 90 days</span>
               </div>
               <div className="h-96 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
-                    <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#2563eb" 
-                      strokeWidth={3}
-                      fillOpacity={1} 
-                      fill="url(#colorRevenue)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {analyticsLoading ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">Loading…</div>
+                ) : applicationsOverTime.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">No application data yet</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={applicationsOverTime}>
+                      <defs>
+                        <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
+                      <Area type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorApps)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
             
@@ -528,18 +527,22 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <div className="space-y-4">
-                {topCompanies.map((company, index) => (
+                {analyticsLoading ? (
+                  <div className="text-sm text-gray-400 py-4 text-center">Loading…</div>
+                ) : popularJobs.length === 0 ? (
+                  <div className="text-sm text-gray-400 py-4 text-center">No data yet</div>
+                ) : popularJobs.map((job, index) => (
                   <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-bold text-gray-900 text-sm">{company.name}</p>
-                        <p className="text-xs text-gray-500">{company.hires} hires • {company.applications} applications</p>
+                        <p className="font-bold text-gray-900 text-sm">{job.title}</p>
+                        <p className="text-xs text-gray-500">{job.hires} hires • {job.applications} applications</p>
                       </div>
                     </div>
-                    <span className="text-sm font-black text-gray-600">+{company.rate}%</span>
+                    <span className="text-sm font-black text-gray-600">{job.rate}%</span>
                   </div>
                 ))}
               </div>
@@ -559,7 +562,11 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <div className="space-y-4">
-                {popularJobs.map((job, index) => (
+                {analyticsLoading ? (
+                  <div className="text-sm text-gray-400 py-4 text-center">Loading…</div>
+                ) : popularJobs.length === 0 ? (
+                  <div className="text-sm text-gray-400 py-4 text-center">No job data yet</div>
+                ) : popularJobs.map((job, index) => (
                   <div key={index} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
@@ -567,10 +574,10 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-bold text-gray-900 text-sm">{job.title}</p>
-                        <p className="text-xs text-gray-500">{job.company} • {job.applications} applications</p>
+                        <p className="text-xs text-gray-500">{job.applications} applications • {job.hires} hires</p>
                       </div>
                     </div>
-                    <span className="text-sm font-black text-blue-600">⭐ Trending</span>
+                    <span className="text-sm font-black text-blue-600">{job.rate}%</span>
                   </div>
                 ))}
               </div>
@@ -818,19 +825,23 @@ export default function AdminDashboard() {
                 <p className="text-xs text-gray-400 mt-0.5">Comparing companies by application volume & hire count</p>
               </div>
               <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topCompanies} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                    />
-                    <Legend verticalAlign="top" height={36} iconType="circle" />
-                    <Bar dataKey="applications" name="Applications" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="hires" name="Placements" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {analyticsLoading ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">Loading…</div>
+                ) : popularJobs.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">No data yet</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={popularJobs} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="title" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
+                      <Legend verticalAlign="top" height={36} iconType="circle" />
+                      <Bar dataKey="applications" name="Applications" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="hires" name="Placements" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
@@ -879,62 +890,35 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Row 4: Detailed Monthly Revenue & Growth AreaChart */}
+          {/* Row 4: Candidate Sources */}
           <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
-                  Monthly Revenue Expansion
+                  <Share2 className="w-5 h-5 text-blue-600" />
+                  Candidate Sources
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Actual client subscription revenues paired with projections</p>
+                <p className="text-xs text-gray-400 mt-0.5">Where candidates are coming from</p>
               </div>
-              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
-                Target: R1.5M ARR
-              </span>
             </div>
             <div className="h-96 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={detailedRevenue}>
-                  <defs>
-                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} tickFormatter={(val) => `R${(val as number).toLocaleString()}`} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                    formatter={(value) => [`R${(value as number).toLocaleString()}`]}
-                  />
-                  <Legend verticalAlign="top" height={36} iconType="circle" />
-                  <Area 
-                    type="monotone" 
-                    dataKey="actual" 
-                    name="Actual Subscription Revenue"
-                    stroke="#10b981" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorActual)" 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="projected" 
-                    name="Target Projections"
-                    stroke="#6366f1" 
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    fillOpacity={1} 
-                    fill="url(#colorProjected)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center h-full text-gray-400">Loading…</div>
+              ) : candidateSources.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-400">No source data yet</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={candidateSources} cx="50%" cy="50%" outerRadius={140} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                      {candidateSources.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
