@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Briefcase, MapPin, DollarSign, Clock, Building, CheckCircle, Sparkles, TrendingUp, Loader2 } from 'lucide-react';
+import { LinkedInLogo, IndeedLogo, PNetLogo } from '@/components/logos/PlatformLogos';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -490,6 +491,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         disabled={!integrations?.pnet?.connected}
                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                       />
+                      <PNetLogo size={36} className="rounded-lg flex-shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
                           <h4 className="font-bold text-gray-900 text-lg">PNet</h4>
@@ -526,6 +528,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         disabled={!integrations?.indeed?.connected}
                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                       />
+                      <IndeedLogo size={36} className="rounded-lg flex-shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
                           <h4 className="font-bold text-gray-900 text-lg">Indeed</h4>
@@ -562,6 +565,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         disabled={!integrations?.linkedin?.connected}
                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                       />
+                      <LinkedInLogo size={36} className="rounded-lg flex-shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
                           <h4 className="font-bold text-gray-900 text-lg">LinkedIn Jobs</h4>

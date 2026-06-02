@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Settings, ExternalLink, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
+import { LinkedInLogo, IndeedLogo, PNetLogo } from '@/components/logos/PlatformLogos';
 
 interface Integration {
   platform: 'pnet' | 'indeed' | 'linkedin';
@@ -72,7 +73,7 @@ export default function IntegrationsSettingsPage() {
     pnet: {
       name: 'PNet',
       description: "South Africa's #1 job board",
-      logo: '🇿🇦',
+      Logo: PNetLogo,
       color: 'blue',
       setupInstructions: [
         '1. Sign up for PNet Business Account at pnet.co.za',
@@ -84,7 +85,7 @@ export default function IntegrationsSettingsPage() {
     indeed: {
       name: 'Indeed',
       description: "World's #1 job site",
-      logo: '🌍',
+      Logo: IndeedLogo,
       color: 'green',
       setupInstructions: [
         '1. Sign up for Indeed Publisher at employers.indeed.com',
@@ -96,7 +97,7 @@ export default function IntegrationsSettingsPage() {
     linkedin: {
       name: 'LinkedIn Jobs',
       description: 'Professional network',
-      logo: '💼',
+      Logo: LinkedInLogo,
       color: 'purple',
       setupInstructions: [
         '1. Subscribe to LinkedIn Talent Solutions',
@@ -145,7 +146,7 @@ export default function IntegrationsSettingsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Logo */}
-                    <div className="text-5xl">{info.logo}</div>
+                    <info.Logo size={48} className="rounded-lg flex-shrink-0" />
 
                     {/* Info */}
                     <div className="flex-1">
@@ -318,9 +319,12 @@ export default function IntegrationsSettingsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-white">Connect {info?.name}</h2>
-                  <p className="text-blue-100 text-sm mt-0.5">{info?.description}</p>
+                <div className="flex items-center gap-3">
+                  {info?.Logo && <info.Logo size={36} className="rounded-lg flex-shrink-0" />}
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Connect {info?.name}</h2>
+                    <p className="text-blue-100 text-sm mt-0.5">{info?.description}</p>
+                  </div>
                 </div>
                 <button onClick={() => setShowConnectModal(false)} className="text-white hover:bg-white/20 rounded-full p-1.5 transition-all">
                   <XCircle className="w-5 h-5" />
