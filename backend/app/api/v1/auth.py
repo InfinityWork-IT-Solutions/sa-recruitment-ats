@@ -706,11 +706,16 @@ async def forgot_password(
     """
     plain = f"Hi {user.first_name},\n\nClick this link to reset your password (expires in 2 hours):\n{reset_link}\n\nIf you didn't request this, ignore this email."
 
+    # Always print to console — useful for dev and as audit trail
+    print(f"\n{'='*60}")
+    print(f"PASSWORD RESET LINK for {user.email}:")
+    print(f"{reset_link}")
+    print(f"{'='*60}\n")
+
     email_svc = EmailService()
     sent = await email_svc.send_email(user.email, subject, plain, html)
     if not sent:
-        # Log the link to console as fallback for dev environments
-        print(f"[DEV] Password reset link for {user.email}: {reset_link}")
+        print(f"[WARNING] SendGrid failed to send — use the link above.")
 
     return MessageResponse(message="If that email is registered you will receive a reset link shortly.")
 
