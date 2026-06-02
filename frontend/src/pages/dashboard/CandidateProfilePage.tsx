@@ -93,7 +93,7 @@ function MatchesTabContent() {
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Match</p>
                             </div>
                         ) : (
-                            <span className="text-xs text-gray-300">—</span>
+                            <span className="text-xs text-gray-400">0%</span>
                         )}
                     </a>
                 );

@@ -382,7 +382,7 @@ export default function AnalyticsPage() {
                                     <h3 className="font-semibold text-gray-900">Time to Fill</h3>
                                 </div>
                                 <p className="text-4xl font-bold text-blue-600 mb-1">
-                                    {predictions.time_to_fill_days ?? '—'}<span className="text-lg text-gray-400 ml-1">days</span>
+                                    {predictions.time_to_fill_days ?? 0}<span className="text-lg text-gray-400 ml-1">days</span>
                                 </p>
                                 <p className="text-xs text-gray-500 mb-4">Estimated for current open roles</p>
                                 <p className="text-sm text-gray-600 bg-blue-50 rounded-lg p-3">{predictions.time_to_fill_rationale || 'Based on your historical hiring velocity.'}</p>
@@ -421,7 +421,7 @@ export default function AnalyticsPage() {
                                     <h3 className="font-semibold text-gray-900">Best Performing Source</h3>
                                 </div>
                                 <p className="text-3xl font-bold text-purple-600 mb-1 capitalize">
-                                    {predictions.best_source ?? '—'}
+                                    {predictions.best_source ?? 'None yet'}
                                 </p>
                                 <p className="text-xs text-gray-500 mb-4">Highest quality-to-hire ratio</p>
                                 <p className="text-sm text-gray-600 bg-purple-50 rounded-lg p-3">{predictions.best_source_rationale || 'Based on your hire outcomes by source channel.'}</p>

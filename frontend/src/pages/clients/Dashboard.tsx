@@ -571,7 +571,7 @@ export default function CompleteDashboard() {
                   <span className="font-bold text-green-600">
                     {stats.totalApplicants > 0
                       ? `${Math.round((stats.shortlisted / stats.totalApplicants) * 100)}%`
-                      : '—'}
+                      : '0%'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -579,7 +579,7 @@ export default function CompleteDashboard() {
                   <span className="font-bold text-gray-900">
                     {dashboardData?.avg_time_to_hire_days
                       ? `${dashboardData.avg_time_to_hire_days} days`
-                      : '—'}
+                      : '0 days'}
                   </span>
                 </div>
               </div>

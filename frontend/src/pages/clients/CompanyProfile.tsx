@@ -140,7 +140,7 @@ export default function CompanyProfile() {
       seatsUsed: subscriptionData?.seats_used ?? teamData?.seats?.used ?? 0,
       renewalDate: subscriptionData?.current_period_end
         ? new Date(subscriptionData.current_period_end).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' })
-        : '—',
+        : 'Not set',
     }
   };
 

@@ -172,7 +172,7 @@ export default function ClientDashboard() {
             </div>
             <div className="text-sm text-gray-600 mb-1">ACTIVE JOBS</div>
             <div className="text-3xl font-bold text-gray-900">
-              {loadingStats ? '—' : (stats?.active_jobs ?? 0)}
+              {loadingStats ? 0 : (stats?.active_jobs ?? 0)}
             </div>
           </div>
 
@@ -184,7 +184,7 @@ export default function ClientDashboard() {
             </div>
             <div className="text-sm text-gray-600 mb-1">APPLICATIONS (30 DAYS)</div>
             <div className="text-3xl font-bold text-gray-900">
-              {loadingStats ? '—' : (stats?.applications_this_period ?? 0)}
+              {loadingStats ? 0 : (stats?.applications_this_period ?? 0)}
             </div>
           </div>
 
@@ -196,7 +196,7 @@ export default function ClientDashboard() {
             </div>
             <div className="text-sm text-gray-600 mb-1">PLACEMENTS (30 DAYS)</div>
             <div className="text-3xl font-bold text-gray-900">
-              {loadingStats ? '—' : (stats?.placements ?? 0)}
+              {loadingStats ? 0 : (stats?.placements ?? 0)}
             </div>
           </div>
         </div>
@@ -293,19 +293,19 @@ export default function ClientDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Placements (30 days)</span>
                   <span className="font-bold text-gray-900">
-                    {loadingStats ? '—' : (stats?.placements ?? 0)}
+                    {loadingStats ? 0 : (stats?.placements ?? 0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Success Rate</span>
                   <span className="font-bold text-green-600">
-                    {loadingStats ? '—' : `${stats?.success_rate_percentage ?? 0}%`}
+                    {loadingStats ? 0 : `${stats?.success_rate_percentage ?? 0}%`}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Avg. Time to Hire</span>
                   <span className="font-bold text-gray-900">
-                    {loadingStats ? '—' : `${stats?.avg_time_to_hire_days ?? 0} days`}
+                    {loadingStats ? 0 : `${stats?.avg_time_to_hire_days ?? 0} days`}
                   </span>
                 </div>
               </div>
