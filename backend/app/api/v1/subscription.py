@@ -227,10 +227,26 @@ async def get_current_subscription(
     
     # Get plan
     plan = await db.get(SubscriptionPlan, subscription.plan_id)
-    
+
+    # Count actual active team members for this agency (source of truth)
+    from app.models.user import UserRole
+    seats_count = await db.execute(
+        select(User).where(
+            User.agency_id == agency_id,
+            User.is_active == True,
+            User.role.in_([UserRole.client, UserRole.recruiter, UserRole.agency_admin])
+        )
+    )
+    actual_seats_used = len(seats_count.scalars().all())
+
+    # Sync stored value if it drifted
+    if subscription.seats_used != actual_seats_used:
+        subscription.seats_used = actual_seats_used
+        await db.commit()
+
     # Calculate days until renewal
     days_until_renewal = (subscription.current_period_end - datetime.utcnow()).days
-    
+
     return SubscriptionResponse(
         id=str(subscription.id),
         plan=PlanResponse(
@@ -252,7 +268,7 @@ async def get_current_subscription(
         billing_cycle=subscription.billing_cycle,
         amount=float(subscription.amount),
         seats_allocated=subscription.seats_allocated,
-        seats_used=subscription.seats_used,
+        seats_used=actual_seats_used,
         current_period_end=subscription.current_period_end,
         trial_end_date=subscription.trial_end_date,
         is_trialing=(subscription.status == 'trialing'),

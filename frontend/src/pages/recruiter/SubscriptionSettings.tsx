@@ -24,6 +24,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { 
   CreditCard, 
   Users, 
@@ -152,14 +153,13 @@ export default function SubscriptionSettings() {
       });
 
       if (response.data.success) {
-        // Refresh subscription
         await fetchSubscription();
         setShowPlanModal(false);
-        alert('Plan changed successfully!');
+        toast.success('Plan changed successfully!');
       }
     } catch (error) {
       console.error('Error changing plan:', error);
-      alert('Failed to change plan. Please try again.');
+      toast.error('Failed to change plan. Please try again.');
     }
   };
 
@@ -171,10 +171,10 @@ export default function SubscriptionSettings() {
       await apiClient.post(`/subscriptions/cancel?agency_id=${agencyId}`);
       setShowCancelModal(false);
       await fetchSubscription();
-      alert('Subscription cancelled. Access continues until end of billing period.');
+      toast.success('Subscription cancelled. Access continues until end of billing period.');
     } catch (error) {
       console.error('Error cancelling:', error);
-      alert('Failed to cancel subscription.');
+      toast.error('Failed to cancel subscription.');
     }
   };
 
@@ -349,10 +349,12 @@ function OverviewTab({ subscription, onChangePlan, onCancel }: any) {
           <div>
             <h2 className="text-2xl font-bold">{subscription.plan.display_name} Plan</h2>
             <p className="opacity-90">
-              {subscription.is_trialing ? (
-                <span>Free trial • {subscription.days_until_renewal} days remaining</span>
+              {subscription.days_until_renewal < 0 ? (
+                <span className="text-red-200 font-semibold">⚠ Expired — please renew your plan</span>
+              ) : subscription.is_trialing ? (
+                <span>Free trial • {subscription.days_until_renewal} day{subscription.days_until_renewal !== 1 ? 's' : ''} remaining</span>
               ) : (
-                <span>Renews in {subscription.days_until_renewal} days</span>
+                <span>Renews in {subscription.days_until_renewal} day{subscription.days_until_renewal !== 1 ? 's' : ''}</span>
               )}
             </p>
           </div>
@@ -387,10 +389,12 @@ function OverviewTab({ subscription, onChangePlan, onCancel }: any) {
           <div className="text-sm text-gray-600">Searches This Month</div>
         </div>
 
-        <div className="bg-purple-50 rounded-lg p-6">
+        <div className={`rounded-lg p-6 ${subscription.days_until_renewal < 0 ? 'bg-red-50' : 'bg-purple-50'}`}>
           <div className="flex items-center justify-between mb-2">
-            <Calendar className="w-8 h-8 text-purple-600" />
-            <span className="text-2xl font-bold text-gray-900">{subscription.days_until_renewal}</span>
+            <Calendar className={`w-8 h-8 ${subscription.days_until_renewal < 0 ? 'text-red-500' : 'text-purple-600'}`} />
+            <span className={`text-2xl font-bold ${subscription.days_until_renewal < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              {subscription.days_until_renewal < 0 ? 'Expired' : subscription.days_until_renewal}
+            </span>
           </div>
           <div className="text-sm text-gray-600">Days Until Renewal</div>
         </div>
