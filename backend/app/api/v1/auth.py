@@ -524,29 +524,6 @@ async def mfa_complete(
     )
 
 
-# TODO: Implement these endpoints in future sprints
-@router.post("/forgot-password", response_model=MessageResponse)
-async def forgot_password(
-    email: str,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Request password reset email
-    
-    **TODO**: Implement email sending with reset token
-    """
-    # user = await auth_service.get_user_by_email(db, email)
-    # if user:
-    #     # Generate reset token
-    #     # Send email with reset link
-    #     pass
-    
-    # Always return success (don't reveal if email exists)
-    return MessageResponse(
-        message="If email exists, password reset instructions have been sent"
-    )
-
-
 @router.post("/verify-email", response_model=MessageResponse)
 async def verify_email(
     token: str,
