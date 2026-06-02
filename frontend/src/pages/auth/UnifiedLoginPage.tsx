@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function UnifiedLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthStore();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlType = searchParams.get('type') as 'candidate' | 'company' | null;
   const isAdminRoute = window.location.pathname === '/login/admin';
@@ -99,9 +100,9 @@ export default function UnifiedLoginPage() {
       localStorage.setItem('access_token', tokens.access_token);
       localStorage.setItem('refresh_token', tokens.refresh_token);
       useAuthStore.setState({ user, isAuthenticated: true });
-      if (user.role === 'super_admin') window.location.href = '/admin/dashboard';
-      else if (user.role === 'candidate') window.location.href = '/candidate-dashboard';
-      else window.location.href = '/company/dashboard';
+      if (user.role === 'super_admin') navigate('/admin/dashboard');
+      else if (user.role === 'candidate') navigate('/candidate-dashboard');
+      else navigate('/company/dashboard');
     } catch (err: any) {
       setMfaError(err.response?.data?.detail || err.message || 'Invalid code. Try again.');
     } finally {
