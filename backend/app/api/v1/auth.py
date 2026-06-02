@@ -667,3 +667,101 @@ async def accept_invite(
             "role": user.role.value,
         },
     }
+
+
+# ── Password reset ─────────────────────────────────────────────────────────────
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+    confirm_password: str
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a password reset email. Always returns success to prevent email enumeration."""
+    import secrets as _secrets
+    from app.services.email_service import EmailService
+    from app.core.security import FRONTEND_URL
+
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    # Always return the same message regardless of whether the email exists
+    if not user:
+        return MessageResponse(message="If that email is registered you will receive a reset link shortly.")
+
+    token = _secrets.token_urlsafe(32)
+    user.password_reset_token = token
+    user.password_reset_expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
+    await db.commit()
+
+    reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
+    subject = "Reset your RecruitPro password"
+    html = f"""
+    <html>
+      <body style="font-family:sans-serif;color:#333;background:#f8fafc;margin:0;padding:0;">
+        <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:32px 40px;">
+            <h1 style="color:#fff;margin:0;font-size:22px;">Reset your password</h1>
+            <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:14px;">You requested a password reset for your RecruitPro account.</p>
+          </div>
+          <div style="padding:32px 40px;">
+            <p>Hi <strong>{user.first_name}</strong>,</p>
+            <p>Click the button below to set a new password. This link expires in <strong>2 hours</strong>.</p>
+            <div style="text-align:center;margin:32px 0;">
+              <a href="{reset_link}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">Reset Password</a>
+            </div>
+            <p style="color:#64748b;font-size:13px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+            <p style="color:#94a3b8;font-size:12px;text-align:center;">RecruitPro SA &mdash; Smarter Hiring for South Africa</p>
+          </div>
+        </div>
+      </body>
+    </html>
+    """
+    plain = f"Hi {user.first_name},\n\nClick this link to reset your password (expires in 2 hours):\n{reset_link}\n\nIf you didn't request this, ignore this email."
+
+    email_svc = EmailService()
+    sent = await email_svc.send_email(user.email, subject, plain, html)
+    if not sent:
+        # Log the link to console as fallback for dev environments
+        print(f"[DEV] Password reset link for {user.email}: {reset_link}")
+
+    return MessageResponse(message="If that email is registered you will receive a reset link shortly.")
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate reset token and set a new password."""
+    if body.password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    result = await db.execute(
+        select(User).where(User.password_reset_token == body.token)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+    if user.password_reset_expires_at and user.password_reset_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
+
+    user.hashed_password = hash_password(body.password)
+    user.password_reset_token = None
+    user.password_reset_expires_at = None
+    await db.commit()
+
+    return MessageResponse(message="Password updated successfully. You can now log in with your new password.")

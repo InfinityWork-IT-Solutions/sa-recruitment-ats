@@ -285,8 +285,8 @@ export default function UnifiedLoginPage() {
               <input type="checkbox" className="w-5 h-5 bg-white/5 border-white/20 rounded-lg focus:ring-blue-500/50 text-blue-600" />
               <span className="text-sm text-white/60 group-hover:text-white transition-colors">Keep me signed in</span>
             </label>
-            <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 font-bold">
-              Forgot?
+            <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 font-semibold">
+              Forgot password?
             </Link>
           </div>
 

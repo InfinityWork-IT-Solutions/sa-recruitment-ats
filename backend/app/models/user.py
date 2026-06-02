@@ -45,6 +45,8 @@ class User(Base):
     department = Column(String(150))
     invitation_token = Column(String(255), nullable=True, index=True)
     invitation_expires_at = Column(DateTime(timezone=True), nullable=True)
+    password_reset_token = Column(String(255), nullable=True, index=True)
+    password_reset_expires_at = Column(DateTime(timezone=True), nullable=True)
     
     # Authorization
     role = Column(Enum(UserRole), nullable=False, default=UserRole.recruiter)
