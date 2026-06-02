@@ -66,6 +66,25 @@ export default function CompanyProfile() {
     enabled: activeTab === 'jobs',
   });
 
+  const { data: teamData } = useQuery({
+    queryKey: ['company-profile-team'],
+    queryFn: async () => {
+      const res = await apiClient.get('/team/members');
+      return res.data;
+    },
+  });
+
+  const { data: subscriptionData } = useQuery({
+    queryKey: ['company-subscription'],
+    queryFn: async () => {
+      const res = await apiClient.get('/subscriptions/current', {
+        params: { agency_id: user?.agency_id },
+      });
+      return res.data;
+    },
+    retry: false,
+  });
+
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [tempDescription, setTempDescription] = useState("");
 
@@ -109,16 +128,18 @@ export default function CompanyProfile() {
       activeJobs: analytics?.active_jobs || 0,
       totalApplications: analytics?.total_applications || 0,
       scheduledInterviews: analytics?.scheduled_interviews || 0,
-      teamMembers: 1, // Fallback placeholder
+      teamMembers: teamData?.seats?.used ?? teamData?.total ?? 0,
       profileViews: analytics?.profile_views || 0,
       profileViewsChange: analytics?.profile_views_change || 0,
       jobViewsThisWeek: analytics?.job_views || 0
     },
     subscription: {
-      plan: 'Professional',
-      seats: 5,
-      seatsUsed: 1,
-      renewalDate: '2025-05-15'
+      plan: subscriptionData?.plan?.name ?? teamData?.seats?.plan ?? 'Professional',
+      seats: subscriptionData?.seats_allocated ?? teamData?.seats?.total ?? 5,
+      seatsUsed: subscriptionData?.seats_used ?? teamData?.seats?.used ?? 0,
+      renewalDate: subscriptionData?.current_period_end
+        ? new Date(subscriptionData.current_period_end).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' })
+        : '—',
     }
   };
 
