@@ -75,13 +75,14 @@ export default function CompanyProfile() {
   });
 
   const { data: subscriptionData } = useQuery({
-    queryKey: ['company-subscription'],
+    queryKey: ['company-subscription', user?.agency_id],
     queryFn: async () => {
       const res = await apiClient.get('/subscriptions/current', {
-        params: { agency_id: user?.agency_id },
+        params: { agency_id: user!.agency_id },
       });
       return res.data;
     },
+    enabled: !!user?.agency_id,
     retry: false,
   });
 
