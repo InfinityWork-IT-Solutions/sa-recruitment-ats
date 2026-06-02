@@ -22,6 +22,7 @@ import {
     PartyPopper,
     Sun,
     Moon,
+    Link2,
 } from 'lucide-react';
 import { useState } from 'react';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -51,6 +52,7 @@ const getNavigation = (role?: string) => {
             { name: 'Offers', href: '/company/offers', icon: Gift },
             { name: 'Team', href: '/company/team', icon: User },
             { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
+            { name: 'Integrations', href: '/company/settings/integrations', icon: Link2 },
             { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'AI Decision Queue', href: '/automation/decisions', icon: Sparkles },
             { name: 'Billing', href: '/settings/billing', icon: CreditCard },
@@ -67,6 +69,7 @@ const getNavigation = (role?: string) => {
             { name: 'Interviews', href: '/company/interviews', icon: Calendar },
             { name: 'Offers', href: '/company/offers', icon: Gift },
             { name: 'Analytics', href: '/company/analytics', icon: BarChart3 },
+            { name: 'Integrations', href: '/company/settings/integrations', icon: Link2 },
             { name: 'Video Reviews', href: '/company/video-screenings', icon: Video },
             { name: 'Settings', href: '/settings', icon: Settings },
         ];
