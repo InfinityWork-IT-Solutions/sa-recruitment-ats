@@ -9,6 +9,7 @@ import {
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { apiClient } from '../../lib/api-client';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import toast from 'react-hot-toast';
 
 interface DashboardStats {
   totalUsers: number;
@@ -160,7 +161,7 @@ export default function AdminDashboard() {
             <button
               onClick={async () => {
                 const res = await apiClient.post('/admin/trigger-job-match');
-                if (res.status === 200) alert('Matching engine synchronising...');
+                if (res.status === 200) toast.success('Matching engine synchronising...');
               }}
               title="Automatically run the matching engine to pair active candidates with relevant job opportunities"
               className="bg-blue-50 text-blue-600 px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-100 transition-all active:scale-95 shadow-sm border border-blue-200/50"

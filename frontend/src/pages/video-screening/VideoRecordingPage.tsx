@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, CheckCircle, AlertCircle } from 'lucide-react';
 import VideoRecorder from '../../components/video-screening/VideoRecorder';
+import toast from 'react-hot-toast';
 
 interface Question {
   text: string;
@@ -75,7 +76,7 @@ export default function VideoRecordingPage() {
         await finalizeScreening();
       }
     } catch (err) {
-      alert('Failed to upload video. Please try recording again.');
+      toast.error('Failed to upload video. Please try recording again.');
     } finally {
       setUploading(false);
     }

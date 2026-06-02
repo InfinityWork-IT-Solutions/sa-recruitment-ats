@@ -9,6 +9,7 @@ import {
   Users, Video, Calendar, Send, ChevronDown, ChevronUp
 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
 
 interface AIDecision {
   decision_id: string;
@@ -89,7 +90,7 @@ export default function AIDecisionDashboard() {
       
       if (result.success) {
         // Show success message
-        alert(`✅ Success! ${result.executed_count} decisions executed.\n\nTime saved: ~${Math.round(result.executed_count * 5 / 60 * 10) / 10} hours!`);
+        toast.success(`${result.executed_count} decisions executed — ~${Math.round(result.executed_count * 5 / 60 * 10) / 10} hours saved!`);
         
         // Refresh decisions
         await fetchPendingDecisions();
@@ -97,7 +98,7 @@ export default function AIDecisionDashboard() {
       }
     } catch (error) {
       console.error('Error approving decisions:', error);
-      alert('Error approving decisions. Please try again.');
+      toast.error('Error approving decisions. Please try again.');
     } finally {
       setApproving(false);
     }

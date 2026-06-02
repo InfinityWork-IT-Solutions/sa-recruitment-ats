@@ -536,7 +536,7 @@ function BillingHistoryTab({ agencyId }: { agencyId: string }) {
       link.remove();
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Failed to download invoice.');
+      toast.error('Failed to download invoice.');
     }
   };
 

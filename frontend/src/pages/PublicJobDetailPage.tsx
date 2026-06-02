@@ -6,6 +6,7 @@ import {
     Bookmark, ExternalLink, Users, TrendingUp
 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
 
 interface JobDetail {
     id: string;
@@ -77,7 +78,7 @@ export default function JobDetailPage() {
         } else {
             // Fallback: copy to clipboard
             navigator.clipboard.writeText(window.location.href);
-            alert('Link copied to clipboard!');
+            toast.success('Link copied to clipboard!');
         }
     };
 

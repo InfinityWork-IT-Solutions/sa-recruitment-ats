@@ -297,6 +297,7 @@ import {
 } from 'lucide-react';
 import AIReportCard from './AIReportCard';
 import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
 
 interface VideoResponse {
   question_id: string;
@@ -386,22 +387,22 @@ export default function VideoScreeningDetailView() {
 
     try {
       await apiClient.post(`/video-screening/${screening_id}/approve`);
-      alert('✅ Candidate approved! Interview invitation will be sent.');
+      toast.success('Candidate approved! Interview invitation will be sent.');
       navigate('/company/video-screenings');
     } catch (err) {
-      alert('Failed to approve candidate');
+      toast.error('Failed to approve candidate');
     }
   };
 
   const handleReject = async () => {
     const reason = prompt('Rejection reason (optional):');
-    
+
     try {
       await apiClient.post(`/video-screening/${screening_id}/reject`, { reason });
-      alert('Candidate rejected. Notification email sent.');
+      toast.success('Candidate rejected. Notification email sent.');
       navigate('/company/video-screenings');
     } catch (err) {
-      alert('Failed to reject candidate');
+      toast.error('Failed to reject candidate');
     }
   };
 

@@ -40,7 +40,7 @@ export default function TemplateManager() {
       setIsSeeding(true);
       await apiClient.post('/templates/seed');
       await fetchTemplates();
-      alert('Professional templates have been added to your account!');
+      toast.success('Professional templates have been added to your account!');
     } catch (error) {
       console.error('Failed to seed templates:', error);
     } finally {

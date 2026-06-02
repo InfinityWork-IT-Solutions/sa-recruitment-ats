@@ -199,10 +199,10 @@ export default function JobsPage() {
       const newJob = response.data;
       setJobs([newJob, ...jobs]);
       setShowPostModal(false);
-      alert('Job posted successfully across selected platforms!');
+      toast.success('Job posted successfully!');
     } catch (error) {
       console.error('Error posting job:', error);
-      alert('Failed to post job. Please try again.');
+      toast.error('Failed to post job. Please try again.');
     }
   };
 
@@ -212,10 +212,10 @@ export default function JobsPage() {
       const updatedJob = response.data;
       setJobs(jobs.map(j => j.id === updatedJob.id ? updatedJob : j));
       setShowEditModal(false);
-      alert('Job updated successfully!');
+      toast.success('Job updated successfully!');
     } catch (error) {
       console.error('Error updating job:', error);
-      alert('Failed to update job. Please try again.');
+      toast.error('Failed to update job. Please try again.');
     }
   };
 
@@ -234,10 +234,10 @@ export default function JobsPage() {
       const response = await apiClient.post('/jobs', duplicateData);
       const newJob = response.data;
       setJobs([newJob, ...jobs]);
-      alert('Job duplicated successfully!');
+      toast.success('Job duplicated successfully!');
     } catch (error) {
       console.error('Error duplicating job:', error);
-      alert('Failed to duplicate job. Please try again.');
+      toast.error('Failed to duplicate job. Please try again.');
     }
   };
 
@@ -249,10 +249,10 @@ export default function JobsPage() {
       setJobs(jobs.filter(j => j.id !== jobToDelete));
       setShowDeleteConfirm(false);
       setJobToDelete(null);
-      alert('Job deleted successfully!');
+      toast.success('Job deleted successfully!');
     } catch (error) {
       console.error('Error deleting job:', error);
-      alert('Failed to delete job. Please try again.');
+      toast.error('Failed to delete job. Please try again.');
     }
   };
 
@@ -262,7 +262,7 @@ export default function JobsPage() {
       setJobs(jobs.map(j => j.id === jobId ? { ...j, status: newStatus as any } : j));
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update status. Please try again.');
+      toast.error('Failed to update status. Please try again.');
     }
   };
 
