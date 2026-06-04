@@ -33,9 +33,9 @@ const PLAN_DETAILS: Record<string, {
     label: 'Professional',
     price: 'R4,199/mo',
     color: 'purple',
-    seats: 10,
+    seats: 5,
     features: [
-      'Up to 10 team seats',
+      'Up to 5 team seats',
       'Everything in Starter',
       'Video screening interviews',
       'Advanced analytics & reports',
@@ -120,9 +120,11 @@ export default function BillingSetupPage() {
           action={payfastData.payfast_payment_url}
           style={{ display: 'none' }}
         >
-          {Object.entries(payfastData.payfast_payment_data).map(([key, value]) => (
-            <input key={key} type="hidden" name={key} value={value} />
-          ))}
+          {Object.entries(payfastData.payfast_payment_data)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => (
+              <input key={key} type="hidden" name={key} value={value} />
+            ))}
         </form>
       )}
 

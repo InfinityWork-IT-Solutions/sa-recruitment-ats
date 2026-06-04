@@ -21,10 +21,13 @@ https://developers.payfast.co.za/docs
 
 import os
 import hashlib
+import logging
 import urllib.parse
 from typing import Dict, Optional
 from datetime import datetime, timedelta
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,8 +110,8 @@ class PayFastService:
             'notify_url': f"{os.getenv('BACKEND_URL')}/api/v1/subscriptions/webhook",
             
             # Buyer details
-            'name_first': subscription.recruiter_agency.primary_contact_name.split()[0],
-            'name_last': subscription.recruiter_agency.primary_contact_name.split()[-1] if len(subscription.recruiter_agency.primary_contact_name.split()) > 1 else '',
+            'name_first': (subscription.recruiter_agency.primary_contact_name or '').split()[0] if (subscription.recruiter_agency.primary_contact_name or '').strip() else '',
+            'name_last': ' '.join((subscription.recruiter_agency.primary_contact_name or '').split()[1:]),
             'email_address': subscription.recruiter_agency.email,
             
             # Transaction details
@@ -136,15 +139,20 @@ class PayFastService:
         # Add passphrase if configured
         if self.passphrase:
             payment_data['passphrase'] = self.passphrase
-        
+
         # Generate signature
         signature = self._generate_signature(payment_data)
         payment_data['signature'] = signature
-        
+
         # Remove passphrase from final data (only used for signature)
         if 'passphrase' in payment_data:
             del payment_data['passphrase']
-        
+
+        # Remove empty-value fields: they're excluded from our signature, so don't
+        # submit them to PayFast either — otherwise PayFast includes them in its
+        # own signature calculation and the hashes diverge.
+        payment_data = {k: v for k, v in payment_data.items() if str(v).strip()}
+
         return {
             'payment_url': self.payment_url,
             'payment_data': payment_data
@@ -198,36 +206,41 @@ class PayFastService:
         
         if 'passphrase' in payment_data:
             del payment_data['passphrase']
-        
+
+        payment_data = {k: v for k, v in payment_data.items() if str(v).strip()}
+
         return {
             'payment_url': self.payment_url,
             'payment_data': payment_data
         }
-    
-    
+
+
     # ============================================================================
     # SIGNATURE GENERATION
     # ============================================================================
     
     def _generate_signature(self, data: Dict) -> str:
         """
-        Generate PayFast signature for security
-        
-        IMPORTANT: PayFast requires specific ordering and encoding
+        Generate PayFast MD5 signature, matching their PHP SDK exactly:
+          ksort() → exclude empty values → urlencode(trim(val)) → passphrase appended last
         """
-        
-        # Remove signature if present
-        data_copy = {k: v for k, v in data.items() if k != 'signature'}
-        
-        # Sort parameters alphabetically
-        sorted_params = sorted(data_copy.items())
-        
-        # Build parameter string
-        param_string = '&'.join([f"{k}={urllib.parse.quote_plus(str(v))}" for k, v in sorted_params])
-        
-        # Generate MD5 hash
+        passphrase = data.get('passphrase', '')
+
+        # Sort alphabetically (PHP ksort), strip values, skip empty
+        pairs = []
+        for key in sorted(data.keys()):
+            if key in ('signature', 'passphrase'):
+                continue
+            val = str(data[key]).strip()
+            if val:
+                pairs.append(f"{key}={urllib.parse.quote_plus(val)}")
+
+        param_string = '&'.join(pairs)
+
+        if passphrase and passphrase.strip():
+            param_string += f"&passphrase={urllib.parse.quote_plus(passphrase.strip())}"
+
         signature = hashlib.md5(param_string.encode()).hexdigest()
-        
         return signature
     
     

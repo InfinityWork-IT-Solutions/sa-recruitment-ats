@@ -163,13 +163,30 @@ async def create_subscription(
         raise HTTPException(status_code=404, detail=f"Plan '{request.plan_name}' not found")
 
     # Check if already has active subscription
-    existing = await db.execute(
+    existing_result = await db.execute(
         select(RecruiterSubscription).where(
             RecruiterSubscription.recruiter_agency_id == agency.id,
             RecruiterSubscription.status.in_(['active', 'trialing'])
         )
     )
-    if existing.scalars().first():
+    existing_sub = existing_result.scalars().first()
+    if existing_sub:
+        # If trialing but PayFast was never set up, allow re-entry to complete setup
+        if existing_sub.status == 'trialing' and not existing_sub.payfast_subscription_token:
+            payfast = PayFastService(db)
+            payment_data = await payfast.create_subscription_payment(
+                subscription=existing_sub,
+                plan=plan,
+                billing_cycle=existing_sub.billing_cycle,
+            )
+            return {
+                "subscription_id": str(existing_sub.id),
+                "trial_days": plan.trial_days,
+                "trial_end_date": existing_sub.trial_end_date.isoformat(),
+                "payment_required_on": existing_sub.trial_end_date.isoformat(),
+                "payfast_payment_url": payment_data['payment_url'],
+                "payfast_payment_data": payment_data['payment_data'],
+            }
         raise HTTPException(status_code=400, detail="Agency already has an active subscription")
 
     # Create subscription record
