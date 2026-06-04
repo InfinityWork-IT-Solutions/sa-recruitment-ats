@@ -137,7 +137,7 @@ export default function CompleteDashboard() {
       const splitLines = (s: string) => (s || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
       const apiData = {
         ...modalData,
-        closing_date: modalData.closing_date ? new Date(modalData.closing_date).toISOString() : undefined,
+        closing_date: modalData.closing_date ? new Date(modalData.closing_date + 'T12:00:00').toISOString() : undefined,
         experience_level: modalData.experience_min >= 6 ? 'senior_level' : modalData.experience_min >= 3 ? 'mid_level' : 'entry_level',
         years_of_experience_min: modalData.experience_min,
         years_of_experience_max: modalData.experience_max,
@@ -147,9 +147,9 @@ export default function CompleteDashboard() {
         requirements: splitLines(modalData.requirements),
         benefits: splitLines(modalData.benefits),
         employment_type: modalData.job_type?.replace('-', '_') ?? 'full_time',
-        salary_min: modalData.salary_min || null,
-        salary_max: modalData.salary_max || null,
-        show_salary: !!(modalData.salary_min || modalData.salary_max),
+        salary_min: modalData.salary_min != null && modalData.salary_min !== '' ? Number(modalData.salary_min) : null,
+        salary_max: modalData.salary_max != null && modalData.salary_max !== '' ? Number(modalData.salary_max) : null,
+        show_salary: modalData.salary_min != null || modalData.salary_max != null,
       };
 
       await apiClient.post('/jobs', apiData);

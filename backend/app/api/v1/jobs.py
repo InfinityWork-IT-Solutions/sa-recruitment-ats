@@ -2,6 +2,7 @@
 Job API endpoints
 """
 from typing import List, Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -279,25 +280,31 @@ async def update_job(
     return JobResponse.model_validate(job)
 
 
+class PatchJobStatusRequest(BaseModel):
+    status: str
+
+PATCHABLE_STATUSES = {"paused", "active"}
+
 @router.patch("/{job_id}", response_model=JobResponse)
 async def patch_job_status(
     job_id: UUID,
-    body: dict,
+    body: PatchJobStatusRequest,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Partial status update (pause / unpause)"""
+    """Partial status update — only paused / active transitions allowed here.
+    Use /publish or /close for terminal-state transitions."""
     check_job_permissions(current_user, "update")
+    if body.status not in PATCHABLE_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Use /publish or /close to set status '{body.status}'"
+        )
     agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
     job = await job_service.get_job(db, job_id, agency_id)
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
-    new_status = body.get("status")
-    if new_status:
-        try:
-            job.status = JobStatus[new_status]
-        except KeyError:
-            raise HTTPException(status_code=400, detail=f"Invalid status: {new_status}")
+    job.status = JobStatus[body.status]
     await db.commit()
     await db.refresh(job)
     return JobResponse.model_validate(job)

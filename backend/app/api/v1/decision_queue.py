@@ -167,11 +167,14 @@ async def approve_all_decisions(
             execute_immediately=True
         )
 
-        # If no real DB records were found, all were demo/mock — treat as success
-        count = result['executed_count'] if result['executed_count'] > 0 else len(request.decision_ids)
+        # If no real DB records matched (all demo/mock), report the request count as a
+        # UI convenience — but only when approved_count is also 0 (nothing real was found).
+        # If real records were found but execution failed, surface the real zero count.
+        is_all_demo = result['approved_count'] == 0 and result['executed_count'] == 0
+        count = len(request.decision_ids) if is_all_demo else result['executed_count']
         return {
             "success": True,
-            "approved_count": count,
+            "approved_count": result['approved_count'] if not is_all_demo else count,
             "executed_count": count,
             "errors": result['errors'],
             "message": f"✅ Successfully executed {count} decisions!"
@@ -206,8 +209,8 @@ async def approve_single_decision(
         }
     except ValueError as e:
         if "not found" in str(e).lower():
-            # Demo/mock decision — no real DB record, simulate success
-            return {"success": True, "data": {}, "message": "Decision approved (demo)"}
+            # Decision is not in DB — likely a demo/mock card with a generated UUID
+            raise HTTPException(status_code=404, detail="Decision not found")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -239,8 +242,7 @@ async def reject_decision(
         }
     except ValueError as e:
         if "not found" in str(e).lower():
-            # Demo/mock decision — no real DB record, simulate success
-            return {"success": True, "data": {}, "message": "Decision overridden (demo)"}
+            raise HTTPException(status_code=404, detail="Decision not found")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

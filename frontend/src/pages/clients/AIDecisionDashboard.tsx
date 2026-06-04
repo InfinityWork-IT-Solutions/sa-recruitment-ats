@@ -92,9 +92,16 @@ export default function AIDecisionDashboard() {
       setCardState(decision.decision_id, 'approved');
       setSelectedIds(prev => { const n = new Set(prev); n.delete(decision.decision_id); return n; });
       toast.success(`Approved: ${decision.candidate_name}`);
-    } catch {
-      setCardState(decision.decision_id, 'pending');
-      toast.error('Failed to approve. Please try again.');
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        // Demo card — mark as approved locally since there's no real DB record
+        setCardState(decision.decision_id, 'approved');
+        setSelectedIds(prev => { const n = new Set(prev); n.delete(decision.decision_id); return n; });
+        toast.success(`Approved: ${decision.candidate_name}`);
+      } else {
+        setCardState(decision.decision_id, 'pending');
+        toast.error('Failed to approve. Please try again.');
+      }
     }
   };
 
@@ -105,9 +112,16 @@ export default function AIDecisionDashboard() {
       setCardState(decision.decision_id, 'overridden');
       setSelectedIds(prev => { const n = new Set(prev); n.delete(decision.decision_id); return n; });
       toast(`Overridden: ${decision.candidate_name} — kept for manual review`, { icon: '↩️' });
-    } catch {
-      setCardState(decision.decision_id, 'pending');
-      toast.error('Failed to override. Please try again.');
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        // Demo card — mark as overridden locally
+        setCardState(decision.decision_id, 'overridden');
+        setSelectedIds(prev => { const n = new Set(prev); n.delete(decision.decision_id); return n; });
+        toast(`Overridden: ${decision.candidate_name} — kept for manual review`, { icon: '↩️' });
+      } else {
+        setCardState(decision.decision_id, 'pending');
+        toast.error('Failed to override. Please try again.');
+      }
     }
   };
 

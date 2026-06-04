@@ -15,7 +15,7 @@ class IntegrationConnection(Base):
     platform = Column(String(50), nullable=False) # 'pnet', 'indeed', 'linkedin'
     status = Column(String(20), nullable=False, default='active') # 'active', 'inactive', 'error'
     
-    # Encrypted credentials (or plain if not implemented yet)
+    # TODO: encrypt these columns at rest before production (use pgcrypto or app-level AES-GCM)
     api_key = Column(Text)
     api_secret = Column(Text)
     access_token = Column(Text)

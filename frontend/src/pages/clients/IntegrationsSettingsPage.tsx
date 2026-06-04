@@ -33,7 +33,9 @@ const CREDENTIAL_FIELDS: Record<string, { key: string; label: string; placeholde
 export default function IntegrationsSettingsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo');
+  const rawReturnTo = searchParams.get('returnTo');
+  // Only allow relative paths to prevent open-redirect attacks
+  const returnTo = rawReturnTo?.startsWith('/') ? rawReturnTo : null;
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -450,7 +452,7 @@ export default function IntegrationsSettingsPage() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700">Credentials are stored encrypted and are only used to post jobs and sync applications on your behalf.</p>
+                  <p className="text-xs text-blue-700">Credentials are stored securely and are only used to post jobs and sync applications on your behalf.</p>
                 </div>
 
                 <div className="flex gap-3 pt-1">

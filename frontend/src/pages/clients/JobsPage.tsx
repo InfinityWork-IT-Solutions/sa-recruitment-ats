@@ -189,7 +189,7 @@ export default function JobsPage() {
       const splitLines = (s: string) => (s || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
       const apiData = {
         ...data,
-        closing_date: data.closing_date ? new Date(data.closing_date).toISOString() : undefined,
+        closing_date: data.closing_date ? new Date(data.closing_date + 'T12:00:00').toISOString() : undefined,
         experience_level: data.experience_min >= 6 ? 'senior_level' : data.experience_min >= 3 ? 'mid_level' : 'entry_level',
         years_of_experience_min: data.experience_min,
         years_of_experience_max: data.experience_max,
@@ -199,9 +199,9 @@ export default function JobsPage() {
         requirements: splitLines(data.requirements),
         benefits: splitLines(data.benefits),
         employment_type: data.job_type?.replace('-', '_') ?? 'full_time',
-        salary_min: data.salary_min || null,
-        salary_max: data.salary_max || null,
-        show_salary: !!(data.salary_min || data.salary_max),
+        salary_min: data.salary_min != null && data.salary_min !== '' ? Number(data.salary_min) : null,
+        salary_max: data.salary_max != null && data.salary_max !== '' ? Number(data.salary_max) : null,
+        show_salary: data.salary_min != null || data.salary_max != null,
       };
 
       const response = await apiClient.post('/jobs', apiData);
@@ -627,7 +627,13 @@ export default function JobsPage() {
       {showViewModal && selectedJob && (
         <JobViewModal job={selectedJob} onClose={() => { setShowViewModal(false); setSelectedJob(null); }}
           onEdit={() => { setShowViewModal(false); setShowEditModal(true); }}
-          onPublish={() => { setShowViewModal(false); handleStatusChange(selectedJob.id, selectedJob.status === 'draft' ? 'active' : selectedJob.status === 'paused' ? 'active' : 'paused'); }}
+          onPublish={() => {
+            // Read live status from the jobs array to avoid stale-closure bugs
+            const liveStatus = jobs.find(j => j.id === selectedJob.id)?.status ?? selectedJob.status;
+            const newStatus = liveStatus === 'draft' || liveStatus === 'paused' ? 'active' : 'paused';
+            setShowViewModal(false);
+            handleStatusChange(selectedJob.id, newStatus);
+          }}
         />
       )}
 

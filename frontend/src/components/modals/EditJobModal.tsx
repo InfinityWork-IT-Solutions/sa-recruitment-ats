@@ -35,7 +35,7 @@ const jobSchema = z.object({
   experience_min: z.number().min(0).default(0),
   experience_max: z.number().min(0).default(5),
   closing_date: z.string().optional(),
-  description: z.string().min(20, 'Description must be at least 20 characters'),
+  description: z.string().min(50, 'Description must be at least 50 characters'),
   requirements: z.string().optional(),
   skills: z.string().optional(),
   benefits: z.string().optional(),
@@ -129,16 +129,18 @@ export default function EditJobModal({ isOpen, onClose, onSubmit, job }: EditJob
       remote_type: data.work_mode,
       years_of_experience_min: data.experience_min,
       years_of_experience_max: data.experience_max,
-      salary_min: data.salary_min || null,
-      salary_max: data.salary_max || null,
-      show_salary: !!(data.salary_min || data.salary_max),
-      closing_date: data.closing_date ? new Date(data.closing_date).toISOString() : undefined,
+      salary_min: data.salary_min != null ? Number(data.salary_min) : null,
+      salary_max: data.salary_max != null ? Number(data.salary_max) : null,
+      show_salary: data.salary_min != null || data.salary_max != null,
+      closing_date: data.closing_date ? new Date(data.closing_date + 'T12:00:00').toISOString() : undefined,
     };
     try {
       await onSubmit(apiData);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating job:', error);
+      const detail = error?.response?.data?.detail;
+      toast.error(detail || 'Failed to save changes. Please try again.');
     }
   };
 

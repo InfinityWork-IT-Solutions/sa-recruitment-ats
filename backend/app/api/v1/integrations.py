@@ -11,6 +11,12 @@ from app.models.integration import IntegrationConnection
 
 router = APIRouter()
 
+VALID_PLATFORMS = {'pnet', 'indeed', 'linkedin'}
+
+def _require_valid_platform(platform: str) -> None:
+    if platform not in VALID_PLATFORMS:
+        raise HTTPException(status_code=400, detail=f"Unknown platform '{platform}'. Valid: {sorted(VALID_PLATFORMS)}")
+
 @router.get("/", response_model=List[Dict[str, Any]])
 async def get_integrations(
     current_user: User = Depends(get_current_active_user),
@@ -41,6 +47,8 @@ async def connect_integration(
     db: AsyncSession = Depends(get_db)
 ):
     """Save API credentials and mark integration as connected"""
+    _require_valid_platform(platform)
+
     result = await db.execute(select(IntegrationConnection).filter_by(
         company_id=current_user.agency_id, platform=platform
     ))
@@ -52,15 +60,18 @@ async def connect_integration(
 
     conn.status = 'active'
 
+    # Guard against non-dict config values (e.g. legacy string from a data migration)
+    existing_config = conn.config if isinstance(conn.config, dict) else {}
+
     if platform == 'pnet':
         conn.api_key = credentials.get('api_key') or conn.api_key
         conn.api_secret = credentials.get('api_secret') or conn.api_secret
     elif platform == 'indeed':
         conn.api_key = credentials.get('api_token') or conn.api_key
-        conn.config = {**(conn.config or {}), 'publisher_id': credentials.get('publisher_id', '')}
+        conn.config = {**existing_config, 'publisher_id': credentials.get('publisher_id', '')}
     elif platform == 'linkedin':
         conn.access_token = credentials.get('access_token') or conn.access_token
-        conn.config = {**(conn.config or {}), 'company_id': credentials.get('company_id', '')}
+        conn.config = {**existing_config, 'company_id': credentials.get('company_id', '')}
 
     await db.commit()
     return {"success": True, "message": f"Successfully connected to {platform}"}
@@ -72,15 +83,16 @@ async def disconnect_integration(
     db: AsyncSession = Depends(get_db)
 ):
     """Disconnect platform"""
+    _require_valid_platform(platform)
     result = await db.execute(select(IntegrationConnection).filter_by(
         company_id=current_user.agency_id, platform=platform
     ))
     conn = result.scalar_one_or_none()
-    
+
     if conn:
         conn.status = 'inactive'
         await db.commit()
-        
+
     return {"message": f"Successfully disconnected from {platform}"}
 
 @router.post("/{platform}/sync")
@@ -90,4 +102,5 @@ async def sync_integration(
     db: AsyncSession = Depends(get_db)
 ):
     """Trigger manual sync"""
+    _require_valid_platform(platform)
     return {"message": f"Sync triggered for {platform}"}
