@@ -1,4 +1,5 @@
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
+import { useJobDraftRestore } from '@/hooks/useJobDraftRestore';
 import ConfigureAIAgentModal from '@/components/modals/ConfigureAIAgentModal';
 import { useCreateJob } from '@/hooks/use-jobs';
 import { useEffect, useState } from 'react';
@@ -31,6 +32,7 @@ interface TopApplication {
 export default function ClientDashboard() {
   const navigate = useNavigate();
   const [showPostJobModal, setShowPostJobModal] = useState(false);
+  useJobDraftRestore(() => setShowPostJobModal(true));
   const [showAIAgentModal, setShowAIAgentModal] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topApplications, setTopApplications] = useState<TopApplication[]>([]);
@@ -87,18 +89,24 @@ export default function ClientDashboard() {
 
   const handlePostJob = async (modalData: any) => {
     try {
+      const splitLines = (s: string) => (s || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
       const apiData = {
         ...modalData,
+        closing_date: modalData.closing_date ? new Date(modalData.closing_date).toISOString() : undefined,
         experience_level: modalData.experience_min >= 6 ? 'senior_level' : modalData.experience_min >= 3 ? 'mid_level' : 'entry_level',
         years_of_experience_min: modalData.experience_min,
         years_of_experience_max: modalData.experience_max,
         is_remote: modalData.work_mode === 'remote',
         remote_type: modalData.work_mode,
-        skills: modalData.skills.split(',').map((s: string) => s.trim()).filter(Boolean),
-        employment_type: modalData.job_type.replace('-', '_'),
-        show_salary: true
+        skills: modalData.skills?.split(',').map((s: string) => s.trim()).filter(Boolean) ?? [],
+        requirements: splitLines(modalData.requirements),
+        benefits: splitLines(modalData.benefits),
+        employment_type: modalData.job_type?.replace('-', '_') ?? 'full_time',
+        salary_min: modalData.salary_min || null,
+        salary_max: modalData.salary_max || null,
+        show_salary: !!(modalData.salary_min || modalData.salary_max),
       };
-      await createJob.mutateAsync(apiData);
+      await (createJob.mutateAsync as Function)(apiData);
       setShowPostJobModal(false);
       toast.success('Job posted successfully!');
       fetchDashboardData();

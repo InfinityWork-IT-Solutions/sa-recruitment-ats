@@ -37,7 +37,7 @@ def check_job_permissions(user: User, action: str = "view"):
     
     if action in ["create", "update", "delete", "publish"]:
         # Only agency_admin, recruiter can manage jobs
-        if user.role not in [UserRole.SUPER_ADMIN, UserRole.AGENCY_ADMIN, UserRole.RECRUITER]:
+        if user.role not in [UserRole.super_admin, UserRole.agency_admin, UserRole.recruiter]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to perform this action"
@@ -276,6 +276,30 @@ async def update_job(
     
     job = await job_service.update_job(db, job, job_data)
     
+    return JobResponse.model_validate(job)
+
+
+@router.patch("/{job_id}", response_model=JobResponse)
+async def patch_job_status(
+    job_id: UUID,
+    body: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Partial status update (pause / unpause)"""
+    check_job_permissions(current_user, "update")
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    job = await job_service.get_job(db, job_id, agency_id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+    new_status = body.get("status")
+    if new_status:
+        try:
+            job.status = JobStatus[new_status]
+        except KeyError:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {new_status}")
+    await db.commit()
+    await db.refresh(job)
     return JobResponse.model_validate(job)
 
 

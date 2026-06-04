@@ -40,24 +40,30 @@ async def connect_integration(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Mock endpoint to connect integration"""
+    """Save API credentials and mark integration as connected"""
     result = await db.execute(select(IntegrationConnection).filter_by(
         company_id=current_user.agency_id, platform=platform
     ))
     conn = result.scalar_one_or_none()
-    
+
     if not conn:
         conn = IntegrationConnection(company_id=current_user.agency_id, platform=platform)
         db.add(conn)
-        
+
     conn.status = 'active'
+
     if platform == 'pnet':
-        conn.api_key = credentials.get('api_key', 'mock_key')
+        conn.api_key = credentials.get('api_key') or conn.api_key
+        conn.api_secret = credentials.get('api_secret') or conn.api_secret
+    elif platform == 'indeed':
+        conn.api_key = credentials.get('api_token') or conn.api_key
+        conn.config = {**(conn.config or {}), 'publisher_id': credentials.get('publisher_id', '')}
     elif platform == 'linkedin':
-        conn.access_token = credentials.get('access_token', 'mock_token')
-        
+        conn.access_token = credentials.get('access_token') or conn.access_token
+        conn.config = {**(conn.config or {}), 'company_id': credentials.get('company_id', '')}
+
     await db.commit()
-    return {"message": f"Successfully connected to {platform}"}
+    return {"success": True, "message": f"Successfully connected to {platform}"}
 
 @router.post("/{platform}/disconnect")
 async def disconnect_integration(

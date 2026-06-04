@@ -30,7 +30,6 @@ export default function UnifiedLoginPage() {
   const [mfaCode, setMfaCode] = useState('');
   const [mfaError, setMfaError] = useState('');
   const [mfaLoading, setMfaLoading] = useState(false);
-  const [pendingUserType, setPendingUserType] = useState<string | undefined>(undefined);
 
   const {
     register,
@@ -63,7 +62,6 @@ export default function UnifiedLoginPage() {
     } catch (error: any) {
       if (error?.mfa_required) {
         setMfaToken(error.mfa_token);
-        setPendingUserType(data.user_type);
         setMfaRequired(true);
         return;
       }
@@ -87,16 +85,6 @@ export default function UnifiedLoginPage() {
       const { tokens, user } = response.data;
       if (!tokens || !user) throw new Error('Invalid MFA response');
 
-      if (pendingUserType) {
-        const role = user.role;
-        const companyRoles = ['client', 'agency_admin', 'recruiter'];
-        const valid =
-          role === 'super_admin' ||
-          (pendingUserType === 'candidate' && role === 'candidate') ||
-          (pendingUserType === 'company' && companyRoles.includes(role));
-        if (!valid) throw new Error(`Account is not registered as a ${pendingUserType}.`);
-      }
-
       localStorage.setItem('access_token', tokens.access_token);
       localStorage.setItem('refresh_token', tokens.refresh_token);
       useAuthStore.setState({ user, isAuthenticated: true });
@@ -104,7 +92,23 @@ export default function UnifiedLoginPage() {
       else if (user.role === 'candidate') navigate('/candidate-dashboard');
       else navigate('/company/dashboard');
     } catch (err: any) {
-      setMfaError(err.response?.data?.detail || err.message || 'Invalid code. Try again.');
+      const detail = err.response?.data?.detail || '';
+      const isExpiredOrInvalid =
+        err.response?.status === 401 ||
+        detail.toLowerCase().includes('expired') ||
+        detail.toLowerCase().includes('invalid mfa token') ||
+        detail.toLowerCase().includes('mfa state invalid');
+      if (isExpiredOrInvalid) {
+        setMfaRequired(false);
+        setMfaCode('');
+        setMfaToken('');
+        setError('root', {
+          type: 'manual',
+          message: 'Your login session expired. Please sign in again.',
+        });
+      } else {
+        setMfaError(detail || err.message || 'Invalid code. Try again.');
+      }
     } finally {
       setMfaLoading(false);
     }

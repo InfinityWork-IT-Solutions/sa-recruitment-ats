@@ -10,6 +10,7 @@ import {
 import { JobStatus, EmploymentType } from '@/types/api';
 import apiClient from '@/lib/api-client';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
+import { useJobDraftRestore } from '@/hooks/useJobDraftRestore';
 import { formatDistanceToNow, format, isPast } from 'date-fns';
 import { useSavedJobs } from '@/hooks/use-saved-jobs';
 
@@ -89,6 +90,7 @@ export default function JobsPage() {
   }, [isCandidate, data?.jobs]);
 
   const [showPostJobModal, setShowPostJobModal] = useState(false);
+  useJobDraftRestore(() => setShowPostJobModal(true));
   const [integrations, setIntegrations] = useState({
     pnet: { connected: false, enabled: false },
     indeed: { connected: false, enabled: false },
@@ -116,22 +118,24 @@ export default function JobsPage() {
 
   const handleClientPostJob = async (modalData: any) => {
     try {
-      await createJob.mutateAsync({
+      const splitLines = (s: string) => (s || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
+      await (createJob.mutateAsync as Function)({
         title: modalData.title,
         description: modalData.description,
         employment_type: modalData.job_type === 'full-time' ? 'full_time' : modalData.job_type === 'part-time' ? 'part_time' : modalData.job_type,
         location: modalData.location,
-        city: modalData.location.split(',')[0]?.trim() || modalData.location,
-        province: modalData.location.split(',')[1]?.trim() || 'Unspecified',
-        requirements: modalData.requirements,
-        salary_min: modalData.salary_min,
-        salary_max: modalData.salary_max,
-        show_salary: true,
+        city: modalData.location?.split(',')[0]?.trim() || modalData.location,
+        province: modalData.location?.split(',')[1]?.trim() || 'Unspecified',
+        requirements: splitLines(modalData.requirements),
+        benefits: splitLines(modalData.benefits),
+        salary_min: modalData.salary_min || null,
+        salary_max: modalData.salary_max || null,
+        show_salary: !!(modalData.salary_min || modalData.salary_max),
         is_remote: modalData.work_mode === 'remote',
         remote_type: modalData.work_mode,
         years_of_experience_min: modalData.experience_min,
         years_of_experience_max: modalData.experience_max,
-        skills: modalData.skills.split(',').map((s: string) => s.trim()).filter(Boolean),
+        skills: modalData.skills?.split(',').map((s: string) => s.trim()).filter(Boolean) ?? [],
         post_to_pnet: modalData.post_to_pnet,
         post_to_indeed: modalData.post_to_indeed,
         post_to_linkedin: modalData.post_to_linkedin,

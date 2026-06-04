@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Settings, ExternalLink, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle, XCircle, Settings, ExternalLink, RefreshCw, AlertCircle, AlertTriangle, Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 import { LinkedInLogo, IndeedLogo, PNetLogo } from '@/components/logos/PlatformLogos';
@@ -14,13 +15,34 @@ interface Integration {
   total_applications?: number;
 }
 
+const CREDENTIAL_FIELDS: Record<string, { key: string; label: string; placeholder: string; secret?: boolean; required: boolean }[]> = {
+  pnet: [
+    { key: 'api_key', label: 'API Key', placeholder: 'pnet_key_xxxxxxxxxxxxxxxx', secret: true, required: true },
+    { key: 'api_secret', label: 'API Secret', placeholder: 'pnet_secret_xxxxxxxxxxxxxxxx', secret: true, required: false },
+  ],
+  indeed: [
+    { key: 'publisher_id', label: 'Publisher ID', placeholder: '1234567890123456', secret: false, required: true },
+    { key: 'api_token', label: 'API Token', placeholder: 'your_indeed_api_token', secret: true, required: true },
+  ],
+  linkedin: [
+    { key: 'company_id', label: 'Company ID', placeholder: '12345678', secret: false, required: true },
+    { key: 'access_token', label: 'Access Token', placeholder: 'AQV...your_linkedin_access_token', secret: true, required: true },
+  ],
+};
+
 export default function IntegrationsSettingsPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [credentialValues, setCredentialValues] = useState<Record<string, string>>({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchIntegrations();
@@ -40,7 +62,34 @@ export default function IntegrationsSettingsPage() {
 
   const handleConnect = (platform: string) => {
     setSelectedPlatform(platform);
+    setCredentialValues({});
+    setShowSecrets({});
     setShowConnectModal(true);
+  };
+
+  const handleSaveCredentials = async () => {
+    if (!selectedPlatform) return;
+    const fields = CREDENTIAL_FIELDS[selectedPlatform] || [];
+    const missing = fields.filter(f => f.required && !credentialValues[f.key]?.trim());
+    if (missing.length > 0) {
+      toast.error(`Please fill in: ${missing.map(f => f.label).join(', ')}`);
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiClient.post(`/integrations/${selectedPlatform}/connect`, credentialValues);
+      toast.success(`${platformInfo[selectedPlatform as keyof typeof platformInfo]?.name} connected successfully!`);
+      setShowConnectModal(false);
+      fetchIntegrations();
+      // Return the user to where they were creating a job post
+      if (returnTo) {
+        navigate(`${returnTo}?openDraft=1`);
+      }
+    } catch {
+      toast.error('Failed to save credentials. Please check and try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDisconnect = async (platform: string) => {
@@ -121,6 +170,22 @@ export default function IntegrationsSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Return-to-job-post banner */}
+      {returnTo && (
+        <div className="bg-blue-600 text-white px-4 py-3 flex items-center gap-3">
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          <p className="text-sm font-medium flex-1">
+            You came from your job post. Connect the integration below, then you'll be taken straight back to where you left off.
+          </p>
+          <button
+            onClick={() => navigate(`${returnTo}?openDraft=1`)}
+            className="text-xs font-bold underline underline-offset-2 whitespace-nowrap hover:text-blue-100"
+          >
+            Go back without connecting
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -312,12 +377,14 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
-      {/* Connect Modal — setup instructions */}
+      {/* Connect / Configure Modal — credentials form */}
       {showConnectModal && selectedPlatform && (() => {
         const info = platformInfo[selectedPlatform as keyof typeof platformInfo];
+        const fields = CREDENTIAL_FIELDS[selectedPlatform] || [];
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+              {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {info?.Logo && <info.Logo size={36} className="rounded-lg flex-shrink-0" />}
@@ -330,26 +397,77 @@ export default function IntegrationsSettingsPage() {
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Setup steps:</p>
-                <ol className="space-y-2 mb-6">
-                  {info?.setupInstructions.map((step, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-gray-600">
-                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
-                      {step.replace(/^\d+\.\s/, '')}
-                    </li>
-                  ))}
-                </ol>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700">Once you have your API credentials, contact <strong>support@recruitpro.co.za</strong> to complete the connection on your account.</p>
+
+              <div className="p-6 space-y-5">
+                {/* Setup steps (condensed) */}
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Setup steps</p>
+                  <ol className="space-y-1.5">
+                    {info?.setupInstructions.map((step, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                        <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
+                        {step.replace(/^\d+\.\s/, '')}
+                      </li>
+                    ))}
+                  </ol>
                 </div>
-                <button
-                  onClick={() => setShowConnectModal(false)}
-                  className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm"
-                >
-                  Got it
-                </button>
+
+                {/* Credentials form */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <KeyRound className="w-4 h-4 text-gray-600" />
+                    <p className="text-sm font-bold text-gray-800">Enter your API credentials</p>
+                  </div>
+                  <div className="space-y-3">
+                    {fields.map(field => (
+                      <div key={field.key}>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={field.secret && !showSecrets[field.key] ? 'password' : 'text'}
+                            value={credentialValues[field.key] || ''}
+                            onChange={e => setCredentialValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                            placeholder={field.placeholder}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10 font-mono"
+                          />
+                          {field.secret && (
+                            <button
+                              type="button"
+                              onClick={() => setShowSecrets(prev => ({ ...prev, [field.key]: !prev[field.key] }))}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              {showSecrets[field.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-700">Credentials are stored encrypted and are only used to post jobs and sync applications on your behalf.</p>
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setShowConnectModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveCredentials}
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-60 transition-all text-sm flex items-center justify-center gap-2"
+                  >
+                    {saving ? <><RefreshCw className="w-4 h-4 animate-spin" /> Saving…</> : 'Save & Connect'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

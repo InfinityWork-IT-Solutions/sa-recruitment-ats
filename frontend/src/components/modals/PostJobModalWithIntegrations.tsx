@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Briefcase, MapPin, DollarSign, Clock, Building, CheckCircle, Sparkles, TrendingUp, Loader2 } from 'lucide-react';
+import { saveJobDraft, loadJobDraft, clearJobDraft } from '@/hooks/useJobDraftRestore';
 import { LinkedInLogo, IndeedLogo, PNetLogo } from '@/components/logos/PlatformLogos';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,16 +9,35 @@ import { z } from 'zod';
 import apiClient from '@/lib/api-client';
 import toast from 'react-hot-toast';
 
+const JOB_CATEGORIES = [
+  { value: 'it', label: 'IT & Software' },
+  { value: 'finance', label: 'Finance & Accounting' },
+  { value: 'health', label: 'Healthcare' },
+  { value: 'engineering', label: 'Engineering' },
+  { value: 'marketing', label: 'Marketing & Sales' },
+  { value: 'education', label: 'Education' },
+  { value: 'legal', label: 'Legal' },
+  { value: 'logistics', label: 'Logistics & Supply Chain' },
+  { value: 'construction', label: 'Construction' },
+  { value: 'hospitality', label: 'Hospitality & Tourism' },
+  { value: 'hr', label: 'Human Resources' },
+  { value: 'admin', label: 'Administration' },
+  { value: 'creative', label: 'Creative & Design' },
+  { value: 'other', label: 'Other' },
+];
+
 const jobSchema = z.object({
   title: z.string().min(3, 'Job title must be at least 3 characters'),
   company_name: z.string().min(2, 'Company name is required'),
   location: z.string().min(2, 'Location is required'),
+  category: z.string().default('other'),
   job_type: z.enum(['full-time', 'part-time', 'contract', 'internship']),
   work_mode: z.enum(['remote', 'hybrid', 'on-site']),
   salary_min: z.number().min(0, 'Minimum salary required'),
   salary_max: z.number().min(0, 'Maximum salary required'),
   experience_min: z.number().min(0),
   experience_max: z.number().min(0),
+  closing_date: z.string().optional(),
   description: z.string().min(50, 'Description must be at least 50 characters'),
   requirements: z.string().min(20, 'Requirements must be at least 20 characters'),
   skills: z.string().min(5, 'At least one skill required'),
@@ -56,18 +76,38 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
     watch,
     setValue,
     getValues,
+    reset,
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
       job_type: 'full-time',
       work_mode: 'hybrid',
+      category: 'other',
       experience_min: 0,
       experience_max: 5,
       post_to_pnet: true,
       post_to_indeed: true,
-      post_to_linkedin: false,
+      post_to_linkedin: true,
     },
   });
+
+  // Restore draft when modal opens (user returning from integrations page)
+  useEffect(() => {
+    if (!isOpen) return;
+    const draft = loadJobDraft();
+    if (draft) {
+      reset(draft.formData as JobFormData);
+      setStep(draft.step);
+      clearJobDraft();
+      toast.success('Your job draft has been restored — you left off at step ' + draft.step);
+    }
+  }, [isOpen]);
+
+  const handleGoToIntegrations = (platform: string) => {
+    saveJobDraft(getValues() as Record<string, any>, step);
+    const returnTo = encodeURIComponent(window.location.pathname);
+    navigate(`/company/settings/integrations?returnTo=${returnTo}&platform=${platform}`);
+  };
 
   const handleGenerateJD = async (andAdvance = false) => {
     const title = getValues('title');
@@ -122,10 +162,16 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
   const handleFormSubmit = async (data: JobFormData) => {
     try {
       await onSubmit(data);
+      clearJobDraft();
       onClose();
     } catch (error) {
       console.error('Error submitting job:', error);
     }
+  };
+
+  const handleClose = () => {
+    clearJobDraft();
+    onClose();
   };
 
   // Count selected platforms
@@ -152,7 +198,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all"
           >
             <X className="w-6 h-6" />
@@ -262,6 +308,16 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                   </div>
                 </div>
 
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Job Category <span className="text-red-500">*</span></label>
+                  <select {...register('category')} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    {JOB_CATEGORIES.map(c => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Primary CTA — AI Generate */}
                 <button
                   type="button"
@@ -365,6 +421,19 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Closing Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Application Closing Date <span className="text-gray-400 font-normal">(optional — defaults to 30 days)</span>
+                  </label>
+                  <input
+                    {...register('closing_date')}
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
 
                 {/* Job Description */}
@@ -507,7 +576,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         {!integrations?.pnet?.connected && (
                           <button
                             type="button"
-                            onClick={() => window.location.href = '/company/settings/integrations'}
+                            onClick={() => handleGoToIntegrations('pnet')}
                             className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
                           >
                             Connect PNet in Settings →
@@ -544,7 +613,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         {!integrations?.indeed?.connected && (
                           <button
                             type="button"
-                            onClick={() => window.location.href = '/company/settings/integrations'}
+                            onClick={() => handleGoToIntegrations('indeed')}
                             className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
                           >
                             Connect Indeed in Settings →
@@ -584,7 +653,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                         {!integrations?.linkedin?.connected && (
                           <button
                             type="button"
-                            onClick={() => window.location.href = '/company/settings/integrations'}
+                            onClick={() => handleGoToIntegrations('linkedin')}
                             className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
                           >
                             Connect LinkedIn in Settings →
@@ -629,7 +698,7 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
             <div className="flex space-x-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-6 py-2 text-gray-700 hover:bg-gray-200 rounded-lg font-medium transition-all"
               >
                 Cancel
@@ -646,14 +715,38 @@ export default function PostJobModal({ isOpen, onClose, onSubmit, integrations }
                 </button>
                 )
               ) : (
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-8 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-bold hover:from-green-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  <span>{isSubmitting ? 'Publishing...' : `Post to ${selectedPlatforms + 1} Platform${selectedPlatforms !== 0 ? 's' : ''}`}</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={async () => {
+                      try {
+                        await onSubmit({
+                          ...getValues(),
+                          post_to_pnet: false,
+                          post_to_indeed: false,
+                          post_to_linkedin: false,
+                        } as JobFormData);
+                        clearJobDraft();
+                        onClose();
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.detail || 'Failed to post job. Please try again.');
+                      }
+                    }}
+                    className="px-5 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-gray-400 hover:bg-gray-50 disabled:opacity-50 transition-all flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4 text-gray-500" />
+                    Post Here Only
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-8 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-bold hover:from-green-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    <span>{isSubmitting ? 'Publishing...' : `Post to ${selectedPlatforms + 1} Platform${selectedPlatforms !== 0 ? 's' : ''}`}</span>
+                  </button>
+                </>
               )}
             </div>
           </div>

@@ -263,16 +263,20 @@ class JobService:
         if job.status == JobStatus.active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Job is already published"
+                detail="Job is already active"
             )
-        
-        job.publish()  # Uses model method
-        
+
+        job.status = JobStatus.active
+        job.published_at = datetime.utcnow()
+        if not job.closing_date:
+            from datetime import timedelta
+            job.closing_date = datetime.utcnow() + timedelta(days=30)
+
         await db.commit()
         await db.refresh(job)
-        
+
         return job
-    
+
     @staticmethod
     async def close_job(
         db: AsyncSession,
@@ -285,12 +289,13 @@ class JobService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Job is already closed"
             )
-        
-        job.close()  # Uses model method
-        
+
+        job.status = JobStatus.closed
+        job.closed_at = datetime.utcnow()
+
         await db.commit()
         await db.refresh(job)
-        
+
         return job
     
     @staticmethod

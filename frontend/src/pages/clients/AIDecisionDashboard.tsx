@@ -308,6 +308,7 @@ function DecisionCard({
   onOverride: (reason: string) => void;
 }) {
   const [showOverrideMenu, setShowOverrideMenu] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const initials = decision.candidate_name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
   const isApproved = state === 'approved';
@@ -315,18 +316,18 @@ function DecisionCard({
   const isDone = isApproved || isOverridden;
 
   return (
-    <div className={`bg-white rounded-xl border transition-all ${
+    <div className={`bg-white rounded-xl border transition-all transform hover:-translate-y-0.5 hover:shadow-lg group mb-1 ${
       isApproved ? 'border-green-300 opacity-60' :
       isOverridden ? 'border-gray-300 opacity-50' :
       selected ? 'border-blue-300 shadow-sm' : 'border-gray-200'
     }`}>
-      <div className="p-4">
+      <div className="p-5">
         <div className="flex items-start gap-3">
           {/* Checkbox */}
           <button
             onClick={onToggleSelect}
             disabled={isDone}
-            className="mt-1 shrink-0 disabled:opacity-40"
+            className="mt-2 shrink-0 disabled:opacity-40"
           >
             {selected && !isDone
               ? <CheckSquare className="w-5 h-5 text-blue-600" />
@@ -335,78 +336,137 @@ function DecisionCard({
           </button>
 
           {/* Avatar */}
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
+          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner shrink-0">
             {initials}
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-semibold text-gray-900">{decision.candidate_name}</h4>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                {Math.round(decision.ai_confidence * 100)}% confidence
+              <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                {decision.candidate_name}
+              </h3>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                decision.decision_type === 'fast_track_interview' ? 'bg-green-100 text-green-700' :
+                decision.decision_type === 'auto_reject' ? 'bg-red-100 text-red-700' :
+                'bg-blue-100 text-blue-700'
+              }`}>
+                {decision.decision_type?.replace(/_/g, ' ') || 'Process'}
               </span>
               {isApproved && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">Approved ✓</span>}
               {isOverridden && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">Overridden ↩</span>}
             </div>
-            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-              <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{decision.job_title}</span>
-              <span className="flex items-center gap-1"><User className="w-3 h-3" />{decision.candidate_email}</span>
+            <p className="text-gray-600 font-medium text-sm mt-0.5">Applied for: {decision.job_title}</p>
+            <div className="flex items-center mt-2 gap-4 flex-wrap">
+              <div className="flex items-center text-sm text-gray-500">
+                <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                {new Date(decision.created_at).toLocaleDateString()}
+              </div>
+              <div className="flex items-center text-sm text-green-600 font-bold bg-green-50 px-2 rounded">
+                <TrendingUp className="w-4 h-4 mr-1" />
+                {decision.ai_confidence}% Match
+              </div>
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <User className="w-3 h-3" />{decision.candidate_email}
+              </span>
             </div>
-            {decision.ai_reasoning && (
-              <p className="mt-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
-                <span className="font-medium text-gray-700">AI reasoning: </span>{decision.ai_reasoning}
-              </p>
-            )}
           </div>
 
-          {/* Actions */}
-          {!isDone && (
-            <div className="flex items-center gap-2 shrink-0 relative">
-              <button
-                onClick={onApprove}
-                disabled={state === 'approving'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-60 transition-all"
-              >
-                {state === 'approving'
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <ThumbsUp className="w-3.5 h-3.5" />
-                }
-                Approve
-              </button>
+          {/* Right: AI Score + actions */}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="text-right">
+              <div className="text-3xl font-black text-gray-900 leading-none">{decision.ai_confidence}%</div>
+              <div className="text-[10px] uppercase tracking-tighter text-gray-400 font-bold">AI Score</div>
+            </div>
 
-              <button
-                onClick={() => setShowOverrideMenu(v => !v)}
-                disabled={state === 'overriding'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 disabled:opacity-60 transition-all"
-              >
-                {state === 'overriding'
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <ThumbsDown className="w-3.5 h-3.5" />
-                }
-                Override
-              </button>
+            {!isDone && (
+              <div className="flex items-center gap-2 relative">
+                <button
+                  onClick={onApprove}
+                  disabled={state === 'approving'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-60 transition-all"
+                >
+                  {state === 'approving'
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <ThumbsUp className="w-3.5 h-3.5" />
+                  }
+                  Approve
+                </button>
 
-              {showOverrideMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowOverrideMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-1.5">
-                    <p className="text-xs font-semibold text-gray-500 px-3 py-1.5 uppercase tracking-wide">Override reason</p>
-                    {OVERRIDE_REASONS.map(r => (
-                      <button
-                        key={r.value}
-                        onClick={() => { setShowOverrideMenu(false); onOverride(r.value); }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        {r.label}
-                      </button>
-                    ))}
+                <button
+                  onClick={() => setShowOverrideMenu(v => !v)}
+                  disabled={state === 'overriding'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 disabled:opacity-60 transition-all"
+                >
+                  {state === 'overriding'
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <ThumbsDown className="w-3.5 h-3.5" />
+                  }
+                  Override
+                </button>
+
+                {showOverrideMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowOverrideMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-1.5">
+                      <p className="text-xs font-semibold text-gray-500 px-3 py-1.5 uppercase tracking-wide">Override reason</p>
+                      {OVERRIDE_REASONS.map(r => (
+                        <button
+                          key={r.value}
+                          onClick={() => { setShowOverrideMenu(false); onOverride(r.value); }}
+                          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center"
+            >
+              {expanded
+                ? <><span>Hide Analysis</span><ChevronUp className="w-4 h-4 ml-1" /></>
+                : <><span>See Why</span><ChevronDown className="w-4 h-4 ml-1" /></>
+              }
+            </button>
+          </div>
+        </div>
+
+        {/* Expandable AI Analysis */}
+        {expanded && (
+          <div className="mt-5 pt-5 border-t border-dashed border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  Evidence-Based Reasoning
+                </h4>
+                <p className="text-gray-700 leading-relaxed italic bg-gray-50 p-3 rounded-lg border-l-4 border-blue-400">
+                  "{decision.ai_reasoning}"
+                </p>
+              </div>
+              {decision.proposed_action?.details && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Top Skills Found</h4>
+                    <p className="text-gray-800 font-medium">{decision.proposed_action.details.skills || 'N/A'}</p>
                   </div>
-                </>
+                  {decision.proposed_action.details.missing_skills && (
+                    <div>
+                      <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest mb-1">Gaps Detected</h4>
+                      <p className="text-red-700 font-medium">{decision.proposed_action.details.missing_skills.join(', ')}</p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

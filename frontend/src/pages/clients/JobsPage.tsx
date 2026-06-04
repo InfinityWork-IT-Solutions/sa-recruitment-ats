@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Plus, Briefcase, MapPin, Users, TrendingUp, Eye,
   Edit, Copy, Trash2, Pause, Play, DollarSign,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PostJobModal from '@/components/modals/PostJobModalWithIntegrations';
+import { useJobDraftRestore } from '@/hooks/useJobDraftRestore';
 import apiClient from '@/lib/api-client';
 import EditJobModal from '@/components/modals/EditJobModal';
 import toast from 'react-hot-toast';
@@ -34,7 +35,9 @@ export default function JobsPage() {
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
+  useJobDraftRestore(() => setShowPostModal(true));
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
@@ -183,16 +186,22 @@ export default function JobsPage() {
   const handlePostJob = async (data: any) => {
     try {
       // Map frontend modal data to API schema
+      const splitLines = (s: string) => (s || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
       const apiData = {
         ...data,
+        closing_date: data.closing_date ? new Date(data.closing_date).toISOString() : undefined,
         experience_level: data.experience_min >= 6 ? 'senior_level' : data.experience_min >= 3 ? 'mid_level' : 'entry_level',
         years_of_experience_min: data.experience_min,
         years_of_experience_max: data.experience_max,
         is_remote: data.work_mode === 'remote',
         remote_type: data.work_mode,
-        skills: data.skills.split(',').map((s: string) => s.trim()).filter(Boolean),
-        employment_type: data.job_type.replace('-', '_'),
-        show_salary: true
+        skills: data.skills?.split(',').map((s: string) => s.trim()).filter(Boolean) ?? [],
+        requirements: splitLines(data.requirements),
+        benefits: splitLines(data.benefits),
+        employment_type: data.job_type?.replace('-', '_') ?? 'full_time',
+        salary_min: data.salary_min || null,
+        salary_max: data.salary_max || null,
+        show_salary: !!(data.salary_min || data.salary_max),
       };
 
       const response = await apiClient.post('/jobs', apiData);
@@ -258,11 +267,20 @@ export default function JobsPage() {
 
   const handleStatusChange = async (jobId: string, newStatus: string) => {
     try {
-      await apiClient.patch(`/jobs/${jobId}/status`, { status: newStatus });
+      if (newStatus === 'active') {
+        // publish (draft→active) or re-activate (paused→active)
+        await apiClient.post(`/jobs/${jobId}/publish`);
+      } else if (newStatus === 'closed') {
+        await apiClient.post(`/jobs/${jobId}/close`, { status: 'closed', reason: 'Closed by recruiter' });
+      } else if (newStatus === 'paused') {
+        await apiClient.patch(`/jobs/${jobId}`, { status: 'paused' });
+      }
       setJobs(jobs.map(j => j.id === jobId ? { ...j, status: newStatus as any } : j));
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Failed to update status. Please try again.');
+      const label = newStatus === 'active' ? 'published' : newStatus;
+      toast.success(`Job ${label} successfully`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || 'Failed to update status. Please try again.';
+      toast.error(msg);
     }
   };
 
@@ -539,6 +557,14 @@ export default function JobsPage() {
 
                       <div className="flex items-center space-x-2">
                         <button
+                          onClick={() => { setSelectedJob(job); setShowViewModal(true); }}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all flex items-center space-x-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>View</span>
+                        </button>
+
+                        <button
                           onClick={() => {
                             setSelectedJob(job);
                             setShowEditModal(true);
@@ -597,6 +623,14 @@ export default function JobsPage() {
         />
       )}
 
+      {/* Job View Modal */}
+      {showViewModal && selectedJob && (
+        <JobViewModal job={selectedJob} onClose={() => { setShowViewModal(false); setSelectedJob(null); }}
+          onEdit={() => { setShowViewModal(false); setShowEditModal(true); }}
+          onPublish={() => { setShowViewModal(false); handleStatusChange(selectedJob.id, selectedJob.status === 'draft' ? 'active' : selectedJob.status === 'paused' ? 'active' : 'paused'); }}
+        />
+      )}
+
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -632,6 +666,170 @@ export default function JobsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Job View Modal ────────────────────────────────────────────────────────────
+
+function JobViewModal({ job, onClose, onEdit, onPublish }: {
+  job: any;
+  onClose: () => void;
+  onEdit: () => void;
+  onPublish: () => void;
+}) {
+  const statusColors: Record<string, string> = {
+    active: 'bg-green-100 text-green-700',
+    paused: 'bg-yellow-100 text-yellow-700',
+    draft: 'bg-gray-100 text-gray-700',
+    closed: 'bg-red-100 text-red-700',
+  };
+
+  const requirements = Array.isArray(job.requirements) ? job.requirements : [];
+  const benefits     = Array.isArray(job.benefits)     ? job.benefits     : [];
+  const skills       = Array.isArray(job.skills)       ? job.skills       : [];
+  const closingDate  = job.closing_date ? new Date(job.closing_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+  const publishLabel = job.status === 'draft' ? 'Publish Now' : job.status === 'paused' ? 'Reactivate' : 'Pause';
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div>
+      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{title}</h4>
+      <div className="text-sm text-gray-700 leading-relaxed">{children}</div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-6 flex items-start justify-between shrink-0">
+          <div className="flex-1 pr-4">
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
+              <h2 className="text-2xl font-bold">{job.title}</h2>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold capitalize ${statusColors[job.status] || 'bg-gray-100 text-gray-700'}`}>
+                {job.status}
+              </span>
+              {job.category && job.category !== 'other' && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-900 text-blue-200 uppercase">
+                  {job.category}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-300 mt-2">
+              {job.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{job.location}</span>}
+              <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{(job.employment_type || job.job_type || 'Full-time').replace('_', ' ')}</span>
+              {(job.salary_min || job.salary_max) && (
+                <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" />
+                  R{((job.salary_min || 0) / 1000).toFixed(0)}k – R{((job.salary_max || 0) / 1000).toFixed(0)}k/mo
+                </span>
+              )}
+              {closingDate && <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />Closes {closingDate}</span>}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full p-2 transition-all shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Applicants', value: job.applicants_count || 0, color: 'text-blue-600' },
+              { label: 'Top Matches', value: job.matches_count || 0, color: 'text-green-600' },
+              { label: 'Views', value: job.views_count || 0, color: 'text-purple-600' },
+            ].map(s => (
+              <div key={s.label} className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-gray-500 font-medium mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Description */}
+          {job.description && (
+            <Section title="Job Description">
+              <p className="whitespace-pre-line">{job.description}</p>
+            </Section>
+          )}
+
+          {/* Requirements */}
+          {requirements.length > 0 && (
+            <Section title="Requirements">
+              <ul className="space-y-1.5">
+                {requirements.map((r: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 shrink-0" />
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* Skills */}
+          {skills.length > 0 && (
+            <Section title="Required Skills">
+              <div className="flex flex-wrap gap-2 mt-1">
+                {skills.map((s: string, i: number) => (
+                  <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">{s}</span>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Benefits */}
+          {benefits.length > 0 && (
+            <Section title="Benefits">
+              <ul className="space-y-1.5">
+                {benefits.map((b: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 shrink-0" />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* Experience */}
+          {(job.years_of_experience_min != null || job.years_of_experience_max != null) && (
+            <Section title="Experience Required">
+              {job.years_of_experience_min ?? 0} – {job.years_of_experience_max ?? '∞'} years
+            </Section>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between shrink-0">
+          <button onClick={onClose} className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl font-medium transition-all">
+            Close
+          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={onEdit}
+              className="px-5 py-2.5 bg-blue-100 text-blue-700 rounded-xl font-semibold hover:bg-blue-200 transition-all flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Job
+            </button>
+            {job.status !== 'closed' && (
+              <button
+                onClick={onPublish}
+                className={`px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 ${
+                  job.status === 'paused' || job.status === 'draft'
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                }`}
+              >
+                {job.status === 'draft' || job.status === 'paused' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                {publishLabel}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

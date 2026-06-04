@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, AlertTriangle, CheckCircle, XCircle,
   BarChart2, DollarSign, Zap, ArrowUp
@@ -35,6 +36,11 @@ interface UsageData {
 export default function UsageDashboard() {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const billingPath = location.pathname.startsWith('/company/')
+    ? '/company/settings/billing'
+    : '/settings/billing';
 
   useEffect(() => {
     fetchUsage();
@@ -234,7 +240,10 @@ export default function UsageDashboard() {
             <p className="text-xs text-gray-500 font-bold">Already included in your monthly subscription</p>
           </div>
         </div>
-        <button className="w-full md:w-auto px-10 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center justify-center space-x-2">
+        <button
+          onClick={() => navigate(billingPath)}
+          className="w-full md:w-auto px-10 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center justify-center space-x-2"
+        >
           <ArrowUp className="w-4 h-4" />
           <span>Upgrade Tier</span>
         </button>

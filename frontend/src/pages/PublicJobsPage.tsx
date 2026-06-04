@@ -99,7 +99,7 @@ export default function PublicJobsPage() {
                         
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => navigate('/login')}
+                                onClick={() => navigate('/login?type=candidate')}
                                 className="text-gray-600 hover:text-blue-600 font-medium"
                             >
                                 Sign In
