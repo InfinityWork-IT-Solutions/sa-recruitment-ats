@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
+import TrialBanner from '@/components/TrialBanner';
 import {
     LayoutDashboard,
     Briefcase,
@@ -256,6 +257,9 @@ export default function DashboardLayout() {
                         </Link>
                     </div>
                 </header>
+
+                {/* Trial expiry banner */}
+                <TrialBanner />
 
                 {/* Page content */}
                 <main className="p-6">

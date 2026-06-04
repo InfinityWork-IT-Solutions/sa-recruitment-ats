@@ -118,31 +118,33 @@ export const useAuthStore = create<AuthState>((set) => ({
     registerCompany: async (data: any) => {
         set({ isLoading: true });
         try {
+            // Register as an agency admin — this creates an Agency + agency_admin user
+            // which gives full access to job posting, AI features, and billing.
             const payload = {
+                agency: {
+                    name: data.company_name,
+                    email: data.email,
+                    city: data.city,
+                    province: data.province,
+                    country: data.country,
+                    subscription_tier: data.subscription_plan || 'professional',
+                },
                 user: {
                     email: data.email,
                     password: data.password,
                     first_name: data.first_name,
                     last_name: data.last_name,
                     phone: data.phone,
-                    role: 'client'
-                },
-                company: {
-                    name: data.company_name,
-                    industry: data.company_industry,
-                    website: data.company_website,
-                    city: data.city,
-                    province: data.province,
-                    country: data.country,
-                    subscription_plan: data.subscription_plan
+                    role: 'agency_admin',
                 }
             };
-            const response = await apiClient.post<LoginResponse>('/auth/register/company', payload);
+            const response = await apiClient.post<LoginResponse>('/auth/register/recruiter', payload);
             const { tokens, user } = response.data;
             localStorage.setItem('access_token', tokens.access_token);
             localStorage.setItem('refresh_token', tokens.refresh_token);
             set({ user, isAuthenticated: true, isLoading: false });
-            window.location.href = '/client-dashboard';
+            // Redirect to billing setup — collect payment method before accessing dashboard
+            window.location.href = `/billing/setup?plan=${data.subscription_plan || 'professional'}&agency_id=${user.agency_id}`;
         } catch (error) {
             set({ isLoading: false });
             throw error;

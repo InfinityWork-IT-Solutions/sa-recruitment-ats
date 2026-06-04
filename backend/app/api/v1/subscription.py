@@ -31,6 +31,7 @@ from pydantic import BaseModel
 import random
 
 from app.core.database import get_db
+from app.core.security import get_current_active_user
 from app.services.payfast_service import PayFastService
 from app.models import (
     Agency as RecruiterAgency,
@@ -124,46 +125,54 @@ async def get_subscription_plans(db: AsyncSession = Depends(get_db)):
 # ============================================================================
 
 class CreateSubscriptionRequest(BaseModel):
-    agency_id: str
-    plan_id: str
-    billing_cycle: str  # 'monthly' or 'annual'
+    plan_name: str  # 'starter' | 'professional' | 'enterprise'
+    billing_cycle: str = 'monthly'
 
 
 @router.post("/create")
 async def create_subscription(
     request: CreateSubscriptionRequest,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Create new subscription and redirect to PayFast payment
-    
+    Create new subscription and return PayFast payment form data.
+    Called right after registration from the billing setup page.
+
     Flow:
-    1. Create subscription in database (status: trialing)
-    2. Generate PayFast payment form data
-    3. Return payment URL + data for frontend to POST
+    1. Lookup agency from the authenticated user
+    2. Lookup plan by name
+    3. Create subscription record (status: trialing)
+    4. Return PayFast form data — frontend auto-submits to PayFast
     """
-    
-    # Get agency
-    agency = await db.get(RecruiterAgency, request.agency_id)
+
+    # Agency comes from the authenticated user
+    agency = await db.get(RecruiterAgency, current_user.agency_id)
     if not agency:
         raise HTTPException(status_code=404, detail="Agency not found")
-    
-    # Get plan
-    plan = await db.get(SubscriptionPlan, request.plan_id)
+
+    # Look up plan by name
+    plan_result = await db.execute(
+        select(SubscriptionPlan).where(
+            SubscriptionPlan.name == request.plan_name,
+            SubscriptionPlan.is_active == True
+        )
+    )
+    plan = plan_result.scalar_one_or_none()
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    
+        raise HTTPException(status_code=404, detail=f"Plan '{request.plan_name}' not found")
+
     # Check if already has active subscription
     existing = await db.execute(
         select(RecruiterSubscription).where(
-            RecruiterSubscription.recruiter_agency_id == request.agency_id,
+            RecruiterSubscription.recruiter_agency_id == agency.id,
             RecruiterSubscription.status.in_(['active', 'trialing'])
         )
     )
     if existing.scalars().first():
-        raise HTTPException(status_code=400, detail="Agency already has active subscription")
-    
-    # Create subscription
+        raise HTTPException(status_code=400, detail="Agency already has an active subscription")
+
+    # Create subscription record
     subscription = RecruiterSubscription(
         recruiter_agency_id=agency.id,
         plan_id=plan.id,
@@ -174,22 +183,22 @@ async def create_subscription(
         current_period_start=datetime.utcnow(),
         current_period_end=datetime.utcnow() + timedelta(days=plan.trial_days),
         seats_allocated=plan.seats_included,
-        seats_used=1,  # Owner gets first seat
+        seats_used=1,
         amount=plan.price_annual if request.billing_cycle == 'annual' else plan.price_monthly
     )
-    
+
     db.add(subscription)
     await db.commit()
     await db.refresh(subscription)
-    
-    # Generate PayFast payment data
+
+    # Generate PayFast payment data for the frontend to redirect with
     payfast = PayFastService(db)
     payment_data = await payfast.create_subscription_payment(
         subscription=subscription,
         plan=plan,
         billing_cycle=request.billing_cycle
     )
-    
+
     return {
         "subscription_id": str(subscription.id),
         "trial_days": plan.trial_days,
@@ -571,11 +580,56 @@ async def download_invoice(
 
 
 # ============================================================================
+# ENDPOINT: TRIAL STATUS (used by TrialBanner in the frontend)
+# ============================================================================
+
+@router.get("/trial-status")
+async def get_trial_status(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns trial info for the banner shown in the dashboard."""
+    if not current_user.agency_id:
+        return {"is_trial": False, "days_remaining": 0, "has_billing": False, "trial_ends_at": None}
+
+    agency = await db.get(RecruiterAgency, current_user.agency_id)
+    if not agency:
+        return {"is_trial": False, "days_remaining": 0, "has_billing": False, "trial_ends_at": None}
+
+    # Check for an active paid subscription token (billing set up)
+    sub_result = await db.execute(
+        select(RecruiterSubscription).where(
+            RecruiterSubscription.recruiter_agency_id == agency.id,
+            RecruiterSubscription.status.in_(["active", "trialing"]),
+            RecruiterSubscription.payfast_subscription_token != None,
+        )
+    )
+    has_billing = sub_result.scalar_one_or_none() is not None
+
+    days_remaining = 0
+    trial_ends_at = None
+    if agency.trial_ends_at:
+        delta = agency.trial_ends_at - datetime.utcnow()
+        days_remaining = max(0, delta.days)
+        trial_ends_at = agency.trial_ends_at.isoformat()
+
+    return {
+        "is_trial": bool(agency.is_trial),
+        "days_remaining": days_remaining,
+        "has_billing": has_billing,
+        "trial_ends_at": trial_ends_at,
+    }
+
+
+# ============================================================================
 # ENDPOINT 6: PAYFAST ITN WEBHOOK
 # ============================================================================
 
 payfast_router = APIRouter(prefix="/api/payfast", tags=["PayFast"])
 
+# Also register webhook on the main subscriptions router so
+# notify_url = /api/v1/subscriptions/webhook works
+@router.post("/webhook", include_in_schema=False)
 @payfast_router.post("/webhook")
 async def payfast_webhook(
     request: Request,

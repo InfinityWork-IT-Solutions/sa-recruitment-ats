@@ -91,6 +91,9 @@ import VideoRecordingPage from './pages/video-screening/VideoRecordingPage';
 import VideoScreeningComplete from './pages/video-screening/VideoScreeningComplete';
 import RecruiterVideoReviewDashboard from './pages/video-screening/RecruiterVideoReviewDashboard';
 import VideoScreeningDetailView from './pages/video-screening/VideoScreeningDetailView';
+import BillingSetupPage from './pages/billing/BillingSetupPage';
+import BillingSuccessPage from './pages/billing/BillingSuccessPage';
+import BillingCancelPage from './pages/billing/BillingCancelPage';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -213,6 +216,10 @@ function App() {
           <Route path="/job-board" element={<PublicJobsPage />} />
           <Route path="/job-board/:jobId" element={<PublicJobDetailPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          {/* Billing flow — shown after registration, before dashboard access */}
+          <Route path="/billing/setup" element={<BillingSetupPage />} />
+          <Route path="/billing/success" element={<BillingSuccessPage />} />
+          <Route path="/billing/cancel" element={<BillingCancelPage />} />
           <Route path="/p/:slug" element={<PublicCareerPage />} />
 
           {/* Email verification, invite & password reset (public — no auth needed) */}

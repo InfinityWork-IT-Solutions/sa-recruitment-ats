@@ -26,6 +26,7 @@ from app.schemas import (
 from app.services.job_service import job_service
 from app.services.job_posting_service import JobPostingService
 from app.services.ai_match_notification_service import send_ai_match_notifications
+from app.api.v1.subscription_guard import require_active_subscription
 
 router = APIRouter()
 
@@ -82,7 +83,8 @@ async def create_job(
     job_data: JobCreate,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _subscription: None = Depends(require_active_subscription),
 ):
     """
     Create a new job posting

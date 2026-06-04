@@ -102,9 +102,9 @@ class PayFastService:
             # Merchant details
             'merchant_id': self.merchant_id,
             'merchant_key': self.merchant_key,
-            'return_url': f"{os.getenv('FRONTEND_URL')}/recruiter/billing/success",
-            'cancel_url': f"{os.getenv('FRONTEND_URL')}/recruiter/billing/cancel",
-            'notify_url': f"{os.getenv('BACKEND_URL')}/api/payfast/webhook",
+            'return_url': f"{os.getenv('FRONTEND_URL')}/billing/success",
+            'cancel_url': f"{os.getenv('FRONTEND_URL')}/billing/cancel",
+            'notify_url': f"{os.getenv('BACKEND_URL')}/api/v1/subscriptions/webhook",
             
             # Buyer details
             'name_first': subscription.recruiter_agency.primary_contact_name.split()[0],
@@ -171,9 +171,9 @@ class PayFastService:
         payment_data = {
             'merchant_id': self.merchant_id,
             'merchant_key': self.merchant_key,
-            'return_url': f"{os.getenv('FRONTEND_URL')}/recruiter/billing/success",
-            'cancel_url': f"{os.getenv('FRONTEND_URL')}/recruiter/billing/cancel",
-            'notify_url': f"{os.getenv('BACKEND_URL')}/api/payfast/webhook",
+            'return_url': f"{os.getenv('FRONTEND_URL')}/billing/success",
+            'cancel_url': f"{os.getenv('FRONTEND_URL')}/billing/cancel",
+            'notify_url': f"{os.getenv('BACKEND_URL')}/api/v1/subscriptions/webhook",
             
             'name_first': name.split()[0],
             'name_last': name.split()[-1] if len(name.split()) > 1 else '',
