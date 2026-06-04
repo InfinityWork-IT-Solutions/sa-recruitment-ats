@@ -19,6 +19,46 @@ from app.core.security import get_current_active_user
 from app.models import User
 from app.models.agency import Agency
 from app.models.subscription import RecruiterSubscription
+from uuid import UUID
+
+
+# ---------------------------------------------------------------------------
+# Contact-masking helpers
+# ---------------------------------------------------------------------------
+
+def mask_email(email: str) -> str:
+    """j.doe@gmail.com  →  j***@gmail.com"""
+    if not email or '@' not in email:
+        return '***@***.com'
+    local, domain = email.split('@', 1)
+    return f'{local[0]}***@{domain}' if local else f'***@{domain}'
+
+
+def mask_phone(phone: str) -> str:
+    """0821234567  →  082***567"""
+    if not phone:
+        return None
+    p = phone.strip()
+    if len(p) <= 6:
+        return '***'
+    return f'{p[:3]}***{p[-3:]}'
+
+
+async def agency_is_paid(agency_id: UUID, db: AsyncSession) -> bool:
+    """
+    Returns True only when the agency has a PayFast-confirmed active
+    subscription (payfast_subscription_token is set).
+    Trial-only agencies (status='trialing', no token) return False.
+    Super-admin callers should skip this check entirely.
+    """
+    result = await db.execute(
+        select(RecruiterSubscription).where(
+            RecruiterSubscription.recruiter_agency_id == agency_id,
+            RecruiterSubscription.status == 'active',
+            RecruiterSubscription.payfast_subscription_token.isnot(None),
+        )
+    )
+    return result.scalar_one_or_none() is not None
 
 
 async def require_active_subscription(

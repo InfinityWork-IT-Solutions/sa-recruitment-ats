@@ -13,6 +13,7 @@ import uuid
 from app.core.database import get_db
 from app.core.security import get_current_active_user
 from app.models import User, UserRole
+from app.api.v1.subscription_guard import agency_is_paid, mask_email, mask_phone
 from app.schemas import (
     CandidateCreate,
     CandidateUpdate,
@@ -204,8 +205,20 @@ async def get_candidate(
             detail="Candidate not found"
         )
 
+    # Determine whether to mask contact details (trial agencies only)
+    paid = current_user.role == UserRole.super_admin or await agency_is_paid(current_user.agency_id, db)
+    if not paid:
+        data_override = CandidateResponse.model_validate(candidate).model_dump()
+        data_override['email'] = mask_email(candidate.email)
+        data_override['phone'] = mask_phone(candidate.phone) if candidate.phone else None
+        data_override['alternative_phone'] = None
+        data_override['resume_url'] = None      # block direct download
+        data_override['contacts_locked'] = True
+    else:
+        data_override = None
+
     # Build response dict and inject profile_photo + computed years from linked User
-    data = CandidateResponse.model_validate(candidate).model_dump()
+    data = data_override if data_override is not None else CandidateResponse.model_validate(candidate).model_dump()
     if candidate.user_id:
         from sqlalchemy import select as sa_select
         from app.models.user import User as UserModel
@@ -414,6 +427,47 @@ async def upload_resume_with_ai_parsing(
             size=file_size,
             parsed_data={"error": f"AI parsing failed: {str(e)}"}
         )
+
+
+# ============= SECURE CV DOWNLOAD =============
+
+@router.get("/{candidate_id}/resume/download")
+async def download_resume(
+    candidate_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Download a candidate's CV.
+    Requires an active paid subscription — trial agencies are blocked.
+    """
+    from fastapi.responses import FileResponse
+
+    agency_id = current_user.agency_id if current_user.role != UserRole.super_admin else None
+    candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
+    if not candidate:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
+
+    # Gate: trial agencies cannot download CVs
+    paid = current_user.role == UserRole.super_admin or await agency_is_paid(current_user.agency_id, db)
+    if not paid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CV downloads require an active paid subscription. Upgrade to access this feature.",
+        )
+
+    if not candidate.resume_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume on file")
+
+    file_path = Path(candidate.resume_url)
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume file not found on server")
+
+    return FileResponse(
+        path=str(file_path),
+        filename=candidate.resume_filename or file_path.name,
+        media_type="application/octet-stream",
+    )
 
 
 # ============= NEW ENDPOINT: Calculate Job Match =============

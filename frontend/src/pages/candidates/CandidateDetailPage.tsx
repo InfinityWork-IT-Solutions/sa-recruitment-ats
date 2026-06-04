@@ -15,13 +15,15 @@ import {
     Linkedin,
     GraduationCap,
     DollarSign,
-    Download
+    Download,
+    Lock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useRef } from 'react';
 import { ApplicationStatus } from '@/types/api';
 import SendEmailModal from '@/components/SendEmailModal';
 import { useAuthStore } from '@/store/auth';
+import apiClient from '@/lib/api-client';
 
 const statusColors: Record<ApplicationStatus, string> = {
     applied: 'badge-gray',
@@ -50,10 +52,28 @@ export default function CandidateDetailPage() {
     const deleteCandidate = useDeleteCandidate();
     const { user } = useAuthStore();
 
+    const locked = !!(candidate as any)?.contacts_locked;
+
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && id) {
             await uploadResume.mutateAsync({ id, file });
+        }
+    };
+
+    const handleDownloadCV = async () => {
+        if (!id) return;
+        try {
+            const res = await apiClient.get(`/candidates/${id}/resume/download`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = candidate?.resume_filename || 'resume.pdf';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            // 403 = trial user — redirect to billing
+            window.location.href = '/billing/setup';
         }
     };
 
@@ -145,23 +165,46 @@ export default function CandidateDetailPage() {
                     {/* Contact Information */}
                     <div className="card">
                         <h3 className="font-semibold text-gray-900 mb-4">Contact Information</h3>
+
+                        {locked && (
+                            <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="font-semibold">Contact details are locked during your trial.</p>
+                                    <p className="text-xs mt-0.5">
+                                        <Link to="/billing/setup" className="underline font-medium">Upgrade to a paid plan</Link> to reveal full contact info and download CVs.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-3">
                             <div className="flex items-center space-x-3 text-sm">
                                 <Mail className="w-4 h-4 text-gray-400" />
-                                <button 
-                                    onClick={() => setShowEmailModal(true)}
-                                    className="text-blue-600 hover:underline font-medium flex items-center gap-1"
-                                >
-                                    {candidate.email}
-                                    <span className="text-[10px] bg-blue-50 px-1.5 py-0.5 rounded uppercase font-bold">Template</span>
-                                </button>
+                                {locked ? (
+                                    <span className="text-gray-400 italic flex items-center gap-1">
+                                        <Lock className="w-3 h-3" /> {candidate.email}
+                                    </span>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowEmailModal(true)}
+                                        className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                                    >
+                                        {candidate.email}
+                                        <span className="text-[10px] bg-blue-50 px-1.5 py-0.5 rounded uppercase font-bold">Template</span>
+                                    </button>
+                                )}
                             </div>
                             {candidate.phone && (
                                 <div className="flex items-center space-x-3 text-sm">
                                     <Phone className="w-4 h-4 text-gray-400" />
-                                    <a href={`tel:${candidate.phone}`} className="text-gray-700">
-                                        {candidate.phone}
-                                    </a>
+                                    {locked ? (
+                                        <span className="text-gray-400 italic flex items-center gap-1">
+                                            <Lock className="w-3 h-3" /> {candidate.phone}
+                                        </span>
+                                    ) : (
+                                        <a href={`tel:${candidate.phone}`} className="text-gray-700">{candidate.phone}</a>
+                                    )}
                                 </div>
                             )}
                             {(candidate.city || candidate.province) && (
@@ -204,16 +247,22 @@ export default function CandidateDetailPage() {
                                         <p className="text-xs text-gray-500">Uploaded resume</p>
                                     </div>
                                 </div>
-                                {candidate.resume_url && (
-                                    <a
-                                        href={candidate.resume_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                {locked ? (
+                                    <Link
+                                        to="/billing/setup"
+                                        className="w-full bg-amber-50 text-amber-700 py-2 px-4 rounded-lg hover:bg-amber-100 flex items-center justify-center space-x-2 border border-amber-200 transition-colors"
+                                    >
+                                        <Lock className="w-4 h-4" />
+                                        <span className="font-bold">Unlock CV — Upgrade Plan</span>
+                                    </Link>
+                                ) : candidate.resume_filename && (
+                                    <button
+                                        onClick={handleDownloadCV}
                                         className="w-full bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100 flex items-center justify-center space-x-2 border border-blue-200 transition-colors"
                                     >
                                         <Download className="w-4 h-4" />
                                         <span className="font-bold">Download CV</span>
-                                    </a>
+                                    </button>
                                 )}
                                 {user?.role !== 'client' && user?.role !== 'candidate' && (
                                     <button

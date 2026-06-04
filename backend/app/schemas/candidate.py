@@ -165,6 +165,9 @@ class CandidateResponse(CandidateBase):
     # Profile photo (resolved from the linked User record by the endpoint)
     profile_photo: Optional[str] = None
 
+    # Set to True for trial agencies — tells the frontend to show upgrade prompt
+    contacts_locked: bool = False
+
     # Parsed data
     resume_parsed_data: Optional[Dict[str, Any]] = None
     

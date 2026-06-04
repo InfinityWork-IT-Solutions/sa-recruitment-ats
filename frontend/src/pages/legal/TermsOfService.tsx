@@ -139,14 +139,50 @@ export default function TermsOfService() {
                         </div>
                         <div className="mt-8 bg-blue-50/50 p-6 rounded-2xl border border-blue-100 text-center">
                             <p className="text-sm font-bold text-blue-900 m-0 leading-relaxed">
-                                * All subscription plans automatically include standard 15-20% placement fees upon successful applicant hires. 
                                 Zero hidden setup fees. Cancellations can be performed securely at any time.
+                                Outstanding placement commissions remain payable after cancellation.
                             </p>
                         </div>
                     </section>
 
+                    {/* Placement Fee Clause */}
                     <section className="mb-16">
-                        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b border-gray-100 pb-4">4. INTELLECTUAL PROPERTY</h2>
+                        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b border-gray-100 pb-4">4. PLACEMENT FEE & COMMISSION</h2>
+                        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-8 mb-8">
+                            <p className="text-amber-900 font-extrabold text-base mb-3">⚠ Important — Please read this clause carefully.</p>
+                            <p className="text-amber-800 text-sm leading-relaxed mb-3">
+                                If any candidate sourced, identified, or accessed through the RecruitPro SA platform is successfully
+                                placed in a permanent, contract, or fixed-term position — whether during the free trial or at any
+                                time after — a placement commission of{' '}
+                                <strong>12% of the candidate's gross annual cost-to-company (CTC)</strong> is owed to RecruitPro SA.
+                            </p>
+                            <p className="text-amber-800 text-sm leading-relaxed font-semibold">
+                                This obligation applies regardless of whether you are on a free trial, active subscription, or have
+                                cancelled your subscription at the time of the placement.
+                            </p>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-8">
+                            <div>
+                                <h4 className="font-bold text-gray-900 mb-3">When Commission is Due</h4>
+                                <ul className="text-sm text-gray-600 space-y-2 list-disc pl-5">
+                                    <li>The commission becomes payable upon the candidate successfully completing their <strong>standard 3-month probation period</strong>.</li>
+                                    <li>An invoice will be issued at that point, payable within 30 days.</li>
+                                    <li>If the candidate leaves before completing probation, no commission is owed for that placement.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 mb-3">Free Replacement Guarantee</h4>
+                                <ul className="text-sm text-gray-600 space-y-2 list-disc pl-5">
+                                    <li>If a placed candidate leaves within probation, we provide <strong>one free replacement search</strong>.</li>
+                                    <li>Client must notify us within 7 days of departure in writing.</li>
+                                    <li>Client's subscription must remain active and original commission must be paid.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mb-16">
+                        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b border-gray-100 pb-4">5. INTELLECTUAL PROPERTY</h2>
                         <div className="flex flex-col md:flex-row gap-12">
                             <div className="flex-1">
                                 <h4 className="font-bold text-gray-900 mb-4">Our Rights:</h4>

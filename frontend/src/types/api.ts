@@ -91,6 +91,7 @@ export interface Candidate {
     status: CandidateStatus;
     resume_filename: string | null;
     resume_url: string | null;
+    contacts_locked: boolean;
     linkedin_url: string | null;
     summary: string | null;
     work_history: Array<{ id: string; title: string; company: string; timeline: string; description: string }> | null;
