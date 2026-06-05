@@ -43,8 +43,8 @@ export default function CandidatesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
-  const [experienceRange, setExperienceRange] = useState<[number, number]>([0, 20]);
-  const [salaryRange, setSalaryRange] = useState<[number, number]>([0, 2000000]);
+  const [experienceRange, setExperienceRange] = useState<[number, number]>([0, 50]);
+  const [salaryRange, setSalaryRange] = useState<[number, number]>([0, 100_000_000]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [minMatchScore, setMinMatchScore] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
