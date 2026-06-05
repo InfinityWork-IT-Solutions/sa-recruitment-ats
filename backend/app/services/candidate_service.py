@@ -10,6 +10,8 @@ from uuid import UUID
 import os
 
 from app.models import Candidate, User, CandidateStatus
+from app.models.application import Application
+from app.models.job import Job
 from app.schemas import CandidateCreate, CandidateUpdate, CandidateFilter
 
 
@@ -63,10 +65,17 @@ class CandidateService:
         candidate_id: UUID,
         agency_id: UUID
     ) -> Optional[Candidate]:
-        """Get candidate by ID (within agency)"""
+        """Get candidate by ID — visible if they applied to one of the agency's jobs."""
         stmt = select(Candidate).options(selectinload(Candidate.applications)).where(Candidate.id == candidate_id)
         if agency_id:
-            stmt = stmt.where(Candidate.agency_id == agency_id)
+            applied_subq = (
+                select(Application.candidate_id)
+                .join(Job, Job.id == Application.job_id)
+                .where(Job.agency_id == agency_id)
+                .distinct()
+                .scalar_subquery()
+            )
+            stmt = stmt.where(Candidate.id.in_(applied_subq))
             
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
@@ -100,7 +109,17 @@ class CandidateService:
         # Base query — load user to resolve profile_photo
         query = select(Candidate).options(selectinload(Candidate.user))
         if agency_id:
-            query = query.where(Candidate.agency_id == agency_id)
+            # Clients see only candidates who have applied to their jobs.
+            # This is a subquery: candidate IDs that appear in applications
+            # for jobs belonging to this agency.
+            applied_subq = (
+                select(Application.candidate_id)
+                .join(Job, Job.id == Application.job_id)
+                .where(Job.agency_id == agency_id)
+                .distinct()
+                .scalar_subquery()
+            )
+            query = query.where(Candidate.id.in_(applied_subq))
         
         # Apply filters
         if filters.search:

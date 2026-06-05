@@ -140,10 +140,9 @@ async def list_candidates(
         sort_order=sort_order
     )
     
-    # agency_admin and recruiter see ALL candidates (open marketplace model —
-    # candidates self-register and are visible to every paying client).
-    # Only candidate-role users are scoped to their own record.
-    if current_user.role in (UserRole.super_admin, UserRole.agency_admin, UserRole.recruiter, UserRole.client):
+    # Clients see only candidates who have applied to their jobs.
+    # super_admin sees everything (agency_id = None → no filter).
+    if current_user.role == UserRole.super_admin:
         agency_id = None
     else:
         agency_id = current_user.agency_id
@@ -203,10 +202,7 @@ async def get_candidate(
     db: AsyncSession = Depends(get_db)
 ):
     """Get candidate details by ID"""
-    if current_user.role in (UserRole.super_admin, UserRole.agency_admin, UserRole.recruiter, UserRole.client):
-        agency_id = None
-    else:
-        agency_id = current_user.agency_id
+    agency_id = None if current_user.role == UserRole.super_admin else current_user.agency_id
     candidate = await candidate_service.get_candidate(db, candidate_id, agency_id)
 
     if not candidate:
