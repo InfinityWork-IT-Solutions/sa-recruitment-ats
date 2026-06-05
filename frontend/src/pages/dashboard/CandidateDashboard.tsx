@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import {
-  Briefcase, Bookmark, Search, MapPin, Banknote,
-  Clock, ChevronRight, Sparkles, TrendingUp, FileText,
+  Briefcase, Bookmark, BookmarkCheck, Search, MapPin, Banknote,
+  Clock, Sparkles, TrendingUp, FileText, Wifi, CalendarDays,
   AlertCircle, Bell, CircleDashed, CheckCircle2,
 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format, isPast } from 'date-fns';
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   applied:              { label: 'Applied',        color: 'bg-blue-100 text-blue-700' },
@@ -313,10 +313,10 @@ export default function CandidateDashboard() {
         </div>
       </div>
 
-      {/* Recommended For You */}
+      {/* Recommended For You — full card design matching the jobs page */}
       {recommendedJobs.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+        <div>
+          <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900 flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-blue-500" /> Recommended For You
             </h2>
@@ -324,46 +324,103 @@ export default function CandidateDashboard() {
               View all jobs →
             </Link>
           </div>
-          <div className="divide-y divide-gray-50">
-            {recommendedJobs.map((job) => (
-              <Link
-                key={job.id}
-                to={`/jobs/${job.id}`}
-                className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {job.title.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                      {job.title}
-                    </p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      {job.city && (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />{job.city}
+          <div className="space-y-3">
+            {recommendedJobs.map((job) => {
+              const isClosed = job.closing_date && isPast(new Date(job.closing_date));
+              const isClosingSoon = job.closing_date && !isClosed &&
+                new Date(job.closing_date).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000;
+              const isSaved = savedJobs.some((sj: any) => sj.job_id === job.id);
+
+              return (
+                <Link
+                  key={job.id}
+                  to={`/jobs/${job.id}`}
+                  className="group block bg-white rounded-2xl p-5 shadow-sm hover:shadow-md border border-transparent hover:border-blue-100 transition-all duration-200"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {job.title.charAt(0).toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors text-[15px] leading-snug">
+                          {job.title}
+                        </h3>
+                        {isClosingSoon && !isClosed && (
+                          <span className="text-[10px] font-semibold bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-100">
+                            Closing soon
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-2">
+                        {(job.city || job.location) && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {job.location || `${job.city || ''}${job.province ? ', ' + job.province : ''}`}
+                          </span>
+                        )}
+                        {job.is_remote && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <Wifi className="w-3 h-3" /> Remote
+                          </span>
+                        )}
+                        {(job.salary_min || job.salary_max) && (
+                          <span className="flex items-center gap-1">
+                            <Banknote className="w-3 h-3" />
+                            {job.salary_currency || 'ZAR'} {job.salary_min?.toLocaleString() || '0'}
+                            {job.salary_max ? ` – ${job.salary_max.toLocaleString()}` : '+'}
+                          </span>
+                        )}
+                        {job.closing_date && (
+                          <span className={`flex items-center gap-1 ${isClosed ? 'text-red-500' : isClosingSoon ? 'text-orange-500' : ''}`}>
+                            <CalendarDays className="w-3 h-3" />
+                            {isClosed ? 'Closed' : `Closes ${format(new Date(job.closing_date), 'dd MMM yyyy')}`}
+                          </span>
+                        )}
+                      </div>
+
+                      {job.description && (
+                        <p className="text-xs text-gray-500 leading-relaxed mb-2.5 line-clamp-2">
+                          {job.description.slice(0, 200)}{job.description.length > 200 ? '…' : ''}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {job.employment_type && (
+                          <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-100">
+                            {EMP_TYPE_LABEL[job.employment_type] ?? job.employment_type}
+                          </span>
+                        )}
+                        {job.skills?.filter((s: string) => s.trim()).slice(0, 5).map((skill: string) => (
+                          <span key={skill} className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
+                            {skill}
+                          </span>
+                        ))}
+                        {(job.skills?.length ?? 0) > 5 && (
+                          <span className="text-[10px] text-gray-400 font-medium">+{(job.skills?.length ?? 0) - 5} more</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <div className={`p-1.5 rounded-lg transition-colors ${isSaved ? 'text-purple-600 bg-purple-50' : 'text-gray-300'}`}>
+                        {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                      </div>
+                      {job.match_score != null && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${job.match_score >= 75 ? 'bg-green-100 text-green-700' : job.match_score >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600'}`}>
+                          {job.match_score}% match
                         </span>
                       )}
-                      {(job.salary_min || job.salary_max) && (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Banknote className="w-3 h-3" />
-                          ZAR {job.salary_min?.toLocaleString() ?? '0'}{job.salary_max ? `–${job.salary_max.toLocaleString()}` : '+'}
-                        </span>
-                      )}
+                      <span className="text-[10px] text-gray-400">
+                        {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                  {job.employment_type && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                      {EMP_TYPE_LABEL[job.employment_type] ?? job.employment_type}
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-gray-300" />
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

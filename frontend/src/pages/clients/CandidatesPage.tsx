@@ -136,15 +136,17 @@ export default function CandidatesPage() {
       filtered = filtered.filter(c => selectedProvinces.includes(c.province));
     }
 
-    // Experience range
-    filtered = filtered.filter(c =>
-      c.experience_years >= experienceRange[0] && c.experience_years <= experienceRange[1]
-    );
+    // Experience range — treat null/undefined as 0 so incomplete profiles aren't hidden
+    filtered = filtered.filter(c => {
+      const exp = c.experience_years ?? 0;
+      return exp >= experienceRange[0] && exp <= experienceRange[1];
+    });
 
-    // Salary range
-    filtered = filtered.filter(c =>
-      c.salary_expectation >= salaryRange[0] && c.salary_expectation <= salaryRange[1]
-    );
+    // Salary range — treat null/undefined as 0
+    filtered = filtered.filter(c => {
+      const sal = c.salary_expectation ?? 0;
+      return sal >= salaryRange[0] && sal <= salaryRange[1];
+    });
 
     // Status filter
     if (selectedStatus.length > 0) {
