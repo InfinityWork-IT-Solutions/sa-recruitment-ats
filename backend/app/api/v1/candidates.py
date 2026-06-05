@@ -353,11 +353,10 @@ async def upload_resume_with_ai_parsing(
             detail="File size exceeds 5MB limit"
         )
     
-    # Create resumes directory
-    resumes_dir = Path("/tmp/resumes")  # TODO: Use S3 in production
+    # Save to uploads/resumes/ — persists across restarts (same dir as other uploads)
+    resumes_dir = Path("uploads/resumes")
     resumes_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Save file
+
     filename = f"{candidate_id}{file_ext}"
     file_path = resumes_dir / filename
     
@@ -456,12 +455,27 @@ async def download_resume(
             detail="CV downloads require an active paid subscription. Upgrade to access this feature.",
         )
 
-    if not candidate.resume_url:
+    if not candidate.resume_filename:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume on file")
 
-    file_path = Path(candidate.resume_url)
-    if not file_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume file not found on server")
+    # Derive the file extension from the stored original filename
+    ext = Path(candidate.resume_filename).suffix or '.pdf'
+
+    # Check locations in priority order:
+    #   1. uploads/resumes/ — new persistent location
+    #   2. Path stored in resume_url — legacy /tmp/resumes/ records
+    candidates_to_try: list[Path] = [
+        Path("uploads/resumes") / f"{candidate_id}{ext}",
+    ]
+    if candidate.resume_url:
+        candidates_to_try.append(Path(candidate.resume_url))
+
+    file_path = next((p for p in candidates_to_try if p.exists()), None)
+    if not file_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume file not found on server. The candidate may need to re-upload."
+        )
 
     return FileResponse(
         path=str(file_path),
