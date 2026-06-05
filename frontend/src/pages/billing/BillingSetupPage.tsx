@@ -84,6 +84,10 @@ export default function BillingSetupPage() {
 
   const handleSetupBilling = async () => {
     setLoading(true);
+    // Store where to return after PayFast redirects back to /billing/success
+    const returnTo = searchParams.get('return');
+    if (returnTo) sessionStorage.setItem('billing_return_to', returnTo);
+
     try {
       const res = await apiClient.post('/subscriptions/create', {
         plan_name: planName,

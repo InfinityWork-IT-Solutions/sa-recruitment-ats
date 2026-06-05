@@ -23,6 +23,7 @@ import { ApplicationStatus } from '@/types/api';
 import SendEmailModal from '@/components/SendEmailModal';
 import { useAuthStore } from '@/store/auth';
 import apiClient from '@/lib/api-client';
+import toast from 'react-hot-toast';
 
 const statusColors: Record<ApplicationStatus, string> = {
     applied: 'badge-gray',
@@ -61,9 +62,15 @@ export default function CandidateDetailPage() {
             a.download = candidate?.resume_filename || 'resume.pdf';
             a.click();
             window.URL.revokeObjectURL(url);
-        } catch {
-            // 403 = trial user — redirect to billing
-            window.location.href = '/billing/setup';
+        } catch (err: any) {
+            if (err?.response?.status === 403) {
+                // Not yet paid — send to billing, come back here after
+                window.location.href = `/billing/setup?return=/candidates/${id}`;
+            } else if (err?.response?.status === 404) {
+                toast.error('CV file not found on the server. The candidate may need to re-upload their resume.');
+            } else {
+                toast.error('Could not download CV. Please try again.');
+            }
         }
     };
 
