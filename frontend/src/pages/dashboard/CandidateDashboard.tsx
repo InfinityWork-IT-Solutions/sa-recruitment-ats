@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import {
   Briefcase, Bookmark, BookmarkCheck, Search, MapPin, Banknote,
-  Clock, Sparkles, TrendingUp, FileText, Wifi, CalendarDays,
+  Clock, ChevronRight, Sparkles, TrendingUp, FileText, Wifi, CalendarDays,
   AlertCircle, Bell, CircleDashed, CheckCircle2,
 } from 'lucide-react';
 import apiClient from '@/lib/api-client';
