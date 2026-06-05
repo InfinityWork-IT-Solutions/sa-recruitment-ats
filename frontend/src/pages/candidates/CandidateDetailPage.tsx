@@ -264,7 +264,7 @@ export default function CandidateDetailPage() {
                                         <span className="font-bold">Download CV</span>
                                     </button>
                                 )}
-                                {user?.role !== 'client' && user?.role !== 'candidate' && (
+                                {!locked && user?.role !== 'client' && user?.role !== 'candidate' && (
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="btn-secondary w-full flex items-center justify-center space-x-2"
@@ -275,7 +275,7 @@ export default function CandidateDetailPage() {
                                 )}
                             </div>
                         ) : (
-                            user?.role !== 'client' && user?.role !== 'candidate' ? (
+                            !locked && user?.role !== 'client' && user?.role !== 'candidate' ? (
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     className="btn-primary w-full flex items-center justify-center space-x-2"

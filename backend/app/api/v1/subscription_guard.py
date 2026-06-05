@@ -46,16 +46,20 @@ def mask_phone(phone: str) -> str:
 
 async def agency_is_paid(agency_id: UUID, db: AsyncSession) -> bool:
     """
-    Returns True only when the agency has a PayFast-confirmed active
-    subscription (payfast_subscription_token is set).
-    Trial-only agencies (status='trialing', no token) return False.
-    Super-admin callers should skip this check entirely.
+    Returns True once the agency has gone through the billing setup flow,
+    i.e. a RecruiterSubscription record exists with status 'trialing' or
+    'active'.  The subscription is only created when the user submits the
+    PayFast billing form, so its existence is sufficient proof that a payment
+    method has been registered.
+
+    Note: we intentionally do NOT require payfast_subscription_token here
+    because that token is only delivered via the PayFast ITN webhook, which
+    cannot reach localhost during development.
     """
     result = await db.execute(
         select(RecruiterSubscription).where(
             RecruiterSubscription.recruiter_agency_id == agency_id,
-            RecruiterSubscription.status == 'active',
-            RecruiterSubscription.payfast_subscription_token.isnot(None),
+            RecruiterSubscription.status.in_(['trialing', 'active']),
         )
     )
     return result.scalar_one_or_none() is not None
