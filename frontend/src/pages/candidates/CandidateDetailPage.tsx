@@ -114,7 +114,7 @@ export default function CandidateDetailPage() {
                         </p>
                     </div>
                 </div>
-                {user?.role !== 'client' && user?.role !== 'candidate' && (
+                {user?.role === 'super_admin' && (
                     <div className="flex items-center space-x-3">
                         <button className="btn-secondary flex items-center space-x-2">
                             <Edit className="w-4 h-4" />
@@ -263,7 +263,7 @@ export default function CandidateDetailPage() {
                                 )}
                             </div>
                         ) : (
-                            <div className="text-center py-4 text-gray-500 text-sm">
+                            <div className="text-center py-4 text-gray-400 text-sm">
                                 No resume uploaded yet
                             </div>
                         )}

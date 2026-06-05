@@ -613,12 +613,13 @@ async def get_trial_status(
     if not agency:
         return {"is_trial": False, "days_remaining": 0, "has_billing": False, "trial_ends_at": None}
 
-    # Check for an active paid subscription token (billing set up)
+    # has_billing = billing form was submitted (subscription record exists).
+    # We do NOT require payfast_subscription_token because the ITN webhook
+    # only fires on actual charge — not during the trial period.
     sub_result = await db.execute(
         select(RecruiterSubscription).where(
             RecruiterSubscription.recruiter_agency_id == agency.id,
             RecruiterSubscription.status.in_(["active", "trialing"]),
-            RecruiterSubscription.payfast_subscription_token != None,
         )
     )
     has_billing = sub_result.scalar_one_or_none() is not None

@@ -95,15 +95,16 @@ async def require_active_subscription(
         if agency.trial_ends_at and agency.trial_ends_at > datetime.utcnow():
             return  # still within trial
 
-        # Trial expired — check for an active paid subscription
+        # Trial expired — accept trialing (billing set up, awaiting first charge)
+        # or active (payment already confirmed).
         sub_result = await db.execute(
             select(RecruiterSubscription).where(
                 RecruiterSubscription.recruiter_agency_id == agency.id,
-                RecruiterSubscription.status == "active",
+                RecruiterSubscription.status.in_(["active", "trialing"]),
             )
         )
         if sub_result.scalar_one_or_none():
-            return  # paid subscription exists
+            return  # billing is set up
 
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
