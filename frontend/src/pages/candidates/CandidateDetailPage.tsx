@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useCandidate, useUploadResume, useDeleteCandidate } from '@/hooks/use-candidates';
+import { useCandidate, useDeleteCandidate } from '@/hooks/use-candidates';
 import { useApplications } from '@/hooks/use-applications';
 import {
     ArrowLeft,
@@ -8,7 +8,6 @@ import {
     MapPin,
     Briefcase,
     Calendar,
-    Upload,
     FileText,
     Trash2,
     Edit,
@@ -19,7 +18,7 @@ import {
     Lock
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { ApplicationStatus } from '@/types/api';
 import SendEmailModal from '@/components/SendEmailModal';
 import { useAuthStore } from '@/store/auth';
@@ -42,24 +41,15 @@ const statusColors: Record<ApplicationStatus, string> = {
 export default function CandidateDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
 
     const { data: candidate, isLoading } = useCandidate(id!);
     const { data: applicationsData } = useApplications({ candidate_id: id });
-    const uploadResume = useUploadResume();
     const deleteCandidate = useDeleteCandidate();
     const { user } = useAuthStore();
 
     const locked = !!(candidate as any)?.contacts_locked;
-
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file && id) {
-            await uploadResume.mutateAsync({ id, file });
-        }
-    };
 
     const handleDownloadCV = async () => {
         if (!id) return;
@@ -253,9 +243,9 @@ export default function CandidateDetailPage() {
                                         className="w-full bg-amber-50 text-amber-700 py-2 px-4 rounded-lg hover:bg-amber-100 flex items-center justify-center space-x-2 border border-amber-200 transition-colors"
                                     >
                                         <Lock className="w-4 h-4" />
-                                        <span className="font-bold">Unlock CV — Upgrade Plan</span>
+                                        <span className="font-bold">Unlock CV — Set Up Billing</span>
                                     </Link>
-                                ) : candidate.resume_filename && (
+                                ) : (
                                     <button
                                         onClick={handleDownloadCV}
                                         className="w-full bg-blue-50 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-100 flex items-center justify-center space-x-2 border border-blue-200 transition-colors"
@@ -264,39 +254,11 @@ export default function CandidateDetailPage() {
                                         <span className="font-bold">Download CV</span>
                                     </button>
                                 )}
-                                {!locked && user?.role !== 'client' && user?.role !== 'candidate' && (
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="btn-secondary w-full flex items-center justify-center space-x-2"
-                                    >
-                                        <Upload className="w-4 h-4" />
-                                        <span>Replace Resume</span>
-                                    </button>
-                                )}
                             </div>
                         ) : (
-                            !locked && user?.role !== 'client' && user?.role !== 'candidate' ? (
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="btn-primary w-full flex items-center justify-center space-x-2"
-                                >
-                                    <Upload className="w-4 h-4" />
-                                    <span>Upload Resume</span>
-                                </button>
-                            ) : (
-                                <div className="text-center py-4 text-gray-500 text-sm">
-                                    No resume uploaded yet
-                                </div>
-                            )
-                        )}
-                        {user?.role !== 'client' && user?.role !== 'candidate' && (
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                className="hidden"
-                                onChange={handleFileSelect}
-                            />
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                                No resume uploaded yet
+                            </div>
                         )}
                     </div>
 
